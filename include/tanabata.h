@@ -70,6 +70,14 @@ int tanabata_tanzaku_rem_by_name(Tanabata *tanabata, const char *name);
 // Remove tanzaku by alias
 int tanabata_tanzaku_rem_by_alias(Tanabata *tanabata, const char *alias);
 
+// ==================== KAZARI SECTION ==================== //
+
+// Add kazari
+int tanabata_kazari_add(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_id);
+
+// Remove kazari
+int tanabata_kazari_rem(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_id);
+
 #ifdef __cplusplus
 }
 #endif
