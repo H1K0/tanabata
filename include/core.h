@@ -39,7 +39,7 @@ typedef struct kazari {
     uint64_t  tanzaku_id;   // Tanzaku ID
 } Kazari;
 
-// Sasahyou (笹表) - the file database
+// Sasahyou (笹表) - database of files
 typedef struct sasahyou {
     uint64_t  created_ts;   // Sasahyou creation timestamp
     uint64_t  modified_ts;  // Sasahyou last modification timestamp
@@ -49,7 +49,7 @@ typedef struct sasahyou {
     FILE     *file;         // Storage file for sasahyou
 } Sasahyou;
 
-// Sappyou (冊表) - the tanzaku database
+// Sappyou (冊表) - database of tanzaku
 typedef struct sappyou {
     uint64_t  created_ts;   // Sappyou creation timestamp
     uint64_t  modified_ts;  // Sappyou last modification timestamp
@@ -59,7 +59,7 @@ typedef struct sappyou {
     FILE     *file;         // Storage file for sappyou
 } Sappyou;
 
-// Shoppyou (飾表) - the kazari database
+// Shoppyou (飾表) - database of kazari
 typedef struct shoppyou {
     uint64_t  created_ts;   // Shoppyou creation timestamp
     uint64_t  modified_ts;  // Shoppyou last modification timestamp
