@@ -45,6 +45,17 @@ int tanabata_open(Tanabata *tanabata, const char *path);
 // Dump tanabata
 int tanabata_dump(Tanabata *tanabata, const char *path);
 
+// ==================== SASA SECTION ==================== //
+
+// Add sasa
+int tanabata_sasa_add(Tanabata *tanabata, const char *path);
+
+// Remove sasa by ID
+int tanabata_sasa_rem_by_id(Tanabata *tanabata, uint64_t sasa_id);
+
+// Remove sasa by file path
+int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path);
+
 #ifdef __cplusplus
 }
 #endif
