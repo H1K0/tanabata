@@ -149,7 +149,7 @@ int sasa_add(Sasahyou *sasahyou, const char *path) {
     return 0;
 }
 
-int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {
+int sasa_rem_by_id(Sasahyou *sasahyou, uint64_t sasa_id) {
     if (sasa_id > sasahyou->size) {
         fprintf(stderr, "Failed to remove sasa: target sasa does not exist\n");
         return 1;
@@ -163,4 +163,22 @@ int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {
     sasahyou->modified_ts = time(NULL);
 
     return 0;
+}
+
+int sasa_rem_by_path(Sasahyou *sasahyou, const char *path) {
+    for (uint64_t i = 0; i < sasahyou->size; i++) {
+        if (strcmp(sasahyou->contents[i].path, path) == 0) {
+            if (sasahyou->contents[i].id != 0) {
+                sasahyou->modified_ts = time(NULL);
+                sasahyou->contents[i].id = 0;
+                sasahyou->removed_cnt++;
+                return 0;
+            } else {
+                fprintf(stderr, "Failed to remove sasa: target sasa is already removed\n");
+                return 1;
+            }
+        }
+    }
+    fprintf(stderr, "Failed to remove sasa: target sasa does not exist\n");
+    return 1;
 }

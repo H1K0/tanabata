@@ -19,7 +19,7 @@ extern "C" {
 typedef struct sasa {
     uint64_t  id;           // Sasa ID
     uint64_t  created_ts;   // Sasa creation timestamp
-    char     *path;         // Path to file
+    char     *path;         // File path
 } Sasa;
 
 // Tanzaku (短冊) - a tag record
@@ -104,8 +104,11 @@ int sasahyou_dump(Sasahyou *sasahyou, const char *path);
 // Add sasa to sasahyou
 int sasa_add(Sasahyou *sasahyou, const char *path);
 
-// Remove sasa from sasahyou
-int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id);
+// Remove sasa from sasahyou by ID
+int sasa_rem_by_id(Sasahyou *sasahyou, uint64_t sasa_id);
+
+// Remove sasa from sasahyou by file path
+int sasa_rem_by_path(Sasahyou *sasahyou, const char *path);
 
 // ==================== SAPPYOU SECTION ==================== //
 
@@ -133,8 +136,14 @@ int sappyou_dump(Sappyou *sappyou, const char *path);
 // Add new tanzaku to sappyou
 int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const char *description);
 
-// Remove tanzaku from sappyou
-int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id);
+// Remove tanzaku from sappyou by ID
+int tanzaku_rem_by_id(Sappyou *sappyou, uint64_t tanzaku_id);
+
+// Remove tanzaku from sappyou by name
+int tanzaku_rem_by_name(Sappyou *sappyou, const char *name);
+
+// Remove tanzaku from sappyou by alias
+int tanzaku_rem_by_alias(Sappyou *sappyou, const char *alias);
 
 // ==================== SHOPPYOU SECTION ==================== //
 
