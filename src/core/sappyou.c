@@ -160,7 +160,7 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const cha
     return 0;
 }
 
-int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {
+int tanzaku_rem_by_id(Sappyou *sappyou, uint64_t tanzaku_id) {
     if (tanzaku_id > sappyou->size) {
         fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
         return 1;
@@ -174,4 +174,40 @@ int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {
     sappyou->removed_cnt++;
 
     return 0;
+}
+
+int tanzaku_rem_by_name(Sappyou *sappyou, const char *name) {
+    for (uint64_t i = 0; i < sappyou->size; i++) {
+        if (strcmp(sappyou->contents[i].name, name) == 0) {
+            if (sappyou->contents[i].id != 0) {
+                sappyou->modified_ts = time(NULL);
+                sappyou->contents[i].id = 0;
+                sappyou->removed_cnt++;
+                return 0;
+            } else {
+                fprintf(stderr, "Failed to remove tanzaku: target tanzaku is already removed\n");
+                return 1;
+            }
+        }
+    }
+    fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
+    return 1;
+}
+
+int tanzaku_rem_by_alias(Sappyou *sappyou, const char *alias) {
+    for (uint64_t i = 0; i < sappyou->size; i++) {
+        if (strcmp(sappyou->contents[i].alias, alias) == 0) {
+            if (sappyou->contents[i].id != 0) {
+                sappyou->modified_ts = time(NULL);
+                sappyou->contents[i].id = 0;
+                sappyou->removed_cnt++;
+                return 0;
+            } else {
+                fprintf(stderr, "Failed to remove tanzaku: target tanzaku is already removed\n");
+                return 1;
+            }
+        }
+    }
+    fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
+    return 1;
 }
