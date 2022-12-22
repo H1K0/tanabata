@@ -28,24 +28,6 @@ int sappyou_free(Sappyou *sappyou) {
     return 0;
 }
 
-int sappyou_weed(Sappyou *sappyou) {
-    if (sappyou->removed_cnt == 0) {
-        return 0;
-    }
-    uint64_t weeded_size = sappyou->size - sappyou->removed_cnt;
-    for (uint64_t i = 0, count = 0; i < sappyou->size; i++) {
-        if (sappyou->contents[i].id != 0) {
-            sappyou->contents[i - count] = sappyou->contents[i];
-        } else {
-            count++;
-        }
-    }
-    sappyou->size = weeded_size;
-    sappyou->removed_cnt = 0;
-    sappyou->contents = realloc(sappyou->contents, sappyou->size * sizeof(Tanzaku));
-    return 0;
-}
-
 int sappyou_load(Sappyou *sappyou) {
     if (sappyou->file == NULL) {
         fprintf(stderr, "Failed to load sappyou: file not specified\n");
@@ -65,12 +47,17 @@ int sappyou_load(Sappyou *sappyou) {
     sappyou->contents = malloc(sappyou->size * sizeof(Tanzaku));
     size_t max_string_len = SIZE_MAX;
     for (uint64_t i = 0; i < sappyou->size; i++) {
-        fread(&sappyou->contents[i].id, 8, 1, sappyou->file);
-        fread(&sappyou->contents[i].created_ts, 8, 1, sappyou->file);
-        fread(&sappyou->contents[i].modified_ts, 8, 1, sappyou->file);
-        getdelim(&sappyou->contents[i].name, &max_string_len, 0, sappyou->file);
-        getdelim(&sappyou->contents[i].alias, &max_string_len, 0, sappyou->file);
-        getdelim(&sappyou->contents[i].description, &max_string_len, 0, sappyou->file);
+        if (fgetc(sappyou->file) != 0) {
+            sappyou->contents[i].id = i + 1;
+            fread(&sappyou->contents[i].created_ts, 8, 1, sappyou->file);
+            fread(&sappyou->contents[i].modified_ts, 8, 1, sappyou->file);
+            getdelim(&sappyou->contents[i].name, &max_string_len, 0, sappyou->file);
+            getdelim(&sappyou->contents[i].alias, &max_string_len, 0, sappyou->file);
+            getdelim(&sappyou->contents[i].description, &max_string_len, 0, sappyou->file);
+        } else {
+            sappyou->contents[i].id = 0;
+            sappyou->removed_cnt++;
+        }
     }
     return 0;
 }
@@ -80,10 +67,6 @@ int sappyou_save(Sappyou *sappyou) {
         fprintf(stderr, "Failed to save sappyou: file not specified\n");
         return 1;
     }
-    if (sappyou_weed(sappyou) != 0) {
-        fprintf(stderr, "Failed to save sappyou: failed to weed sappyou\n");
-        return 1;
-    }
     rewind(sappyou->file);
     fwrite(SAPPYOU_SIG, 2, 4, sappyou->file);
     fwrite(&sappyou->created_ts, 8, 1, sappyou->file);
@@ -91,12 +74,19 @@ int sappyou_save(Sappyou *sappyou) {
     fwrite(&sappyou->size, 8, 1, sappyou->file);
     fflush(sappyou->file);
     for (uint64_t i = 0; i < sappyou->size; i++) {
-        fwrite(&sappyou->contents[i].id, 8, 1, sappyou->file);
-        fwrite(&sappyou->contents[i].created_ts, 8, 1, sappyou->file);
-        fwrite(&sappyou->contents[i].modified_ts, 8, 1, sappyou->file);
-        fwrite(sappyou->contents[i].name, 1, strlen(sappyou->contents[i].name) + 1, sappyou->file);
-        fwrite(sappyou->contents[i].alias, 1, strlen(sappyou->contents[i].alias) + 1, sappyou->file);
-        fwrite(sappyou->contents[i].description, 1, strlen(sappyou->contents[i].description) + 1, sappyou->file);
+        if (sappyou->contents[i].id != 0) {
+            fputc(-1, sappyou->file);
+            fwrite(&sappyou->contents[i].created_ts, 8, 1, sappyou->file);
+            fwrite(&sappyou->contents[i].modified_ts, 8, 1, sappyou->file);
+            fputs(sappyou->contents[i].name, sappyou->file);
+            fputc(0, sappyou->file);
+            fputs(sappyou->contents[i].alias, sappyou->file);
+            fputc(0, sappyou->file);
+            fputs(sappyou->contents[i].description, sappyou->file);
+            fputc(0, sappyou->file);
+        } else {
+            fputc(0, sappyou->file);
+        }
     }
     fflush(sappyou->file);
     return 0;
@@ -125,12 +115,6 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const cha
         fprintf(stderr, "Failed to add tanzaku: sappyou is full\n");
         return 1;
     }
-    for (uint64_t i = 0; i < sappyou->size; i++) {
-        if (strcmp(name, sappyou->contents[i].name) == 0) {
-            fprintf(stderr, "Failed to add tanzaku: tanzaku with the name '%s' already exists\n", name);
-            return 1;
-        }
-    }
     Tanzaku newbie;
     newbie.created_ts = time(NULL);
     newbie.modified_ts = newbie.created_ts;
@@ -155,18 +139,20 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const cha
 }
 
 int tanzaku_rem_by_id(Sappyou *sappyou, uint64_t tanzaku_id) {
-    if (tanzaku_id > sappyou->size) {
-        fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
+    if (tanzaku_id == 0) {
+        fprintf(stderr, "Failed to remove tanzaku: got zero ID\n");
         return 1;
     }
-    if (sappyou->contents[tanzaku_id - 1].id == 0) {
-        fprintf(stderr, "Failed to remove tanzaku: target tanzaku is already removed\n");
-        return 1;
+    for (uint64_t i = 0; i < sappyou->size; i++) {
+        if (sappyou->contents[i].id == tanzaku_id) {
+            sappyou->modified_ts = time(NULL);
+            sappyou->contents[i].id = 0;
+            sappyou->removed_cnt++;
+            return 0;
+        }
     }
-    sappyou->modified_ts = time(NULL);
-    sappyou->contents[tanzaku_id - 1].id = 0;
-    sappyou->removed_cnt++;
-    return 0;
+    fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
+    return 1;
 }
 
 int tanzaku_rem_by_name(Sappyou *sappyou, const char *name) {
