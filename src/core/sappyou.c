@@ -12,7 +12,6 @@ int sappyou_init(Sappyou *sappyou) {
     sappyou->removed_cnt = 0;
     sappyou->contents = NULL;
     sappyou->file = NULL;
-
     return 0;
 }
 
@@ -26,7 +25,6 @@ int sappyou_free(Sappyou *sappyou) {
     if (sappyou->file != NULL) {
         fclose(sappyou->file);
     }
-
     return 0;
 }
 
@@ -45,7 +43,6 @@ int sappyou_weed(Sappyou *sappyou) {
     sappyou->size = weeded_size;
     sappyou->removed_cnt = 0;
     sappyou->contents = realloc(sappyou->contents, sappyou->size * sizeof(Tanzaku));
-
     return 0;
 }
 
@@ -75,7 +72,6 @@ int sappyou_load(Sappyou *sappyou) {
         getdelim(&sappyou->contents[i].alias, &max_string_len, 0, sappyou->file);
         getdelim(&sappyou->contents[i].description, &max_string_len, 0, sappyou->file);
     }
-
     return 0;
 }
 
@@ -103,7 +99,6 @@ int sappyou_save(Sappyou *sappyou) {
         fwrite(sappyou->contents[i].description, 1, strlen(sappyou->contents[i].description) + 1, sappyou->file);
     }
     fflush(sappyou->file);
-
     return 0;
 }
 
@@ -156,7 +151,6 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const cha
     sappyou->contents = realloc(sappyou->contents, sappyou->size * sizeof(Tanzaku));
     sappyou->contents[sappyou->size - 1] = newbie;
     sappyou->modified_ts = newbie.created_ts;
-
     return 0;
 }
 
@@ -172,7 +166,6 @@ int tanzaku_rem_by_id(Sappyou *sappyou, uint64_t tanzaku_id) {
     sappyou->modified_ts = time(NULL);
     sappyou->contents[tanzaku_id - 1].id = 0;
     sappyou->removed_cnt++;
-
     return 0;
 }
 
