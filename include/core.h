@@ -89,16 +89,16 @@ int sasahyou_free(Sasahyou *sasahyou);
 // Weed sasahyou
 int sasahyou_weed(Sasahyou *sasahyou);
 
-// Load sasahyou
+// Load sasahyou from file
 int sasahyou_load(Sasahyou *sasahyou);
 
-// Save sasahyou
+// Save sasahyou to file
 int sasahyou_save(Sasahyou *sasahyou);
 
-// Open sasahyou
+// Open sasahyou file and load data from it
 int sasahyou_open(Sasahyou *sasahyou, const char *path);
 
-// Dump sasahyou
+// Dump sasahyou to file
 int sasahyou_dump(Sasahyou *sasahyou, const char *path);
 
 // Add sasa to sasahyou
@@ -121,16 +121,16 @@ int sappyou_free(Sappyou *sappyou);
 // Weed sappyou
 int sappyou_weed(Sappyou *sappyou);
 
-// Load sappyou
+// Load sappyou from file
 int sappyou_load(Sappyou *sappyou);
 
-// Save sappyou
+// Save sappyou to file
 int sappyou_save(Sappyou *sappyou);
 
-// Open sappyou
+// Open sappyou file and load data from it
 int sappyou_open(Sappyou *sappyou, const char *path);
 
-// Dump sappyou
+// Dump sappyou to file
 int sappyou_dump(Sappyou *sappyou, const char *path);
 
 // Add new tanzaku to sappyou
@@ -156,16 +156,16 @@ int shoppyou_free(Shoppyou *shoppyou);
 // Weed shoppyou
 int shoppyou_weed(Shoppyou *shoppyou);
 
-// Load shoppyou
+// Load shoppyou from file
 int shoppyou_load(Shoppyou *shoppyou);
 
-// Save shoppyou
+// Save shoppyou to file
 int shoppyou_save(Shoppyou *shoppyou);
 
-// Open shoppyou
+// Open shoppyou file and load data from it
 int shoppyou_open(Shoppyou *shoppyou, const char *path);
 
-// Dump shoppyou
+// Dump shoppyou to file
 int shoppyou_dump(Shoppyou *shoppyou, const char *path);
 
 // Add kazari to shoppyou
