@@ -13,7 +13,6 @@ int sasahyou_init(Sasahyou *sasahyou) {
     sasahyou->removed_cnt = 0;
     sasahyou->contents = NULL;
     sasahyou->file = NULL;
-
     return 0;
 }
 
@@ -25,7 +24,6 @@ int sasahyou_free(Sasahyou *sasahyou) {
     if (sasahyou->file != NULL) {
         fclose(sasahyou->file);
     }
-
     return 0;
 }
 
@@ -44,7 +42,6 @@ int sasahyou_weed(Sasahyou *sasahyou) {
     sasahyou->size = weeded_size;
     sasahyou->removed_cnt = 0;
     sasahyou->contents = realloc(sasahyou->contents, sasahyou->size * sizeof(Sasa));
-
     return 0;
 }
 
@@ -71,7 +68,6 @@ int sasahyou_load(Sasahyou *sasahyou) {
         fread(&sasahyou->contents[i].created_ts, 8, 1, sasahyou->file);
         getdelim(&sasahyou->contents[i].path, &max_path_len, 0, sasahyou->file);
     }
-
     return 0;
 }
 
@@ -96,7 +92,6 @@ int sasahyou_save(Sasahyou *sasahyou) {
         fwrite(sasahyou->contents[i].path, 1, strlen(sasahyou->contents[i].path) + 1, sasahyou->file);
     }
     fflush(sasahyou->file);
-
     return 0;
 }
 
@@ -145,7 +140,6 @@ int sasa_add(Sasahyou *sasahyou, const char *path) {
     sasahyou->contents = realloc(sasahyou->contents, sasahyou->size * sizeof(Sasa));
     sasahyou->contents[sasahyou->size - 1] = newbie;
     sasahyou->modified_ts = newbie.created_ts;
-
     return 0;
 }
 
@@ -161,7 +155,6 @@ int sasa_rem_by_id(Sasahyou *sasahyou, uint64_t sasa_id) {
     sasahyou->contents[sasa_id - 1].id = 0;
     sasahyou->removed_cnt++;
     sasahyou->modified_ts = time(NULL);
-
     return 0;
 }
 

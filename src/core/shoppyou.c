@@ -12,7 +12,6 @@ int shoppyou_init(Shoppyou *shoppyou) {
     shoppyou->removed_cnt = 0;
     shoppyou->contents = NULL;
     shoppyou->file = NULL;
-
     return 0;
 }
 
@@ -21,7 +20,6 @@ int shoppyou_free(Shoppyou *shoppyou) {
     if (shoppyou->file != NULL) {
         fclose(shoppyou->file);
     }
-
     return 0;
 }
 
@@ -40,7 +38,6 @@ int shoppyou_weed(Shoppyou *shoppyou) {
     shoppyou->size = weeded_size;
     shoppyou->removed_cnt = 0;
     shoppyou->contents = realloc(shoppyou->contents, shoppyou->size * sizeof(Kazari));
-
     return 0;
 }
 
@@ -66,7 +63,6 @@ int shoppyou_load(Shoppyou *shoppyou) {
         fread(&shoppyou->contents[i].sasa_id, 8, 1, shoppyou->file);
         fread(&shoppyou->contents[i].tanzaku_id, 8, 1, shoppyou->file);
     }
-
     return 0;
 }
 
@@ -91,7 +87,6 @@ int shoppyou_save(Shoppyou *shoppyou) {
         fwrite(&shoppyou->contents[i].tanzaku_id, 8, 1, shoppyou->file);
     }
     fflush(shoppyou->file);
-
     return 0;
 }
 
@@ -133,7 +128,6 @@ int kazari_add(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
     shoppyou->contents = realloc(shoppyou->contents, shoppyou->size * sizeof(Kazari));
     shoppyou->contents[shoppyou->size - 1] = newbie;
     shoppyou->modified_ts = newbie.created_ts;
-
     return 0;
 }
 
