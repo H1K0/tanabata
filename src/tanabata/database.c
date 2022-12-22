@@ -50,10 +50,6 @@ int tanabata_save(Tanabata *tanabata) {
 }
 
 int tanabata_open(Tanabata *tanabata, const char *path) {
-    if (path[-1] == '/') {
-        fprintf(stderr, "Failed to open tanabata: output path must not end with '/'\n");
-        return 1;
-    }
     struct stat st;
     if (stat(path, &st) != 0 || !S_ISDIR(st.st_mode)) {
         fprintf(stderr, "Failed to open tanabata: directory '%s' does not exist\n", path);
@@ -73,10 +69,6 @@ int tanabata_open(Tanabata *tanabata, const char *path) {
 }
 
 int tanabata_dump(Tanabata *tanabata, const char *path) {
-    if (path[-1] == '/') {
-        fprintf(stderr, "Failed to dump tanabata: output path must not end with '/'\n");
-        return 1;
-    }
     struct stat st;
     if (stat(path, &st) != 0 || !S_ISDIR(st.st_mode)) {
         fprintf(stderr, "Failed to dump tanabata: directory '%s' does not exist\n", path);
