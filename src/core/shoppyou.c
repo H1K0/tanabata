@@ -28,11 +28,11 @@ int shoppyou_weed(Shoppyou *shoppyou) {
         return 0;
     }
     uint64_t weeded_size = shoppyou->size - shoppyou->removed_cnt;
-    for (uint64_t i = 0, count = 0; i < shoppyou->size; i++) {
-        if (shoppyou->contents[i].sasa_id != 0 || shoppyou->contents[i].tanzaku_id != 0) {
-            shoppyou->contents[i - count] = shoppyou->contents[i];
+    for (uint64_t i = 0, shift = 0; i < shoppyou->size; i++) {
+        if (shoppyou->contents[i].sasa_id != 0 && shoppyou->contents[i].tanzaku_id != 0) {
+            shoppyou->contents[i - shift] = shoppyou->contents[i];
         } else {
-            count++;
+            shift++;
         }
     }
     shoppyou->size = weeded_size;
@@ -72,7 +72,7 @@ int shoppyou_save(Shoppyou *shoppyou) {
         return 1;
     }
     if (shoppyou_weed(shoppyou) != 0) {
-        fprintf(stderr, "Failed to save shoppyou: failed to weed sappyou\n");
+        fprintf(stderr, "Failed to save shoppyou: failed to weed shoppyou\n");
         return 1;
     }
     rewind(shoppyou->file);
@@ -113,13 +113,6 @@ int kazari_add(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
         fprintf(stderr, "Failed to add kazari: shoppyou is full\n");
         return 1;
     }
-    for (uint64_t i = 0; i < shoppyou->size; i++) {
-        if (shoppyou->contents[i].sasa_id == sasa_id && shoppyou->contents[i].tanzaku_id == tanzaku_id) {
-            fprintf(stderr, "Failed to add kazari: kazari with sasa_id=%lu and tanzaku_id=%lu already exists\n",
-                    sasa_id, tanzaku_id);
-            return 1;
-        }
-    }
     Kazari newbie;
     newbie.created_ts = time(NULL);
     newbie.sasa_id = sasa_id;
@@ -136,7 +129,6 @@ int kazari_rem(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
         if (shoppyou->contents[i].sasa_id == sasa_id && shoppyou->contents[i].tanzaku_id == tanzaku_id) {
             shoppyou->modified_ts = time(NULL);
             shoppyou->contents[i].sasa_id = 0;
-            shoppyou->contents[i].tanzaku_id = 0;
             shoppyou->removed_cnt++;
             return 0;
         }

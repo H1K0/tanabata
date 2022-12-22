@@ -86,9 +86,6 @@ int sasahyou_init(Sasahyou *sasahyou);
 // Free sasahyou
 int sasahyou_free(Sasahyou *sasahyou);
 
-// Weed sasahyou
-int sasahyou_weed(Sasahyou *sasahyou);
-
 // Load sasahyou from file
 int sasahyou_load(Sasahyou *sasahyou);
 
@@ -117,9 +114,6 @@ int sappyou_init(Sappyou *sappyou);
 
 // Free sappyou
 int sappyou_free(Sappyou *sappyou);
-
-// Weed sappyou
-int sappyou_weed(Sappyou *sappyou);
 
 // Load sappyou from file
 int sappyou_load(Sappyou *sappyou);
