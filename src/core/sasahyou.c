@@ -135,7 +135,7 @@ int sasa_add(Sasahyou *sasahyou, const char *path) {
     return 0;
 }
 
-int sasa_rem_by_id(Sasahyou *sasahyou, uint64_t sasa_id) {
+int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {
     if (sasa_id == HOLE_ID) {
         fprintf(stderr, "Failed to remove sasa: got hole ID\n");
         return 1;
@@ -154,24 +154,4 @@ int sasa_rem_by_id(Sasahyou *sasahyou, uint64_t sasa_id) {
     sasahyou->holes[sasahyou->hole_cnt - 1] = sasahyou->database + sasa_id;
     sasahyou->modified_ts = time(NULL);
     return 0;
-}
-
-int sasa_rem_by_path(Sasahyou *sasahyou, const char *path) {
-    for (uint64_t i = 0; i < sasahyou->size; i++) {
-        if (strcmp(sasahyou->database[i].path, path) == 0) {
-            if (sasahyou->database[i].id != HOLE_ID) {
-                sasahyou->database[i].id = HOLE_ID;
-                sasahyou->hole_cnt++;
-                sasahyou->holes = realloc(sasahyou->holes, sasahyou->hole_cnt * sizeof(Sasa *));
-                sasahyou->holes[sasahyou->hole_cnt - 1] = sasahyou->database + i;
-                sasahyou->modified_ts = time(NULL);
-                return 0;
-            } else {
-                fprintf(stderr, "Failed to remove sasa: target sasa is already removed\n");
-                return 1;
-            }
-        }
-    }
-    fprintf(stderr, "Failed to remove sasa: target sasa does not exist\n");
-    return 1;
 }
