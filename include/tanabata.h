@@ -17,9 +17,9 @@ extern "C" {
 
 // Tanabata (七夕) - the struct with all databases
 typedef struct tanabata {
-    Sasahyou  sasahyou;   // Sasahyou struct
-    Sappyou   sappyou;    // Sappyou struct
-    Shoppyou  shoppyou;   // Shoppyou struct
+    Sasahyou   sasahyou;   // Sasahyou struct
+    Sappyou    sappyou;    // Sappyou struct
+    Shoppyou   shoppyou;   // Shoppyou struct
 } Tanabata;
 
 // ==================== DATABASE SECTION ==================== //
