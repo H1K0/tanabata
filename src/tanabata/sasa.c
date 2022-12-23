@@ -42,7 +42,7 @@ Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id) {
 
 Sasa tanabata_sasa_get_by_path(Tanabata *tanabata, const char *path) {
     for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
-        if (strcmp(tanabata->sasahyou.database[i].path, path) == 0) {
+        if (tanabata->sasahyou.database[i].id != HOLE_ID && strcmp(tanabata->sasahyou.database[i].path, path) == 0) {
             return tanabata->sasahyou.database[i];
         }
     }
