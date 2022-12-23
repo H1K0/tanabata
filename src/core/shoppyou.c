@@ -66,7 +66,7 @@ int shoppyou_save(Shoppyou *shoppyou) {
     fwrite(&size, 8, 1, shoppyou->file);
     fflush(shoppyou->file);
     for (uint64_t i = 0; i < shoppyou->size; i++) {
-        if (shoppyou->database[i].sasa_id != 0 && shoppyou->database[i].tanzaku_id != 0) {
+        if (shoppyou->database[i].sasa_id != HOLE_ID && shoppyou->database[i].tanzaku_id != HOLE_ID) {
             fwrite(&shoppyou->database[i].created_ts, 8, 1, shoppyou->file);
             fwrite(&shoppyou->database[i].sasa_id, 8, 1, shoppyou->file);
             fwrite(&shoppyou->database[i].tanzaku_id, 8, 1, shoppyou->file);
