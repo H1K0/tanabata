@@ -141,7 +141,7 @@ int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {
         return 1;
     }
     if (sasa_id >= sasahyou->size) {
-        fprintf(stderr, "Failed to remove sasa: target sasa does not exist\n");
+        fprintf(stderr, "Failed to remove sasa: too big ID\n");
         return 1;
     }
     if (sasahyou->database[sasa_id].id == HOLE_ID) {
