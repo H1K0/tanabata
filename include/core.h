@@ -13,11 +13,6 @@ extern "C" {
 #include <stdio.h>
 #endif
 
-// ==================== CONSTANTS ==================== //
-
-// ID of hole - an invalid record
-#define HOLE_ID (-1)
-
 // ==================== STRUCTS AND TYPEDEFS ==================== //
 
 // Sasa (笹) - a file record
@@ -39,9 +34,9 @@ typedef struct tanzaku {
 
 // Kazari (飾り) - a sasa-tanzaku relation record
 typedef struct kazari {
-    uint64_t   created_ts;   // Kazari creation timestamp
     uint64_t   sasa_id;      // Sasa ID
     uint64_t   tanzaku_id;   // Tanzaku ID
+    uint64_t   created_ts;   // Kazari creation timestamp
 } Kazari;
 
 // Sasahyou (笹表) - database of sasa
@@ -76,6 +71,20 @@ typedef struct shoppyou {
     Kazari   **holes;        // Array of pointers to holes
     FILE      *file;         // Storage file for shoppyou
 } Shoppyou;
+
+// ==================== CONSTANTS ==================== //
+
+// ID of hole - an invalid record
+#define HOLE_ID (-1)
+
+// Hole sasa constant
+const Sasa HOLE_SASA = {HOLE_ID};
+
+// Hole tanzaku constant
+const Tanzaku HOLE_TANZAKU = {HOLE_ID};
+
+// Hole kazari constant
+const Kazari HOLE_KAZARI = {HOLE_ID};
 
 // ==================== SASAHYOU SECTION ==================== //
 
