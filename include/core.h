@@ -28,7 +28,6 @@ typedef struct tanzaku {
     uint64_t   created_ts;   // Tanzaku creation timestamp
     uint64_t   modified_ts;  // Tanzaku last modification timestamp
     char      *name;         // Tanzaku name
-    char      *alias;        // Tanzaku alias
     char      *description;  // Tanzaku description
 } Tanzaku;
 
@@ -133,7 +132,7 @@ int sappyou_open(Sappyou *sappyou, const char *path);
 int sappyou_dump(Sappyou *sappyou, const char *path);
 
 // Add new tanzaku to sappyou
-int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const char *description);
+int tanzaku_add(Sappyou *sappyou, const char *name, const char *description);
 
 // Remove tanzaku from sappyou
 int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id);
