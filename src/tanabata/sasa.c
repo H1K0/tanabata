@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 
 #include "../../include/tanabata.h"
@@ -9,7 +10,13 @@ int tanabata_sasa_add(Tanabata *tanabata, const char *path) {
             return 1;
         }
     }
-    return sasa_add(&tanabata->sasahyou, path);
+    char *abspath = NULL;
+    abspath = realpath(path, abspath);
+    if (abspath != NULL) {
+        return sasa_add(&tanabata->sasahyou, abspath);
+    }
+    fprintf(stderr, "Failed to add sasa: file does not exist\n");
+    return 1;
 }
 
 int tanabata_sasa_rem_by_id(Tanabata *tanabata, uint64_t sasa_id) {
@@ -41,8 +48,13 @@ Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id) {
 }
 
 Sasa tanabata_sasa_get_by_path(Tanabata *tanabata, const char *path) {
+    char *abspath = NULL;
+    abspath = realpath(path, abspath);
+    if (abspath == NULL) {
+        return HOLE_SASA;
+    }
     for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
-        if (tanabata->sasahyou.database[i].id != HOLE_ID && strcmp(tanabata->sasahyou.database[i].path, path) == 0) {
+        if (tanabata->sasahyou.database[i].id != HOLE_ID && strcmp(tanabata->sasahyou.database[i].path, abspath) == 0) {
             return tanabata->sasahyou.database[i];
         }
     }
