@@ -52,7 +52,7 @@ int sasahyou_load(Sasahyou *sasahyou) {
     size_t max_path_len = SIZE_MAX;
     for (uint64_t i = 0, r = sasahyou->hole_cnt; i < sasahyou->size; i++) {
         if (fgetc(sasahyou->file) != 0) {
-            sasahyou->content[i].id = i + 1;
+            sasahyou->content[i].id = i;
             fread(&sasahyou->content[i].created_ts, 8, 1, sasahyou->file);
             getdelim(&sasahyou->content[i].path, &max_path_len, 0, sasahyou->file);
         } else {
@@ -122,14 +122,14 @@ int sasa_add(Sasahyou *sasahyou, const char *path) {
     if (sasahyou->hole_cnt > 0) {
         sasahyou->hole_cnt--;
         Sasa **hole_ptr = sasahyou->holes + sasahyou->hole_cnt;
-        newbie.id = *hole_ptr - sasahyou->content + 1;
+        newbie.id = *hole_ptr - sasahyou->content;
         **hole_ptr = newbie;
         sasahyou->holes = realloc(sasahyou->holes, sasahyou->hole_cnt * sizeof(Sasa *));
     } else {
-        sasahyou->size++;
         newbie.id = sasahyou->size;
+        sasahyou->size++;
         sasahyou->content = realloc(sasahyou->content, sasahyou->size * sizeof(Sasa));
-        sasahyou->content[sasahyou->size - 1] = newbie;
+        sasahyou->content[newbie.id] = newbie;
     }
     sasahyou->modified_ts = newbie.created_ts;
     return 0;
@@ -140,11 +140,10 @@ int sasa_rem_by_id(Sasahyou *sasahyou, uint64_t sasa_id) {
         fprintf(stderr, "Failed to remove sasa: got hole ID\n");
         return 1;
     }
-    if (sasa_id > sasahyou->size) {
+    if (sasa_id >= sasahyou->size) {
         fprintf(stderr, "Failed to remove sasa: target sasa does not exist\n");
         return 1;
     }
-    sasa_id--;
     if (sasahyou->content[sasa_id].id == HOLE_ID) {
         fprintf(stderr, "Failed to remove sasa: target sasa is already removed\n");
         return 1;

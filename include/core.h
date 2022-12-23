@@ -16,7 +16,7 @@ extern "C" {
 // ==================== CONSTANTS ==================== //
 
 // ID of hole - an invalid record
-#define HOLE_ID (0)
+#define HOLE_ID (-1)
 
 // ==================== STRUCTS AND TYPEDEFS ==================== //
 
