@@ -158,7 +158,7 @@ int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {
         return 1;
     }
     if (tanzaku_id >= sappyou->size) {
-        fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
+        fprintf(stderr, "Failed to remove tanzaku: too big ID\n");
         return 1;
     }
     if (sappyou->database[tanzaku_id].id == HOLE_ID) {
