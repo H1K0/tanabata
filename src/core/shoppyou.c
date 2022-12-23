@@ -84,6 +84,7 @@ int shoppyou_open(Shoppyou *shoppyou, const char *path) {
         fprintf(stderr, "Failed to dump shoppyou: failed to open file '%s'\n", path);
         return 1;
     }
+    shoppyou->holes = NULL;
     return shoppyou_load(shoppyou);
 }
 
