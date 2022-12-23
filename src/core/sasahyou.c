@@ -5,6 +5,8 @@
 
 #include "../../include/core.h"
 
+const Sasa HOLE_SASA = {HOLE_ID};
+
 // Sasahyou file signature: 七夕笹表
 const uint16_t SASAHYOU_SIG[4] = {L'七', L'夕', L'笹', L'表'};
 
