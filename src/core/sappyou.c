@@ -4,24 +4,27 @@
 
 #include "../../include/core.h"
 
+// Sappyou file signature: 七夕冊表
+const uint16_t SAPPYOU_SIG[4] = {L'七', L'夕', L'冊', L'表'};
+
 int sappyou_init(Sappyou *sappyou) {
-    uint64_t timestamp = time(NULL);
-    sappyou->created_ts = timestamp;
-    sappyou->modified_ts = timestamp;
+    sappyou->created_ts = time(NULL);
+    sappyou->modified_ts = sappyou->created_ts;
     sappyou->size = 0;
-    sappyou->removed_cnt = 0;
-    sappyou->contents = NULL;
+    sappyou->content = NULL;
+    sappyou->hole_cnt = 0;
+    sappyou->holes = NULL;
     sappyou->file = NULL;
     return 0;
 }
 
 int sappyou_free(Sappyou *sappyou) {
     for (uint64_t i = 0; i < sappyou->size; i++) {
-        free(sappyou->contents[i].name);
-        free(sappyou->contents[i].alias);
-        free(sappyou->contents[i].description);
+        free(sappyou->content[i].name);
+        free(sappyou->content[i].alias);
+        free(sappyou->content[i].description);
     }
-    free(sappyou->contents);
+    free(sappyou->content);
     if (sappyou->file != NULL) {
         fclose(sappyou->file);
     }
@@ -43,20 +46,22 @@ int sappyou_load(Sappyou *sappyou) {
     fread(&sappyou->created_ts, 8, 1, sappyou->file);
     fread(&sappyou->modified_ts, 8, 1, sappyou->file);
     fread(&sappyou->size, 8, 1, sappyou->file);
-    sappyou->removed_cnt = 0;
-    sappyou->contents = malloc(sappyou->size * sizeof(Tanzaku));
+    fread(&sappyou->hole_cnt, 8, 1, sappyou->file);
+    sappyou->content = malloc(sappyou->size * sizeof(Tanzaku));
+    sappyou->holes = malloc(sappyou->hole_cnt * sizeof(Tanzaku *));
     size_t max_string_len = SIZE_MAX;
-    for (uint64_t i = 0; i < sappyou->size; i++) {
+    for (uint64_t i = 0, r = sappyou->hole_cnt; i < sappyou->size; i++) {
         if (fgetc(sappyou->file) != 0) {
-            sappyou->contents[i].id = i + 1;
-            fread(&sappyou->contents[i].created_ts, 8, 1, sappyou->file);
-            fread(&sappyou->contents[i].modified_ts, 8, 1, sappyou->file);
-            getdelim(&sappyou->contents[i].name, &max_string_len, 0, sappyou->file);
-            getdelim(&sappyou->contents[i].alias, &max_string_len, 0, sappyou->file);
-            getdelim(&sappyou->contents[i].description, &max_string_len, 0, sappyou->file);
+            sappyou->content[i].id = i + 1;
+            fread(&sappyou->content[i].created_ts, 8, 1, sappyou->file);
+            fread(&sappyou->content[i].modified_ts, 8, 1, sappyou->file);
+            getdelim(&sappyou->content[i].name, &max_string_len, 0, sappyou->file);
+            getdelim(&sappyou->content[i].alias, &max_string_len, 0, sappyou->file);
+            getdelim(&sappyou->content[i].description, &max_string_len, 0, sappyou->file);
         } else {
-            sappyou->contents[i].id = 0;
-            sappyou->removed_cnt++;
+            sappyou->content[i].id = HOLE_ID;
+            r--;
+            sappyou->holes[r] = sappyou->content + i;
         }
     }
     return 0;
@@ -72,17 +77,18 @@ int sappyou_save(Sappyou *sappyou) {
     fwrite(&sappyou->created_ts, 8, 1, sappyou->file);
     fwrite(&sappyou->modified_ts, 8, 1, sappyou->file);
     fwrite(&sappyou->size, 8, 1, sappyou->file);
+    fwrite(&sappyou->hole_cnt, 8, 1, sappyou->file);
     fflush(sappyou->file);
     for (uint64_t i = 0; i < sappyou->size; i++) {
-        if (sappyou->contents[i].id != 0) {
+        if (sappyou->content[i].id != HOLE_ID) {
             fputc(-1, sappyou->file);
-            fwrite(&sappyou->contents[i].created_ts, 8, 1, sappyou->file);
-            fwrite(&sappyou->contents[i].modified_ts, 8, 1, sappyou->file);
-            fputs(sappyou->contents[i].name, sappyou->file);
+            fwrite(&sappyou->content[i].created_ts, 8, 1, sappyou->file);
+            fwrite(&sappyou->content[i].modified_ts, 8, 1, sappyou->file);
+            fputs(sappyou->content[i].name, sappyou->file);
             fputc(0, sappyou->file);
-            fputs(sappyou->contents[i].alias, sappyou->file);
+            fputs(sappyou->content[i].alias, sappyou->file);
             fputc(0, sappyou->file);
-            fputs(sappyou->contents[i].description, sappyou->file);
+            fputs(sappyou->content[i].description, sappyou->file);
             fputc(0, sappyou->file);
         } else {
             fputc(0, sappyou->file);
@@ -95,7 +101,7 @@ int sappyou_save(Sappyou *sappyou) {
 int sappyou_open(Sappyou *sappyou, const char *path) {
     sappyou->file = fopen(path, "r+b");
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to dump sappyou: failed to open file '%s'\n", path);
+        fprintf(stderr, "Failed to dump sappyou: failed to open file\n");
         return 1;
     }
     return sappyou_load(sappyou);
@@ -104,14 +110,14 @@ int sappyou_open(Sappyou *sappyou, const char *path) {
 int sappyou_dump(Sappyou *sappyou, const char *path) {
     sappyou->file = fopen(path, "w+b");
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to dump sappyou: failed to open file '%s'\n", path);
+        fprintf(stderr, "Failed to dump sappyou: failed to open file\n");
         return 1;
     }
     return sappyou_save(sappyou);
 }
 
 int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const char *description) {
-    if (sappyou->size == -1) {
+    if (sappyou->size == -1 && sappyou->hole_cnt == 0) {
         fprintf(stderr, "Failed to add tanzaku: sappyou is full\n");
         return 1;
     }
@@ -130,38 +136,53 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const cha
     newbie.description = malloc(description_size + 1);
     strcpy(newbie.description, description);
     newbie.description[description_size] = 0;
-    sappyou->size++;
-    newbie.id = sappyou->size;
-    sappyou->contents = realloc(sappyou->contents, sappyou->size * sizeof(Tanzaku));
-    sappyou->contents[sappyou->size - 1] = newbie;
+    if (sappyou->hole_cnt > 0) {
+        sappyou->hole_cnt--;
+        Tanzaku **hole_ptr = sappyou->holes + sappyou->hole_cnt;
+        newbie.id = *hole_ptr - sappyou->content + 1;
+        **hole_ptr = newbie;
+        sappyou->holes = realloc(sappyou->holes, sappyou->hole_cnt * sizeof(Tanzaku *));
+    } else {
+        sappyou->size++;
+        newbie.id = sappyou->size;
+        sappyou->content = realloc(sappyou->content, sappyou->size * sizeof(Tanzaku));
+        sappyou->content[sappyou->size - 1] = newbie;
+    }
     sappyou->modified_ts = newbie.created_ts;
     return 0;
 }
 
 int tanzaku_rem_by_id(Sappyou *sappyou, uint64_t tanzaku_id) {
-    if (tanzaku_id == 0) {
-        fprintf(stderr, "Failed to remove tanzaku: got zero ID\n");
+    if (tanzaku_id == HOLE_ID) {
+        fprintf(stderr, "Failed to remove tanzaku: got hole ID\n");
         return 1;
     }
-    for (uint64_t i = 0; i < sappyou->size; i++) {
-        if (sappyou->contents[i].id == tanzaku_id) {
-            sappyou->modified_ts = time(NULL);
-            sappyou->contents[i].id = 0;
-            sappyou->removed_cnt++;
-            return 0;
-        }
+    if (tanzaku_id > sappyou->size) {
+        fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
+        return 1;
     }
-    fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
-    return 1;
+    tanzaku_id--;
+    if (sappyou->content[tanzaku_id].id == HOLE_ID) {
+        fprintf(stderr, "Failed to remove tanzaku: target tanzaku is already removed\n");
+        return 1;
+    }
+    sappyou->content[tanzaku_id].id = HOLE_ID;
+    sappyou->hole_cnt++;
+    sappyou->holes = realloc(sappyou->holes, sappyou->hole_cnt);
+    sappyou->holes[sappyou->hole_cnt - 1] = sappyou->content + tanzaku_id;
+    sappyou->modified_ts = time(NULL);
+    return 0;
 }
 
 int tanzaku_rem_by_name(Sappyou *sappyou, const char *name) {
     for (uint64_t i = 0; i < sappyou->size; i++) {
-        if (strcmp(sappyou->contents[i].name, name) == 0) {
-            if (sappyou->contents[i].id != 0) {
+        if (strcmp(sappyou->content[i].name, name) == 0) {
+            if (sappyou->content[i].id != HOLE_ID) {
+                sappyou->content[i].id = HOLE_ID;
+                sappyou->hole_cnt++;
+                sappyou->holes = realloc(sappyou->holes, sappyou->hole_cnt * sizeof(Tanzaku *));
+                sappyou->holes[sappyou->hole_cnt - 1] = sappyou->content + i;
                 sappyou->modified_ts = time(NULL);
-                sappyou->contents[i].id = 0;
-                sappyou->removed_cnt++;
                 return 0;
             } else {
                 fprintf(stderr, "Failed to remove tanzaku: target tanzaku is already removed\n");
@@ -175,11 +196,13 @@ int tanzaku_rem_by_name(Sappyou *sappyou, const char *name) {
 
 int tanzaku_rem_by_alias(Sappyou *sappyou, const char *alias) {
     for (uint64_t i = 0; i < sappyou->size; i++) {
-        if (strcmp(sappyou->contents[i].alias, alias) == 0) {
-            if (sappyou->contents[i].id != 0) {
+        if (strcmp(sappyou->content[i].alias, alias) == 0) {
+            if (sappyou->content[i].id != HOLE_ID) {
+                sappyou->content[i].id = HOLE_ID;
+                sappyou->hole_cnt++;
+                sappyou->holes = realloc(sappyou->holes, sappyou->hole_cnt * sizeof(Tanzaku *));
+                sappyou->holes[sappyou->hole_cnt - 1] = sappyou->content + i;
                 sappyou->modified_ts = time(NULL);
-                sappyou->contents[i].id = 0;
-                sappyou->removed_cnt++;
                 return 0;
             } else {
                 fprintf(stderr, "Failed to remove tanzaku: target tanzaku is already removed\n");
