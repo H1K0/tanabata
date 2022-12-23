@@ -87,6 +87,12 @@ int tanabata_kazari_add(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_i
 // Remove kazari
 int tanabata_kazari_rem(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_id);
 
+// Get tanzaku list of sasa
+Tanzaku *tanabata_tanzaku_get_by_sasa(Tanabata *tanabata, uint64_t sasa_id);
+
+// Get sasa list of tanzaku
+Sasa *tanabata_sasa_get_by_tanzaku(Tanabata *tanabata, uint64_t tanzaku_id);
+
 #ifdef __cplusplus
 }
 #endif
