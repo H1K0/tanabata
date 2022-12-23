@@ -41,7 +41,7 @@ Tanzaku tanabata_tanzaku_get_by_id(Tanabata *tanabata, uint64_t tanzaku_id) {
 
 Tanzaku tanabata_tanzaku_get_by_name(Tanabata *tanabata, const char *name) {
     for (uint64_t i = 0; i < tanabata->sappyou.size; i++) {
-        if (strcmp(tanabata->sappyou.database[i].name, name) == 0) {
+        if (tanabata->sappyou.database[i].id != HOLE_ID && strcmp(tanabata->sappyou.database[i].name, name) == 0) {
             return tanabata->sappyou.database[i];
         }
     }

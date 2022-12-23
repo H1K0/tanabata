@@ -11,6 +11,10 @@ int tanabata_kazari_rem(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_i
 }
 
 Tanzaku *tanabata_tanzaku_get_by_sasa(Tanabata *tanabata, uint64_t sasa_id) {
+    if (sasa_id == HOLE_ID) {
+        fprintf(stderr, "Failed to get tanzaku list: got hole ID\n");
+        return NULL;
+    }
     Tanzaku *tanzaku_list = NULL;
     uint64_t tanzaku_count = 0;
     for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
@@ -29,6 +33,10 @@ Tanzaku *tanabata_tanzaku_get_by_sasa(Tanabata *tanabata, uint64_t sasa_id) {
 }
 
 Sasa *tanabata_sasa_get_by_tanzaku(Tanabata *tanabata, uint64_t tanzaku_id) {
+    if (tanzaku_id == HOLE_ID) {
+        fprintf(stderr, "Failed to get sasa list: got hole ID\n");
+        return NULL;
+    }
     Sasa *sasa_list = NULL;
     uint64_t sasa_count = 0;
     for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
