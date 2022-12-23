@@ -27,3 +27,24 @@ int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path) {
     fprintf(stderr, "Failed to remove sasa: target sasa does not exist\n");
     return 1;
 }
+
+Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id) {
+    if (sasa_id == HOLE_ID) {
+        fprintf(stderr, "Failed to get sasa: got hole ID\n");
+        return HOLE_SASA;
+    }
+    if (sasa_id >= tanabata->sasahyou.size) {
+        fprintf(stderr, "Failed to get sasa: too big ID\n");
+        return HOLE_SASA;
+    }
+    return tanabata->sasahyou.database[sasa_id];
+}
+
+Sasa tanabata_sasa_get_by_path(Tanabata *tanabata, const char *path) {
+    for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
+        if (strcmp(tanabata->sasahyou.database[i].path, path) == 0) {
+            return tanabata->sasahyou.database[i];
+        }
+    }
+    return HOLE_SASA;
+}

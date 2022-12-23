@@ -27,6 +27,23 @@ int tanabata_tanzaku_rem_by_name(Tanabata *tanabata, const char *name) {
     return 1;
 }
 
-int tanabata_tanzaku_rem_by_alias(Tanabata *tanabata, const char *alias) {
-    return tanzaku_rem_by_alias(&tanabata->sappyou, alias);
+Tanzaku tanabata_tanzaku_get_by_id(Tanabata *tanabata, uint64_t tanzaku_id) {
+    if (tanzaku_id == HOLE_ID) {
+        fprintf(stderr, "Failed to get tanzaku: got hole ID\n");
+        return HOLE_TANZAKU;
+    }
+    if (tanzaku_id >= tanabata->sappyou.size) {
+        fprintf(stderr, "Failed to get tanzaku: too big ID\n");
+        return HOLE_TANZAKU;
+    }
+    return tanabata->sappyou.database[tanzaku_id];
+}
+
+Tanzaku tanabata_tanzaku_get_by_name(Tanabata *tanabata, const char *name) {
+    for (uint64_t i = 0; i < tanabata->sappyou.size; i++) {
+        if (strcmp(tanabata->sappyou.database[i].name, name) == 0) {
+            return tanabata->sappyou.database[i];
+        }
+    }
+    return HOLE_TANZAKU;
 }
