@@ -77,13 +77,13 @@ typedef struct shoppyou {
 #define HOLE_ID (-1)
 
 // Hole sasa constant
-const Sasa HOLE_SASA = {HOLE_ID};
+static const Sasa HOLE_SASA = {HOLE_ID};
 
 // Hole tanzaku constant
-const Tanzaku HOLE_TANZAKU = {HOLE_ID};
+static const Tanzaku HOLE_TANZAKU = {HOLE_ID};
 
 // Hole kazari constant
-const Kazari HOLE_KAZARI = {HOLE_ID};
+static const Kazari HOLE_KAZARI = {HOLE_ID};
 
 // ==================== SASAHYOU SECTION ==================== //
 
