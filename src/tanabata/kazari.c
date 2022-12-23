@@ -3,6 +3,13 @@
 #include "../../include/tanabata.h"
 
 int tanabata_kazari_add(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_id) {
+    for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
+        if (tanabata->shoppyou.database[i].sasa_id == sasa_id &&
+            tanabata->shoppyou.database[i].tanzaku_id == tanzaku_id) {
+            fprintf(stderr, "Failed to add kazari: target sasa and tanzaku are already linked\n");
+            return 1;
+        }
+    }
     return kazari_add(&tanabata->shoppyou, sasa_id, tanzaku_id);
 }
 
