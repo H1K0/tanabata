@@ -59,7 +59,7 @@ int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path);
 // ==================== TANZAKU SECTION ==================== //
 
 // Add tanzaku
-int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *alias, const char *description);
+int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description);
 
 // Remove tanzaku by ID
 int tanabata_tanzaku_rem_by_id(Tanabata *tanabata, uint64_t tanzaku_id);
