@@ -4,40 +4,26 @@
 
 #include "../../include/core.h"
 
+// Shoppyou file signature: 七夕飾表
+static const uint16_t SHOPPYOU_SIG[4] = {L'七', L'夕', L'飾', L'表'};
+
 int shoppyou_init(Shoppyou *shoppyou) {
-    uint64_t timestamp = time(NULL);
-    shoppyou->created_ts = timestamp;
-    shoppyou->modified_ts = timestamp;
+    shoppyou->created_ts = time(NULL);
+    shoppyou->modified_ts = shoppyou->created_ts;
     shoppyou->size = 0;
-    shoppyou->removed_cnt = 0;
-    shoppyou->contents = NULL;
+    shoppyou->content = NULL;
+    shoppyou->hole_cnt = 0;
+    shoppyou->holes = NULL;
     shoppyou->file = NULL;
     return 0;
 }
 
 int shoppyou_free(Shoppyou *shoppyou) {
-    free(shoppyou->contents);
+    free(shoppyou->content);
+    free(shoppyou->holes);
     if (shoppyou->file != NULL) {
         fclose(shoppyou->file);
     }
-    return 0;
-}
-
-int shoppyou_weed(Shoppyou *shoppyou) {
-    if (shoppyou->removed_cnt == 0) {
-        return 0;
-    }
-    uint64_t weeded_size = shoppyou->size - shoppyou->removed_cnt;
-    for (uint64_t i = 0, shift = 0; i < shoppyou->size; i++) {
-        if (shoppyou->contents[i].sasa_id != 0 && shoppyou->contents[i].tanzaku_id != 0) {
-            shoppyou->contents[i - shift] = shoppyou->contents[i];
-        } else {
-            shift++;
-        }
-    }
-    shoppyou->size = weeded_size;
-    shoppyou->removed_cnt = 0;
-    shoppyou->contents = realloc(shoppyou->contents, shoppyou->size * sizeof(Kazari));
     return 0;
 }
 
@@ -56,12 +42,13 @@ int shoppyou_load(Shoppyou *shoppyou) {
     fread(&shoppyou->created_ts, 8, 1, shoppyou->file);
     fread(&shoppyou->modified_ts, 8, 1, shoppyou->file);
     fread(&shoppyou->size, 8, 1, shoppyou->file);
-    shoppyou->removed_cnt = 0;
-    shoppyou->contents = malloc(shoppyou->size * sizeof(Kazari));
+    shoppyou->hole_cnt = 0;
+    free(shoppyou->holes);
+    shoppyou->content = malloc(shoppyou->size * sizeof(Kazari));
     for (uint64_t i = 0; i < shoppyou->size; i++) {
-        fread(&shoppyou->contents[i].created_ts, 8, 1, shoppyou->file);
-        fread(&shoppyou->contents[i].sasa_id, 8, 1, shoppyou->file);
-        fread(&shoppyou->contents[i].tanzaku_id, 8, 1, shoppyou->file);
+        fread(&shoppyou->content[i].created_ts, 8, 1, shoppyou->file);
+        fread(&shoppyou->content[i].sasa_id, 8, 1, shoppyou->file);
+        fread(&shoppyou->content[i].tanzaku_id, 8, 1, shoppyou->file);
     }
     return 0;
 }
@@ -71,20 +58,19 @@ int shoppyou_save(Shoppyou *shoppyou) {
         fprintf(stderr, "Failed to save shoppyou: file not specified\n");
         return 1;
     }
-    if (shoppyou_weed(shoppyou) != 0) {
-        fprintf(stderr, "Failed to save shoppyou: failed to weed shoppyou\n");
-        return 1;
-    }
     rewind(shoppyou->file);
     fwrite(SHOPPYOU_SIG, 2, 4, shoppyou->file);
     fwrite(&shoppyou->created_ts, 8, 1, shoppyou->file);
     fwrite(&shoppyou->modified_ts, 8, 1, shoppyou->file);
-    fwrite(&shoppyou->size, 8, 1, shoppyou->file);
+    uint64_t size = shoppyou->size - shoppyou->hole_cnt;
+    fwrite(&size, 8, 1, shoppyou->file);
     fflush(shoppyou->file);
     for (uint64_t i = 0; i < shoppyou->size; i++) {
-        fwrite(&shoppyou->contents[i].created_ts, 8, 1, shoppyou->file);
-        fwrite(&shoppyou->contents[i].sasa_id, 8, 1, shoppyou->file);
-        fwrite(&shoppyou->contents[i].tanzaku_id, 8, 1, shoppyou->file);
+        if (shoppyou->content[i].sasa_id != 0 && shoppyou->content[i].tanzaku_id != 0) {
+            fwrite(&shoppyou->content[i].created_ts, 8, 1, shoppyou->file);
+            fwrite(&shoppyou->content[i].sasa_id, 8, 1, shoppyou->file);
+            fwrite(&shoppyou->content[i].tanzaku_id, 8, 1, shoppyou->file);
+        }
     }
     fflush(shoppyou->file);
     return 0;
@@ -109,7 +95,11 @@ int shoppyou_dump(Shoppyou *shoppyou, const char *path) {
 }
 
 int kazari_add(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
-    if (shoppyou->size == -1) {
+    if (sasa_id == HOLE_ID || tanzaku_id == HOLE_ID) {
+        fprintf(stderr, "Failed to add kazari: got hole ID\n");
+        return 1;
+    }
+    if (shoppyou->size == -1 && shoppyou->hole_cnt == 0) {
         fprintf(stderr, "Failed to add kazari: shoppyou is full\n");
         return 1;
     }
@@ -117,19 +107,31 @@ int kazari_add(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
     newbie.created_ts = time(NULL);
     newbie.sasa_id = sasa_id;
     newbie.tanzaku_id = tanzaku_id;
-    shoppyou->size++;
-    shoppyou->contents = realloc(shoppyou->contents, shoppyou->size * sizeof(Kazari));
-    shoppyou->contents[shoppyou->size - 1] = newbie;
+    if (shoppyou->hole_cnt > 0) {
+        shoppyou->hole_cnt--;
+        **(shoppyou->holes + shoppyou->hole_cnt) = newbie;
+        shoppyou->holes = realloc(shoppyou->holes, shoppyou->hole_cnt * sizeof(Kazari *));
+    } else {
+        shoppyou->size++;
+        shoppyou->content = realloc(shoppyou->content, shoppyou->size * sizeof(Kazari));
+        shoppyou->content[shoppyou->size - 1] = newbie;
+    }
     shoppyou->modified_ts = newbie.created_ts;
     return 0;
 }
 
 int kazari_rem(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
+    if (sasa_id == HOLE_ID || tanzaku_id == HOLE_ID) {
+        fprintf(stderr, "Failed to remove kazari: got hole ID\n");
+        return 1;
+    }
     for (uint64_t i = 0; i < shoppyou->size; i++) {
-        if (shoppyou->contents[i].sasa_id == sasa_id && shoppyou->contents[i].tanzaku_id == tanzaku_id) {
+        if (shoppyou->content[i].sasa_id == sasa_id && shoppyou->content[i].tanzaku_id == tanzaku_id) {
+            shoppyou->content[i].sasa_id = HOLE_ID;
+            shoppyou->hole_cnt++;
+            shoppyou->holes = realloc(shoppyou->holes, shoppyou->hole_cnt * sizeof(Kazari *));
+            shoppyou->holes[shoppyou->hole_cnt - 1] = shoppyou->content + i;
             shoppyou->modified_ts = time(NULL);
-            shoppyou->contents[i].sasa_id = 0;
-            shoppyou->removed_cnt++;
             return 0;
         }
     }

@@ -13,70 +13,69 @@ extern "C" {
 #include <stdio.h>
 #endif
 
+// ==================== CONSTANTS ==================== //
+
+// ID of hole - an invalid record
+#define HOLE_ID (0)
+
 // ==================== STRUCTS AND TYPEDEFS ==================== //
 
 // Sasa (笹) - a file record
 typedef struct sasa {
-    uint64_t  id;           // Sasa ID
-    uint64_t  created_ts;   // Sasa creation timestamp
-    char     *path;         // File path
+    uint64_t   id;           // Sasa ID
+    uint64_t   created_ts;   // Sasa creation timestamp
+    char      *path;         // File path
 } Sasa;
 
 // Tanzaku (短冊) - a tag record
 typedef struct tanzaku {
-    uint64_t  id;           // Tanzaku ID
-    uint64_t  created_ts;   // Tanzaku creation timestamp
-    uint64_t  modified_ts;  // Tanzaku last modification timestamp
-    char     *name;         // Tanzaku name
-    char     *alias;        // Tanzaku alias
-    char     *description;  // Tanzaku description
+    uint64_t   id;           // Tanzaku ID
+    uint64_t   created_ts;   // Tanzaku creation timestamp
+    uint64_t   modified_ts;  // Tanzaku last modification timestamp
+    char      *name;         // Tanzaku name
+    char      *alias;        // Tanzaku alias
+    char      *description;  // Tanzaku description
 } Tanzaku;
 
 // Kazari (飾り) - a sasa-tanzaku association record
 typedef struct kazari {
-    uint64_t  created_ts;   // Kazari creation timestamp
-    uint64_t  sasa_id;      // Sasa ID
-    uint64_t  tanzaku_id;   // Tanzaku ID
+    uint64_t   created_ts;   // Kazari creation timestamp
+    uint64_t   sasa_id;      // Sasa ID
+    uint64_t   tanzaku_id;   // Tanzaku ID
 } Kazari;
 
 // Sasahyou (笹表) - database of files
 typedef struct sasahyou {
-    uint64_t  created_ts;   // Sasahyou creation timestamp
-    uint64_t  modified_ts;  // Sasahyou last modification timestamp
-    uint64_t  size;         // Sasahyou size (including unstaged units)
-    uint64_t  removed_cnt;  // Number of removed sasa
-    Sasa     *contents;     // Array of sasa
-    FILE     *file;         // Storage file for sasahyou
+    uint64_t   created_ts;   // Sasahyou creation timestamp
+    uint64_t   modified_ts;  // Sasahyou last modification timestamp
+    uint64_t   size;         // Sasahyou size (including holes)
+    Sasa      *content;      // Array of sasa
+    uint64_t   hole_cnt;     // Number of holes
+    Sasa     **holes;        // Array of pointers to holes
+    FILE      *file;         // Storage file for sasahyou
 } Sasahyou;
 
 // Sappyou (冊表) - database of tanzaku
 typedef struct sappyou {
-    uint64_t  created_ts;   // Sappyou creation timestamp
-    uint64_t  modified_ts;  // Sappyou last modification timestamp
-    uint64_t  size;         // Sappyou size
-    uint64_t  removed_cnt;  // Number of removed tanzaku
-    Tanzaku  *contents;     // Array of tanzaku
-    FILE     *file;         // Storage file for sappyou
+    uint64_t   created_ts;   // Sappyou creation timestamp
+    uint64_t   modified_ts;  // Sappyou last modification timestamp
+    uint64_t   size;         // Sappyou size (including holes)
+    Tanzaku   *content;      // Array of tanzaku
+    uint64_t   hole_cnt;     // Number of holes
+    Tanzaku  **holes;        // Array of pointers to holes
+    FILE      *file;         // Storage file for sappyou
 } Sappyou;
 
 // Shoppyou (飾表) - database of kazari
 typedef struct shoppyou {
-    uint64_t  created_ts;   // Shoppyou creation timestamp
-    uint64_t  modified_ts;  // Shoppyou last modification timestamp
-    uint64_t  size;         // Shoppyou size
-    uint64_t  removed_cnt;  // Number of removed kazari
-    Kazari   *contents;     // Array of kazari
-    FILE     *file;         // Storage file for shoppyou
+    uint64_t   created_ts;   // Shoppyou creation timestamp
+    uint64_t   modified_ts;  // Shoppyou last modification timestamp
+    uint64_t   size;         // Shoppyou size (including holes)
+    Kazari    *content;      // Array of kazari
+    uint64_t   hole_cnt;     // Number of holes
+    Kazari   **holes;        // Array of pointers to holes
+    FILE      *file;         // Storage file for shoppyou
 } Shoppyou;
-
-// ==================== FILE SIGNATURES ==================== //
-
-// Sasahyou file signature: 七夕笹表
-static const uint16_t SASAHYOU_SIG[4] = {L'七', L'夕', L'笹', L'表'};
-// Sappyou file signature: 七夕冊表
-static const uint16_t SAPPYOU_SIG[4] = {L'七', L'夕', L'冊', L'表'};
-// Shoppyou file signature: 七夕飾表
-static const uint16_t SHOPPYOU_SIG[4] = {L'七', L'夕', L'飾', L'表'};
 
 // ==================== SASAHYOU SECTION ==================== //
 
@@ -146,9 +145,6 @@ int shoppyou_init(Shoppyou *shoppyou);
 
 // Free shoppyou
 int shoppyou_free(Shoppyou *shoppyou);
-
-// Weed shoppyou
-int shoppyou_weed(Shoppyou *shoppyou);
 
 // Load shoppyou from file
 int shoppyou_load(Shoppyou *shoppyou);
