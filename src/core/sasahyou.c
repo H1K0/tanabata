@@ -12,7 +12,7 @@ int sasahyou_init(Sasahyou *sasahyou) {
     sasahyou->created_ts = time(NULL);
     sasahyou->modified_ts = sasahyou->created_ts;
     sasahyou->size = 0;
-    sasahyou->content = NULL;
+    sasahyou->database = NULL;
     sasahyou->hole_cnt = 0;
     sasahyou->holes = NULL;
     sasahyou->file = NULL;
@@ -21,9 +21,9 @@ int sasahyou_init(Sasahyou *sasahyou) {
 
 int sasahyou_free(Sasahyou *sasahyou) {
     for (uint64_t i = 0; i < sasahyou->size; i++) {
-        free(sasahyou->content[i].path);
+        free(sasahyou->database[i].path);
     }
-    free(sasahyou->content);
+    free(sasahyou->database);
     free(sasahyou->holes);
     if (sasahyou->file != NULL) {
         fclose(sasahyou->file);
@@ -47,18 +47,18 @@ int sasahyou_load(Sasahyou *sasahyou) {
     fread(&sasahyou->modified_ts, 8, 1, sasahyou->file);
     fread(&sasahyou->size, 8, 1, sasahyou->file);
     fread(&sasahyou->hole_cnt, 8, 1, sasahyou->file);
-    sasahyou->content = malloc(sasahyou->size * sizeof(Sasa));
+    sasahyou->database = malloc(sasahyou->size * sizeof(Sasa));
     sasahyou->holes = malloc(sasahyou->hole_cnt * sizeof(Sasa *));
     size_t max_path_len = SIZE_MAX;
     for (uint64_t i = 0, r = sasahyou->hole_cnt; i < sasahyou->size; i++) {
         if (fgetc(sasahyou->file) != 0) {
-            sasahyou->content[i].id = i;
-            fread(&sasahyou->content[i].created_ts, 8, 1, sasahyou->file);
-            getdelim(&sasahyou->content[i].path, &max_path_len, 0, sasahyou->file);
+            sasahyou->database[i].id = i;
+            fread(&sasahyou->database[i].created_ts, 8, 1, sasahyou->file);
+            getdelim(&sasahyou->database[i].path, &max_path_len, 0, sasahyou->file);
         } else {
-            sasahyou->content[i].id = HOLE_ID;
+            sasahyou->database[i].id = HOLE_ID;
             r--;
-            sasahyou->holes[r] = sasahyou->content + i;
+            sasahyou->holes[r] = sasahyou->database + i;
         }
     }
     return 0;
@@ -77,10 +77,10 @@ int sasahyou_save(Sasahyou *sasahyou) {
     fwrite(&sasahyou->hole_cnt, 8, 1, sasahyou->file);
     fflush(sasahyou->file);
     for (uint64_t i = 0; i < sasahyou->size; i++) {
-        if (sasahyou->content[i].id != HOLE_ID) {
+        if (sasahyou->database[i].id != HOLE_ID) {
             fputc(-1, sasahyou->file);
-            fwrite(&sasahyou->content[i].created_ts, 8, 1, sasahyou->file);
-            fputs(sasahyou->content[i].path, sasahyou->file);
+            fwrite(&sasahyou->database[i].created_ts, 8, 1, sasahyou->file);
+            fputs(sasahyou->database[i].path, sasahyou->file);
             fputc(0, sasahyou->file);
         } else {
             fputc(0, sasahyou->file);
@@ -122,14 +122,14 @@ int sasa_add(Sasahyou *sasahyou, const char *path) {
     if (sasahyou->hole_cnt > 0) {
         sasahyou->hole_cnt--;
         Sasa **hole_ptr = sasahyou->holes + sasahyou->hole_cnt;
-        newbie.id = *hole_ptr - sasahyou->content;
+        newbie.id = *hole_ptr - sasahyou->database;
         **hole_ptr = newbie;
         sasahyou->holes = realloc(sasahyou->holes, sasahyou->hole_cnt * sizeof(Sasa *));
     } else {
         newbie.id = sasahyou->size;
         sasahyou->size++;
-        sasahyou->content = realloc(sasahyou->content, sasahyou->size * sizeof(Sasa));
-        sasahyou->content[newbie.id] = newbie;
+        sasahyou->database = realloc(sasahyou->database, sasahyou->size * sizeof(Sasa));
+        sasahyou->database[newbie.id] = newbie;
     }
     sasahyou->modified_ts = newbie.created_ts;
     return 0;
@@ -144,26 +144,26 @@ int sasa_rem_by_id(Sasahyou *sasahyou, uint64_t sasa_id) {
         fprintf(stderr, "Failed to remove sasa: target sasa does not exist\n");
         return 1;
     }
-    if (sasahyou->content[sasa_id].id == HOLE_ID) {
+    if (sasahyou->database[sasa_id].id == HOLE_ID) {
         fprintf(stderr, "Failed to remove sasa: target sasa is already removed\n");
         return 1;
     }
-    sasahyou->content[sasa_id].id = HOLE_ID;
+    sasahyou->database[sasa_id].id = HOLE_ID;
     sasahyou->hole_cnt++;
     sasahyou->holes = realloc(sasahyou->holes, sasahyou->hole_cnt * sizeof(Sasa *));
-    sasahyou->holes[sasahyou->hole_cnt - 1] = sasahyou->content + sasa_id;
+    sasahyou->holes[sasahyou->hole_cnt - 1] = sasahyou->database + sasa_id;
     sasahyou->modified_ts = time(NULL);
     return 0;
 }
 
 int sasa_rem_by_path(Sasahyou *sasahyou, const char *path) {
     for (uint64_t i = 0; i < sasahyou->size; i++) {
-        if (strcmp(sasahyou->content[i].path, path) == 0) {
-            if (sasahyou->content[i].id != HOLE_ID) {
-                sasahyou->content[i].id = HOLE_ID;
+        if (strcmp(sasahyou->database[i].path, path) == 0) {
+            if (sasahyou->database[i].id != HOLE_ID) {
+                sasahyou->database[i].id = HOLE_ID;
                 sasahyou->hole_cnt++;
                 sasahyou->holes = realloc(sasahyou->holes, sasahyou->hole_cnt * sizeof(Sasa *));
-                sasahyou->holes[sasahyou->hole_cnt - 1] = sasahyou->content + i;
+                sasahyou->holes[sasahyou->hole_cnt - 1] = sasahyou->database + i;
                 sasahyou->modified_ts = time(NULL);
                 return 0;
             } else {

@@ -44,7 +44,7 @@ typedef struct sasahyou {
     uint64_t   created_ts;   // Sasahyou creation timestamp
     uint64_t   modified_ts;  // Sasahyou last modification timestamp
     uint64_t   size;         // Sasahyou size (including holes)
-    Sasa      *content;      // Array of sasa
+    Sasa      *database;     // Array of sasa
     uint64_t   hole_cnt;     // Number of holes
     Sasa     **holes;        // Array of pointers to holes
     FILE      *file;         // Storage file for sasahyou
@@ -55,7 +55,7 @@ typedef struct sappyou {
     uint64_t   created_ts;   // Sappyou creation timestamp
     uint64_t   modified_ts;  // Sappyou last modification timestamp
     uint64_t   size;         // Sappyou size (including holes)
-    Tanzaku   *content;      // Array of tanzaku
+    Tanzaku   *database;     // Array of tanzaku
     uint64_t   hole_cnt;     // Number of holes
     Tanzaku  **holes;        // Array of pointers to holes
     FILE      *file;         // Storage file for sappyou
@@ -66,7 +66,7 @@ typedef struct shoppyou {
     uint64_t   created_ts;   // Shoppyou creation timestamp
     uint64_t   modified_ts;  // Shoppyou last modification timestamp
     uint64_t   size;         // Shoppyou size (including holes)
-    Kazari    *content;      // Array of kazari
+    Kazari    *database;     // Array of kazari
     uint64_t   hole_cnt;     // Number of holes
     Kazari   **holes;        // Array of pointers to holes
     FILE      *file;         // Storage file for shoppyou

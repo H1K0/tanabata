@@ -11,7 +11,7 @@ int shoppyou_init(Shoppyou *shoppyou) {
     shoppyou->created_ts = time(NULL);
     shoppyou->modified_ts = shoppyou->created_ts;
     shoppyou->size = 0;
-    shoppyou->content = NULL;
+    shoppyou->database = NULL;
     shoppyou->hole_cnt = 0;
     shoppyou->holes = NULL;
     shoppyou->file = NULL;
@@ -19,7 +19,7 @@ int shoppyou_init(Shoppyou *shoppyou) {
 }
 
 int shoppyou_free(Shoppyou *shoppyou) {
-    free(shoppyou->content);
+    free(shoppyou->database);
     free(shoppyou->holes);
     if (shoppyou->file != NULL) {
         fclose(shoppyou->file);
@@ -44,11 +44,11 @@ int shoppyou_load(Shoppyou *shoppyou) {
     fread(&shoppyou->size, 8, 1, shoppyou->file);
     shoppyou->hole_cnt = 0;
     free(shoppyou->holes);
-    shoppyou->content = malloc(shoppyou->size * sizeof(Kazari));
+    shoppyou->database = malloc(shoppyou->size * sizeof(Kazari));
     for (uint64_t i = 0; i < shoppyou->size; i++) {
-        fread(&shoppyou->content[i].created_ts, 8, 1, shoppyou->file);
-        fread(&shoppyou->content[i].sasa_id, 8, 1, shoppyou->file);
-        fread(&shoppyou->content[i].tanzaku_id, 8, 1, shoppyou->file);
+        fread(&shoppyou->database[i].created_ts, 8, 1, shoppyou->file);
+        fread(&shoppyou->database[i].sasa_id, 8, 1, shoppyou->file);
+        fread(&shoppyou->database[i].tanzaku_id, 8, 1, shoppyou->file);
     }
     return 0;
 }
@@ -66,10 +66,10 @@ int shoppyou_save(Shoppyou *shoppyou) {
     fwrite(&size, 8, 1, shoppyou->file);
     fflush(shoppyou->file);
     for (uint64_t i = 0; i < shoppyou->size; i++) {
-        if (shoppyou->content[i].sasa_id != 0 && shoppyou->content[i].tanzaku_id != 0) {
-            fwrite(&shoppyou->content[i].created_ts, 8, 1, shoppyou->file);
-            fwrite(&shoppyou->content[i].sasa_id, 8, 1, shoppyou->file);
-            fwrite(&shoppyou->content[i].tanzaku_id, 8, 1, shoppyou->file);
+        if (shoppyou->database[i].sasa_id != 0 && shoppyou->database[i].tanzaku_id != 0) {
+            fwrite(&shoppyou->database[i].created_ts, 8, 1, shoppyou->file);
+            fwrite(&shoppyou->database[i].sasa_id, 8, 1, shoppyou->file);
+            fwrite(&shoppyou->database[i].tanzaku_id, 8, 1, shoppyou->file);
         }
     }
     fflush(shoppyou->file);
@@ -113,8 +113,8 @@ int kazari_add(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
         shoppyou->holes = realloc(shoppyou->holes, shoppyou->hole_cnt * sizeof(Kazari *));
     } else {
         shoppyou->size++;
-        shoppyou->content = realloc(shoppyou->content, shoppyou->size * sizeof(Kazari));
-        shoppyou->content[shoppyou->size - 1] = newbie;
+        shoppyou->database = realloc(shoppyou->database, shoppyou->size * sizeof(Kazari));
+        shoppyou->database[shoppyou->size - 1] = newbie;
     }
     shoppyou->modified_ts = newbie.created_ts;
     return 0;
@@ -126,11 +126,11 @@ int kazari_rem(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
         return 1;
     }
     for (uint64_t i = 0; i < shoppyou->size; i++) {
-        if (shoppyou->content[i].sasa_id == sasa_id && shoppyou->content[i].tanzaku_id == tanzaku_id) {
-            shoppyou->content[i].sasa_id = HOLE_ID;
+        if (shoppyou->database[i].sasa_id == sasa_id && shoppyou->database[i].tanzaku_id == tanzaku_id) {
+            shoppyou->database[i].sasa_id = HOLE_ID;
             shoppyou->hole_cnt++;
             shoppyou->holes = realloc(shoppyou->holes, shoppyou->hole_cnt * sizeof(Kazari *));
-            shoppyou->holes[shoppyou->hole_cnt - 1] = shoppyou->content + i;
+            shoppyou->holes[shoppyou->hole_cnt - 1] = shoppyou->database + i;
             shoppyou->modified_ts = time(NULL);
             return 0;
         }
