@@ -21,7 +21,6 @@ int sappyou_init(Sappyou *sappyou) {
 int sappyou_free(Sappyou *sappyou) {
     for (uint64_t i = 0; i < sappyou->size; i++) {
         free(sappyou->database[i].name);
-        free(sappyou->database[i].alias);
         free(sappyou->database[i].description);
     }
     free(sappyou->database);
@@ -56,7 +55,6 @@ int sappyou_load(Sappyou *sappyou) {
             fread(&sappyou->database[i].created_ts, 8, 1, sappyou->file);
             fread(&sappyou->database[i].modified_ts, 8, 1, sappyou->file);
             getdelim(&sappyou->database[i].name, &max_string_len, 0, sappyou->file);
-            getdelim(&sappyou->database[i].alias, &max_string_len, 0, sappyou->file);
             getdelim(&sappyou->database[i].description, &max_string_len, 0, sappyou->file);
         } else {
             sappyou->database[i].id = HOLE_ID;
@@ -86,8 +84,6 @@ int sappyou_save(Sappyou *sappyou) {
             fwrite(&sappyou->database[i].modified_ts, 8, 1, sappyou->file);
             fputs(sappyou->database[i].name, sappyou->file);
             fputc(0, sappyou->file);
-            fputs(sappyou->database[i].alias, sappyou->file);
-            fputc(0, sappyou->file);
             fputs(sappyou->database[i].description, sappyou->file);
             fputc(0, sappyou->file);
         } else {
@@ -116,7 +112,7 @@ int sappyou_dump(Sappyou *sappyou, const char *path) {
     return sappyou_save(sappyou);
 }
 
-int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const char *description) {
+int tanzaku_add(Sappyou *sappyou, const char *name, const char *description) {
     if (sappyou->size == -1 && sappyou->hole_cnt == 0) {
         fprintf(stderr, "Failed to add tanzaku: sappyou is full\n");
         return 1;
@@ -125,14 +121,10 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const cha
     newbie.created_ts = time(NULL);
     newbie.modified_ts = newbie.created_ts;
     size_t name_size = strlen(name),
-            alias_size = strlen(alias),
             description_size = strlen(description);
     newbie.name = malloc(name_size + 1);
     strcpy(newbie.name, name);
     newbie.name[name_size] = 0;
-    newbie.alias = malloc(alias_size + 1);
-    strcpy(newbie.alias, alias);
-    newbie.alias[alias_size] = 0;
     newbie.description = malloc(description_size + 1);
     strcpy(newbie.description, description);
     newbie.description[description_size] = 0;
