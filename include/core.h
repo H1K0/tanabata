@@ -37,14 +37,14 @@ typedef struct tanzaku {
     char      *description;  // Tanzaku description
 } Tanzaku;
 
-// Kazari (飾り) - a sasa-tanzaku association record
+// Kazari (飾り) - a sasa-tanzaku relation record
 typedef struct kazari {
     uint64_t   created_ts;   // Kazari creation timestamp
     uint64_t   sasa_id;      // Sasa ID
     uint64_t   tanzaku_id;   // Tanzaku ID
 } Kazari;
 
-// Sasahyou (笹表) - database of files
+// Sasahyou (笹表) - database of sasa
 typedef struct sasahyou {
     uint64_t   created_ts;   // Sasahyou creation timestamp
     uint64_t   modified_ts;  // Sasahyou last modification timestamp
