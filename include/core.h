@@ -76,14 +76,14 @@ typedef struct shoppyou {
 // ID of hole - an invalid record
 #define HOLE_ID (-1)
 
-// Hole sasa constant
-static const Sasa HOLE_SASA = {HOLE_ID};
+// Hole sasa constant with hole ID
+extern const Sasa HOLE_SASA;
 
-// Hole tanzaku constant
-static const Tanzaku HOLE_TANZAKU = {HOLE_ID};
+// Hole tanzaku constant with hole ID
+extern const Tanzaku HOLE_TANZAKU;
 
-// Hole kazari constant
-static const Kazari HOLE_KAZARI = {HOLE_ID};
+// Hole kazari constant with hole ID
+extern const Kazari HOLE_KAZARI;
 
 // ==================== SASAHYOU SECTION ==================== //
 

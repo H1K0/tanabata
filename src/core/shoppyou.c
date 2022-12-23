@@ -4,6 +4,8 @@
 
 #include "../../include/core.h"
 
+const Kazari HOLE_KAZARI = {HOLE_ID};
+
 // Shoppyou file signature: 七夕飾表
 static const uint16_t SHOPPYOU_SIG[4] = {L'七', L'夕', L'飾', L'表'};
 

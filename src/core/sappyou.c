@@ -4,6 +4,8 @@
 
 #include "../../include/core.h"
 
+const Tanzaku HOLE_TANZAKU = {HOLE_ID};
+
 // Sappyou file signature: 七夕冊表
 const uint16_t SAPPYOU_SIG[4] = {L'七', L'夕', L'冊', L'表'};
 
