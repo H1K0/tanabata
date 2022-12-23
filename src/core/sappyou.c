@@ -152,7 +152,7 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *alias, const cha
     return 0;
 }
 
-int tanzaku_rem_by_id(Sappyou *sappyou, uint64_t tanzaku_id) {
+int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {
     if (tanzaku_id == HOLE_ID) {
         fprintf(stderr, "Failed to remove tanzaku: got hole ID\n");
         return 1;
@@ -171,44 +171,4 @@ int tanzaku_rem_by_id(Sappyou *sappyou, uint64_t tanzaku_id) {
     sappyou->holes[sappyou->hole_cnt - 1] = sappyou->database + tanzaku_id;
     sappyou->modified_ts = time(NULL);
     return 0;
-}
-
-int tanzaku_rem_by_name(Sappyou *sappyou, const char *name) {
-    for (uint64_t i = 0; i < sappyou->size; i++) {
-        if (strcmp(sappyou->database[i].name, name) == 0) {
-            if (sappyou->database[i].id != HOLE_ID) {
-                sappyou->database[i].id = HOLE_ID;
-                sappyou->hole_cnt++;
-                sappyou->holes = realloc(sappyou->holes, sappyou->hole_cnt * sizeof(Tanzaku *));
-                sappyou->holes[sappyou->hole_cnt - 1] = sappyou->database + i;
-                sappyou->modified_ts = time(NULL);
-                return 0;
-            } else {
-                fprintf(stderr, "Failed to remove tanzaku: target tanzaku is already removed\n");
-                return 1;
-            }
-        }
-    }
-    fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
-    return 1;
-}
-
-int tanzaku_rem_by_alias(Sappyou *sappyou, const char *alias) {
-    for (uint64_t i = 0; i < sappyou->size; i++) {
-        if (strcmp(sappyou->database[i].alias, alias) == 0) {
-            if (sappyou->database[i].id != HOLE_ID) {
-                sappyou->database[i].id = HOLE_ID;
-                sappyou->hole_cnt++;
-                sappyou->holes = realloc(sappyou->holes, sappyou->hole_cnt * sizeof(Tanzaku *));
-                sappyou->holes[sappyou->hole_cnt - 1] = sappyou->database + i;
-                sappyou->modified_ts = time(NULL);
-                return 0;
-            } else {
-                fprintf(stderr, "Failed to remove tanzaku: target tanzaku is already removed\n");
-                return 1;
-            }
-        }
-    }
-    fprintf(stderr, "Failed to remove tanzaku: target tanzaku does not exist\n");
-    return 1;
 }
