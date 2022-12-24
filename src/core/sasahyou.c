@@ -150,9 +150,14 @@ int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {
         return 0;
     }
     sasahyou->database[sasa_id].id = HOLE_ID;
-    sasahyou->hole_cnt++;
-    sasahyou->holes = realloc(sasahyou->holes, sasahyou->hole_cnt * sizeof(Sasa *));
-    sasahyou->holes[sasahyou->hole_cnt - 1] = sasahyou->database + sasa_id;
+    if (sasa_id == sasahyou->size - 1) {
+        sasahyou->size--;
+        sasahyou->database = realloc(sasahyou->database, sasahyou->size * sizeof(Sasa));
+    } else {
+        sasahyou->hole_cnt++;
+        sasahyou->holes = realloc(sasahyou->holes, sasahyou->hole_cnt * sizeof(Sasa *));
+        sasahyou->holes[sasahyou->hole_cnt - 1] = sasahyou->database + sasa_id;
+    }
     sasahyou->modified_ts = time(NULL);
     return 0;
 }
