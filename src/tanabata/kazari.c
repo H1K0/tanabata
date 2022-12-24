@@ -12,7 +12,7 @@ int tanabata_kazari_add(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_i
     Kazari *current_kazari = tanabata->shoppyou.database;
     for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
         if (current_kazari->sasa_id == sasa_id && current_kazari->tanzaku_id == tanzaku_id) {
-            return 1;
+            return 0;
         }
         current_kazari++;
     }
