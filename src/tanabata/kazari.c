@@ -31,7 +31,7 @@ Tanzaku *tanabata_tanzaku_get_by_sasa(Tanabata *tanabata, uint64_t sasa_id) {
     uint64_t tanzaku_count = 0;
     Kazari *current_kazari = tanabata->shoppyou.database;
     for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
-        if (current_kazari->sasa_id == sasa_id) {
+        if (current_kazari->sasa_id == sasa_id && current_kazari->tanzaku_id != HOLE_ID) {
             tanzaku_count++;
             tanzaku_list = realloc(tanzaku_list, tanzaku_count * sizeof(Tanzaku));
             tanzaku_list[tanzaku_count - 1] = tanabata_tanzaku_get_by_id(tanabata, current_kazari->tanzaku_id);
@@ -53,7 +53,7 @@ Sasa *tanabata_sasa_get_by_tanzaku(Tanabata *tanabata, uint64_t tanzaku_id) {
     uint64_t sasa_count = 0;
     Kazari *current_kazari = tanabata->shoppyou.database;
     for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
-        if (current_kazari->tanzaku_id == tanzaku_id) {
+        if (current_kazari->tanzaku_id == tanzaku_id && current_kazari->sasa_id != HOLE_ID) {
             sasa_count++;
             sasa_list = realloc(sasa_list, sasa_count * sizeof(Sasa));
             sasa_list[sasa_count - 1] = tanabata_sasa_get_by_id(tanabata, current_kazari->sasa_id);
