@@ -34,6 +34,7 @@ int sasahyou_free(Sasahyou *sasahyou) {
 }
 
 int sasahyou_load(Sasahyou *sasahyou) {
+    sasahyou->file = freopen(NULL, "rb", sasahyou->file);
     if (sasahyou->file == NULL) {
         return 1;
     }
@@ -65,6 +66,7 @@ int sasahyou_load(Sasahyou *sasahyou) {
 }
 
 int sasahyou_save(Sasahyou *sasahyou) {
+    sasahyou->file = freopen(NULL, "wb", sasahyou->file);
     if (sasahyou->file == NULL) {
         return 1;
     }
@@ -90,7 +92,7 @@ int sasahyou_save(Sasahyou *sasahyou) {
 }
 
 int sasahyou_open(Sasahyou *sasahyou, const char *path) {
-    sasahyou->file = fopen(path, "r+b");
+    sasahyou->file = fopen(path, "rb");
     if (sasahyou->file == NULL) {
         return 1;
     }
@@ -98,7 +100,7 @@ int sasahyou_open(Sasahyou *sasahyou, const char *path) {
 }
 
 int sasahyou_dump(Sasahyou *sasahyou, const char *path) {
-    sasahyou->file = fopen(path, "w+b");
+    sasahyou->file = fopen(path, "wb");
     if (sasahyou->file == NULL) {
         return 1;
     }

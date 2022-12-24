@@ -30,6 +30,7 @@ int shoppyou_free(Shoppyou *shoppyou) {
 }
 
 int shoppyou_load(Shoppyou *shoppyou) {
+    shoppyou->file = freopen(NULL, "rb", shoppyou->file);
     if (shoppyou->file == NULL) {
         return 1;
     }
@@ -54,6 +55,7 @@ int shoppyou_load(Shoppyou *shoppyou) {
 }
 
 int shoppyou_save(Shoppyou *shoppyou) {
+    shoppyou->file = freopen(NULL, "wb", shoppyou->file);
     if (shoppyou->file == NULL) {
         return 1;
     }
@@ -76,7 +78,7 @@ int shoppyou_save(Shoppyou *shoppyou) {
 }
 
 int shoppyou_open(Shoppyou *shoppyou, const char *path) {
-    shoppyou->file = fopen(path, "r+b");
+    shoppyou->file = fopen(path, "rb");
     if (shoppyou->file == NULL) {
         return 1;
     }
@@ -85,7 +87,7 @@ int shoppyou_open(Shoppyou *shoppyou, const char *path) {
 }
 
 int shoppyou_dump(Shoppyou *shoppyou, const char *path) {
-    shoppyou->file = fopen(path, "w+b");
+    shoppyou->file = fopen(path, "wb");
     if (shoppyou->file == NULL) {
         return 1;
     }

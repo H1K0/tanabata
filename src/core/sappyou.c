@@ -33,6 +33,7 @@ int sappyou_free(Sappyou *sappyou) {
 }
 
 int sappyou_load(Sappyou *sappyou) {
+    sappyou->file = freopen(NULL, "rb", sappyou->file);
     if (sappyou->file == NULL) {
         return 1;
     }
@@ -66,6 +67,7 @@ int sappyou_load(Sappyou *sappyou) {
 }
 
 int sappyou_save(Sappyou *sappyou) {
+    sappyou->file = freopen(NULL, "wb", sappyou->file);
     if (sappyou->file == NULL) {
         return 1;
     }
@@ -94,7 +96,7 @@ int sappyou_save(Sappyou *sappyou) {
 }
 
 int sappyou_open(Sappyou *sappyou, const char *path) {
-    sappyou->file = fopen(path, "r+b");
+    sappyou->file = fopen(path, "rb");
     if (sappyou->file == NULL) {
         return 1;
     }
@@ -102,7 +104,7 @@ int sappyou_open(Sappyou *sappyou, const char *path) {
 }
 
 int sappyou_dump(Sappyou *sappyou, const char *path) {
-    sappyou->file = fopen(path, "w+b");
+    sappyou->file = fopen(path, "wb");
     if (sappyou->file == NULL) {
         return 1;
     }
