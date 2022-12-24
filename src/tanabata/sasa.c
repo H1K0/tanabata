@@ -52,10 +52,7 @@ int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path) {
 }
 
 Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id) {
-    if (sasa_id == HOLE_ID) {
-        return HOLE_SASA;
-    }
-    if (sasa_id >= tanabata->sasahyou.size) {
+    if (sasa_id == HOLE_ID || sasa_id >= tanabata->sasahyou.size) {
         return HOLE_SASA;
     }
     return tanabata->sasahyou.database[sasa_id];
