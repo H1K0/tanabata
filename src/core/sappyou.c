@@ -159,9 +159,14 @@ int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {
         return 0;
     }
     sappyou->database[tanzaku_id].id = HOLE_ID;
-    sappyou->hole_cnt++;
-    sappyou->holes = realloc(sappyou->holes, sappyou->hole_cnt);
-    sappyou->holes[sappyou->hole_cnt - 1] = sappyou->database + tanzaku_id;
+    if (tanzaku_id == sappyou->size - 1) {
+        sappyou->size--;
+        sappyou->database = realloc(sappyou->database, sappyou->size * sizeof(Tanzaku));
+    } else {
+        sappyou->hole_cnt++;
+        sappyou->holes = realloc(sappyou->holes, sappyou->hole_cnt);
+        sappyou->holes[sappyou->hole_cnt - 1] = sappyou->database + tanzaku_id;
+    }
     sappyou->modified_ts = time(NULL);
     return 0;
 }
