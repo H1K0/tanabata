@@ -41,7 +41,7 @@ Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id) {
         return HOLE_SASA;
     }
     if (sasa_id >= tanabata->sasahyou.size) {
-        fprintf(stderr, "Failed to get sasa: too big ID\n");
+        fprintf(stderr, "Failed to get sasa: ID out of range\n");
         return HOLE_SASA;
     }
     return tanabata->sasahyou.database[sasa_id];

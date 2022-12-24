@@ -33,7 +33,7 @@ Tanzaku tanabata_tanzaku_get_by_id(Tanabata *tanabata, uint64_t tanzaku_id) {
         return HOLE_TANZAKU;
     }
     if (tanzaku_id >= tanabata->sappyou.size) {
-        fprintf(stderr, "Failed to get tanzaku: too big ID\n");
+        fprintf(stderr, "Failed to get tanzaku: ID out of range\n");
         return HOLE_TANZAKU;
     }
     return tanabata->sappyou.database[tanzaku_id];
