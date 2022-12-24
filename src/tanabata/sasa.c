@@ -6,7 +6,6 @@
 int tanabata_sasa_add(Tanabata *tanabata, const char *path) {
     for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
         if (tanabata->sasahyou.database[i].id != HOLE_ID && strcmp(tanabata->sasahyou.database[i].path, path) == 0) {
-            fprintf(stderr, "Failed to add sasa: target file is already added\n");
             return 1;
         }
     }
@@ -15,7 +14,6 @@ int tanabata_sasa_add(Tanabata *tanabata, const char *path) {
     if (abspath != NULL) {
         return sasa_add(&tanabata->sasahyou, abspath);
     }
-    fprintf(stderr, "Failed to add sasa: file does not exist\n");
     return 1;
 }
 
@@ -31,17 +29,14 @@ int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path) {
             return sasa_rem(&tanabata->sasahyou, current_sasa->id);
         }
     }
-    fprintf(stderr, "Failed to remove sasa: target sasa does not exist\n");
     return 1;
 }
 
 Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id) {
     if (sasa_id == HOLE_ID) {
-        fprintf(stderr, "Failed to get sasa: got hole ID\n");
         return HOLE_SASA;
     }
     if (sasa_id >= tanabata->sasahyou.size) {
-        fprintf(stderr, "Failed to get sasa: ID out of range\n");
         return HOLE_SASA;
     }
     return tanabata->sasahyou.database[sasa_id];
