@@ -35,14 +35,12 @@ int sasahyou_free(Sasahyou *sasahyou) {
 
 int sasahyou_load(Sasahyou *sasahyou) {
     if (sasahyou->file == NULL) {
-        fprintf(stderr, "Failed to load sasahyou: input file not specified\n");
         return 1;
     }
     uint16_t signature[4];
     rewind(sasahyou->file);
     fread(signature, 2, 4, sasahyou->file);
     if (memcmp(signature, SASAHYOU_SIG, 8) != 0) {
-        fprintf(stderr, "Failed to load sasahyou: invalid signature\n");
         return 1;
     }
     fread(&sasahyou->created_ts, 8, 1, sasahyou->file);
@@ -68,7 +66,6 @@ int sasahyou_load(Sasahyou *sasahyou) {
 
 int sasahyou_save(Sasahyou *sasahyou) {
     if (sasahyou->file == NULL) {
-        fprintf(stderr, "Failed to save sasahyou: output file not specified\n");
         return 1;
     }
     rewind(sasahyou->file);
@@ -95,7 +92,6 @@ int sasahyou_save(Sasahyou *sasahyou) {
 int sasahyou_open(Sasahyou *sasahyou, const char *path) {
     sasahyou->file = fopen(path, "r+b");
     if (sasahyou->file == NULL) {
-        fprintf(stderr, "Failed to open sasahyou: failed to open file '%s'\n", path);
         return 1;
     }
     return sasahyou_load(sasahyou);
@@ -104,7 +100,6 @@ int sasahyou_open(Sasahyou *sasahyou, const char *path) {
 int sasahyou_dump(Sasahyou *sasahyou, const char *path) {
     sasahyou->file = fopen(path, "w+b");
     if (sasahyou->file == NULL) {
-        fprintf(stderr, "Failed to dump sasahyou: failed to write to file '%s'\n", path);
         return 1;
     }
     return sasahyou_save(sasahyou);
@@ -112,7 +107,6 @@ int sasahyou_dump(Sasahyou *sasahyou, const char *path) {
 
 int sasa_add(Sasahyou *sasahyou, const char *path) {
     if (sasahyou->size == -1 && sasahyou->hole_cnt == 0) {
-        fprintf(stderr, "Failed to add sasa: sasahyou is full\n");
         return 1;
     }
     Sasa newbie;
@@ -139,11 +133,9 @@ int sasa_add(Sasahyou *sasahyou, const char *path) {
 
 int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {
     if (sasa_id == HOLE_ID) {
-        fprintf(stderr, "Failed to remove sasa: got hole ID\n");
         return 1;
     }
     if (sasa_id >= sasahyou->size) {
-        fprintf(stderr, "Failed to remove sasa: too big ID\n");
         return 1;
     }
     if (sasahyou->database[sasa_id].id == HOLE_ID) {

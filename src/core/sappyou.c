@@ -34,14 +34,12 @@ int sappyou_free(Sappyou *sappyou) {
 
 int sappyou_load(Sappyou *sappyou) {
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to load sappyou: input file not specified\n");
         return 1;
     }
     uint16_t signature[4];
     rewind(sappyou->file);
     fread(signature, 2, 4, sappyou->file);
     if (memcmp(signature, SAPPYOU_SIG, 8) != 0) {
-        fprintf(stderr, "Failed to load sappyou: invalid signature\n");
         return 1;
     }
     fread(&sappyou->created_ts, 8, 1, sappyou->file);
@@ -69,7 +67,6 @@ int sappyou_load(Sappyou *sappyou) {
 
 int sappyou_save(Sappyou *sappyou) {
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to save sappyou: output file not specified\n");
         return 1;
     }
     rewind(sappyou->file);
@@ -99,7 +96,6 @@ int sappyou_save(Sappyou *sappyou) {
 int sappyou_open(Sappyou *sappyou, const char *path) {
     sappyou->file = fopen(path, "r+b");
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to open sappyou: failed to open file '%s'\n", path);
         return 1;
     }
     return sappyou_load(sappyou);
@@ -108,7 +104,6 @@ int sappyou_open(Sappyou *sappyou, const char *path) {
 int sappyou_dump(Sappyou *sappyou, const char *path) {
     sappyou->file = fopen(path, "w+b");
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to dump sappyou: failed to write to file '%s'\n", path);
         return 1;
     }
     return sappyou_save(sappyou);
@@ -116,7 +111,6 @@ int sappyou_dump(Sappyou *sappyou, const char *path) {
 
 int tanzaku_add(Sappyou *sappyou, const char *name, const char *description) {
     if (sappyou->size == -1 && sappyou->hole_cnt == 0) {
-        fprintf(stderr, "Failed to add tanzaku: sappyou is full\n");
         return 1;
     }
     Tanzaku newbie;
@@ -148,11 +142,9 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *description) {
 
 int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {
     if (tanzaku_id == HOLE_ID) {
-        fprintf(stderr, "Failed to remove tanzaku: got hole ID\n");
         return 1;
     }
     if (tanzaku_id >= sappyou->size) {
-        fprintf(stderr, "Failed to remove tanzaku: too big ID\n");
         return 1;
     }
     if (sappyou->database[tanzaku_id].id == HOLE_ID) {

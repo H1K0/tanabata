@@ -31,14 +31,12 @@ int shoppyou_free(Shoppyou *shoppyou) {
 
 int shoppyou_load(Shoppyou *shoppyou) {
     if (shoppyou->file == NULL) {
-        fprintf(stderr, "Failed to load shoppyou: input file not specified\n");
         return 1;
     }
     uint16_t signature[4];
     rewind(shoppyou->file);
     fread(signature, 2, 4, shoppyou->file);
     if (memcmp(signature, SHOPPYOU_SIG, 8) != 0) {
-        fprintf(stderr, "Failed to load shoppyou: invalid signature\n");
         return 1;
     }
     fread(&shoppyou->created_ts, 8, 1, shoppyou->file);
@@ -57,7 +55,6 @@ int shoppyou_load(Shoppyou *shoppyou) {
 
 int shoppyou_save(Shoppyou *shoppyou) {
     if (shoppyou->file == NULL) {
-        fprintf(stderr, "Failed to save shoppyou: output file not specified\n");
         return 1;
     }
     rewind(shoppyou->file);
@@ -81,7 +78,6 @@ int shoppyou_save(Shoppyou *shoppyou) {
 int shoppyou_open(Shoppyou *shoppyou, const char *path) {
     shoppyou->file = fopen(path, "r+b");
     if (shoppyou->file == NULL) {
-        fprintf(stderr, "Failed to open shoppyou: failed to open file '%s'\n", path);
         return 1;
     }
     shoppyou->holes = NULL;
@@ -91,7 +87,6 @@ int shoppyou_open(Shoppyou *shoppyou, const char *path) {
 int shoppyou_dump(Shoppyou *shoppyou, const char *path) {
     shoppyou->file = fopen(path, "w+b");
     if (shoppyou->file == NULL) {
-        fprintf(stderr, "Failed to dump shoppyou: failed to write to file '%s'\n", path);
         return 1;
     }
     return shoppyou_save(shoppyou);
@@ -99,11 +94,9 @@ int shoppyou_dump(Shoppyou *shoppyou, const char *path) {
 
 int kazari_add(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
     if (sasa_id == HOLE_ID || tanzaku_id == HOLE_ID) {
-        fprintf(stderr, "Failed to add kazari: got hole ID\n");
         return 1;
     }
     if (shoppyou->size == -1 && shoppyou->hole_cnt == 0) {
-        fprintf(stderr, "Failed to add kazari: shoppyou is full\n");
         return 1;
     }
     Kazari newbie;
@@ -125,7 +118,6 @@ int kazari_add(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
 
 int kazari_rem(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
     if (sasa_id == HOLE_ID || tanzaku_id == HOLE_ID) {
-        fprintf(stderr, "Failed to remove kazari: got hole ID\n");
         return 1;
     }
     for (uint64_t i = 0; i < shoppyou->size; i++) {
