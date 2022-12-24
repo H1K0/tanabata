@@ -31,12 +31,82 @@ int tanabata_free(Tanabata *tanabata) {
 }
 
 int tanabata_weed(Tanabata *tanabata) {
-    int status = 0;
-    status |= sasahyou_weed(&tanabata->sasahyou);
-    status |= sappyou_weed(&tanabata->sappyou);
-    status |= shoppyou_weed(&tanabata->shoppyou);
-
-    return status;
+    uint64_t hole_cnt;
+    uint64_t new_id;
+    Kazari *current_kazari;
+    if (tanabata->shoppyou.hole_cnt > 0) {
+        hole_cnt = 0;
+        current_kazari = tanabata->shoppyou.database;
+        for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
+            if (current_kazari->sasa_id != HOLE_ID && current_kazari->tanzaku_id != HOLE_ID) {
+                if (hole_cnt > 0) {
+                    *(current_kazari - hole_cnt) = *current_kazari;
+                }
+            } else {
+                hole_cnt++;
+            }
+            current_kazari++;
+        }
+        tanabata->shoppyou.size -= tanabata->shoppyou.hole_cnt;
+        tanabata->shoppyou.hole_cnt = 0;
+        free(tanabata->shoppyou.holes);
+        tanabata->shoppyou.database = realloc(tanabata->shoppyou.database, tanabata->shoppyou.size * sizeof(Kazari));
+    }
+    if (tanabata->sasahyou.hole_cnt > 0) {
+        hole_cnt = 0;
+        Sasa *current_sasa = tanabata->sasahyou.database;
+        for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
+            if (current_sasa->id != HOLE_ID) {
+                if (hole_cnt > 0) {
+                    new_id = current_sasa->id - hole_cnt;
+                    current_kazari = tanabata->shoppyou.database;
+                    for (uint64_t j = 0; j < tanabata->shoppyou.size; j++) {
+                        if (current_kazari->sasa_id == current_sasa->id) {
+                            current_kazari->sasa_id = new_id;
+                        }
+                        current_kazari++;
+                    }
+                    current_sasa->id = new_id;
+                    *(current_sasa - hole_cnt) = *current_sasa;
+                }
+            } else {
+                hole_cnt++;
+            }
+            current_sasa++;
+        }
+        tanabata->sasahyou.size -= tanabata->sasahyou.hole_cnt;
+        tanabata->sasahyou.hole_cnt = 0;
+        free(tanabata->sasahyou.holes);
+        tanabata->sasahyou.database = realloc(tanabata->sasahyou.database, tanabata->sasahyou.size * sizeof(Sasa));
+    }
+    if (tanabata->sappyou.hole_cnt > 0) {
+        hole_cnt = 0;
+        Tanzaku *current_tanzaku = tanabata->sappyou.database;
+        for (uint64_t i = 0; i < tanabata->sappyou.size; i++) {
+            if (current_tanzaku->id != HOLE_ID) {
+                if (hole_cnt > 0) {
+                    new_id = current_tanzaku->id - hole_cnt;
+                    current_kazari = tanabata->shoppyou.database;
+                    for (uint64_t j = 0; j < tanabata->shoppyou.size; j++) {
+                        if (current_kazari->tanzaku_id == current_tanzaku->id) {
+                            current_kazari->tanzaku_id = new_id;
+                        }
+                        current_kazari++;
+                    }
+                    current_tanzaku->id = new_id;
+                    *(current_tanzaku - hole_cnt) = *current_tanzaku;
+                } else {
+                    hole_cnt++;
+                }
+            }
+            current_tanzaku++;
+        }
+        tanabata->sappyou.size -= tanabata->sappyou.hole_cnt;
+        tanabata->sappyou.hole_cnt = 0;
+        free(tanabata->sappyou.holes);
+        tanabata->sappyou.database = realloc(tanabata->sappyou.database, tanabata->sappyou.size * sizeof(Tanzaku));
+    }
+    return 0;
 }
 
 int tanabata_load(Tanabata *tanabata) {
