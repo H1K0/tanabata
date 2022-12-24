@@ -31,7 +31,7 @@ typedef struct tanzaku {
     char      *description;  // Tanzaku description
 } Tanzaku;
 
-// Kazari (飾り) - a sasa-tanzaku relation record
+// Kazari (飾り) - a sasa-tanzaku association record
 typedef struct kazari {
     uint64_t   sasa_id;      // Sasa ID
     uint64_t   tanzaku_id;   // Tanzaku ID
