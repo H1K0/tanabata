@@ -290,6 +290,7 @@ int cli(int argc, char **argv) {
                     printf("Successfully initialized Tanabata database\n");
                     return 0;
                 }
+                fprintf(stderr, ERROR("Failed to initialize Tanabata database\n"));
                 return 1;
             case 'O':
                 if (tanabata_open(&tanabata, optarg) == 0) {
@@ -299,6 +300,7 @@ int cli(int argc, char **argv) {
                     printf("Successfully opened Tanabata database\n");
                     return 0;
                 }
+                fprintf(stderr, ERROR("Failed to open Tanabata database\n"));
                 return 1;
             case 'a':
                 opt_a = 1;
