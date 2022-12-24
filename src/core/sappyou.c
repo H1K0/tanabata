@@ -34,7 +34,7 @@ int sappyou_free(Sappyou *sappyou) {
 
 int sappyou_load(Sappyou *sappyou) {
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to load sappyou: file not specified\n");
+        fprintf(stderr, "Failed to load sappyou: input file not specified\n");
         return 1;
     }
     uint16_t signature[4];
@@ -69,7 +69,7 @@ int sappyou_load(Sappyou *sappyou) {
 
 int sappyou_save(Sappyou *sappyou) {
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to save sappyou: file not specified\n");
+        fprintf(stderr, "Failed to save sappyou: output file not specified\n");
         return 1;
     }
     rewind(sappyou->file);
@@ -99,7 +99,7 @@ int sappyou_save(Sappyou *sappyou) {
 int sappyou_open(Sappyou *sappyou, const char *path) {
     sappyou->file = fopen(path, "r+b");
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to dump sappyou: failed to open file\n");
+        fprintf(stderr, "Failed to open sappyou: failed to open file '%s'\n", path);
         return 1;
     }
     return sappyou_load(sappyou);
@@ -108,7 +108,7 @@ int sappyou_open(Sappyou *sappyou, const char *path) {
 int sappyou_dump(Sappyou *sappyou, const char *path) {
     sappyou->file = fopen(path, "w+b");
     if (sappyou->file == NULL) {
-        fprintf(stderr, "Failed to dump sappyou: failed to open file\n");
+        fprintf(stderr, "Failed to dump sappyou: failed to write to file '%s'\n", path);
         return 1;
     }
     return sappyou_save(sappyou);
@@ -156,8 +156,7 @@ int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {
         return 1;
     }
     if (sappyou->database[tanzaku_id].id == HOLE_ID) {
-        fprintf(stderr, "Failed to remove tanzaku: target tanzaku is already removed\n");
-        return 1;
+        return 0;
     }
     sappyou->database[tanzaku_id].id = HOLE_ID;
     sappyou->hole_cnt++;

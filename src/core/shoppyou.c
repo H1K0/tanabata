@@ -31,7 +31,7 @@ int shoppyou_free(Shoppyou *shoppyou) {
 
 int shoppyou_load(Shoppyou *shoppyou) {
     if (shoppyou->file == NULL) {
-        fprintf(stderr, "Failed to load shoppyou: file not specified\n");
+        fprintf(stderr, "Failed to load shoppyou: input file not specified\n");
         return 1;
     }
     uint16_t signature[4];
@@ -57,7 +57,7 @@ int shoppyou_load(Shoppyou *shoppyou) {
 
 int shoppyou_save(Shoppyou *shoppyou) {
     if (shoppyou->file == NULL) {
-        fprintf(stderr, "Failed to save shoppyou: file not specified\n");
+        fprintf(stderr, "Failed to save shoppyou: output file not specified\n");
         return 1;
     }
     rewind(shoppyou->file);
@@ -81,7 +81,7 @@ int shoppyou_save(Shoppyou *shoppyou) {
 int shoppyou_open(Shoppyou *shoppyou, const char *path) {
     shoppyou->file = fopen(path, "r+b");
     if (shoppyou->file == NULL) {
-        fprintf(stderr, "Failed to dump shoppyou: failed to open file '%s'\n", path);
+        fprintf(stderr, "Failed to open shoppyou: failed to open file '%s'\n", path);
         return 1;
     }
     shoppyou->holes = NULL;
@@ -91,7 +91,7 @@ int shoppyou_open(Shoppyou *shoppyou, const char *path) {
 int shoppyou_dump(Shoppyou *shoppyou, const char *path) {
     shoppyou->file = fopen(path, "w+b");
     if (shoppyou->file == NULL) {
-        fprintf(stderr, "Failed to dump shoppyou: failed to open file '%s'\n", path);
+        fprintf(stderr, "Failed to dump shoppyou: failed to write to file '%s'\n", path);
         return 1;
     }
     return shoppyou_save(shoppyou);
@@ -138,6 +138,5 @@ int kazari_rem(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
             return 0;
         }
     }
-    fprintf(stderr, "Failed to remove kazari: target kazari does not exist or is already removed\n");
-    return 1;
+    return 0;
 }

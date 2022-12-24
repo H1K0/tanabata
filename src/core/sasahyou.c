@@ -35,7 +35,7 @@ int sasahyou_free(Sasahyou *sasahyou) {
 
 int sasahyou_load(Sasahyou *sasahyou) {
     if (sasahyou->file == NULL) {
-        fprintf(stderr, "Failed to load sasahyou: file not specified\n");
+        fprintf(stderr, "Failed to load sasahyou: input file not specified\n");
         return 1;
     }
     uint16_t signature[4];
@@ -68,7 +68,7 @@ int sasahyou_load(Sasahyou *sasahyou) {
 
 int sasahyou_save(Sasahyou *sasahyou) {
     if (sasahyou->file == NULL) {
-        fprintf(stderr, "Failed to save sasahyou: file not specified\n");
+        fprintf(stderr, "Failed to save sasahyou: output file not specified\n");
         return 1;
     }
     rewind(sasahyou->file);
@@ -95,7 +95,7 @@ int sasahyou_save(Sasahyou *sasahyou) {
 int sasahyou_open(Sasahyou *sasahyou, const char *path) {
     sasahyou->file = fopen(path, "r+b");
     if (sasahyou->file == NULL) {
-        fprintf(stderr, "Failed to dump sasahyou: failed to open file\n");
+        fprintf(stderr, "Failed to open sasahyou: failed to open file '%s'\n", path);
         return 1;
     }
     return sasahyou_load(sasahyou);
@@ -104,7 +104,7 @@ int sasahyou_open(Sasahyou *sasahyou, const char *path) {
 int sasahyou_dump(Sasahyou *sasahyou, const char *path) {
     sasahyou->file = fopen(path, "w+b");
     if (sasahyou->file == NULL) {
-        fprintf(stderr, "Failed to dump sasahyou: failed to open file\n");
+        fprintf(stderr, "Failed to dump sasahyou: failed to write to file '%s'\n", path);
         return 1;
     }
     return sasahyou_save(sasahyou);
@@ -147,8 +147,7 @@ int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {
         return 1;
     }
     if (sasahyou->database[sasa_id].id == HOLE_ID) {
-        fprintf(stderr, "Failed to remove sasa: target sasa is already removed\n");
-        return 1;
+        return 0;
     }
     sasahyou->database[sasa_id].id = HOLE_ID;
     sasahyou->hole_cnt++;
