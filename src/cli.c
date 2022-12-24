@@ -329,6 +329,10 @@ int cli(int argc, char **argv) {
                 break;
         }
     }
+    if (opt_s && opt_u) {
+        opt_s = 0;
+        opt_u = 0;
+    }
     FILE *config = fopen("./tfm-config", "r");
     if (config == NULL) {
         fprintf(stderr, ERROR("Config file not found\n"));
