@@ -269,6 +269,18 @@ int cli(int argc, char **argv) {
     _Bool opt_t = 0;
     _Bool opt_k = 0;
     _Bool opt_w = 0;
+    FILE *config = fopen(config_path, "r");
+    if (config == NULL) {
+        fprintf(stderr, ERROR("Config file not found\n"));
+        return 1;
+    }
+    fseek(config, 0L, SEEK_END);
+    char *tanabata_path = malloc(ftell(config) + 1);
+    rewind(config);
+    if (fgets(tanabata_path, INT32_MAX, config) == NULL) {
+        fprintf(stderr, ERROR("Failed to read config file\n"));
+        return 1;
+    }
     while ((opt = getopt(argc, argv, shortopts)) != -1) {
         switch (opt) {
             case 'h':
@@ -289,6 +301,11 @@ int cli(int argc, char **argv) {
                         HIGHLIGHT("-w")"        Weed (defragment) database\n"
                         HIGHLIGHT("-V")"        Print version and exit\n"
                 );
+                if (tanabata_path != NULL) {
+                    printf(HIGHLIGHT("\nCurrent database location: %s\n"), tanabata_path);
+                } else {
+                    printf(HIGHLIGHT("\nNo database connected\n"));
+                }
                 return 0;
             case 'V':
                 printf("0.1.0-dev\n");
@@ -302,7 +319,7 @@ int cli(int argc, char **argv) {
                 status |= tanabata_init(&tanabata);
                 status |= tanabata_dump(&tanabata, abspath);
                 if (status == 0) {
-                    FILE *config = fopen(config_path, "w");
+                    config = freopen(NULL, "w", config);
                     if (config == NULL) {
                         fprintf(stderr, ERROR("Failed to write to config file\n"));
                         return 1;
@@ -321,7 +338,7 @@ int cli(int argc, char **argv) {
                     return 1;
                 }
                 if (tanabata_open(&tanabata, abspath) == 0) {
-                    FILE *config = fopen(config_path, "w");
+                    config = freopen(NULL, "w", config);
                     if (config == NULL) {
                         fprintf(stderr, ERROR("Failed to write to config file\n"));
                         return 1;
@@ -369,14 +386,6 @@ int cli(int argc, char **argv) {
         fprintf(stderr, ERROR("Config file not found\n"));
         return 1;
     }
-    fseek(config, 0L, SEEK_END);
-    char *tanabata_path = malloc(ftell(config) + 1);
-    rewind(config);
-    if (fgets(tanabata_path, INT32_MAX, config) == NULL) {
-        fprintf(stderr, ERROR("Failed to read config file\n"));
-        return 1;
-    }
-    tanabata_open(&tanabata, tanabata_path);
     free(tanabata_path);
     fclose(config);
     if (opt_w) {
