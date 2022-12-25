@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <unistd.h>
+#include <libgen.h>
 
 #include "../include/tanabata.h"
 #include "../include/cli.h"
@@ -246,8 +248,19 @@ int cli(int argc, char **argv) {
         fprintf(stderr, ERROR("No options provided\n"));
         return 1;
     }
+    char *exe_dir = malloc(4096);
+    memset(exe_dir, 0, 4096);
+    if (readlink("/proc/self/exe", exe_dir, 4096) == -1) {
+        fprintf(stderr, ERROR("Failed to get executable directory\n"));
+        return 1;
+    }
+    exe_dir = dirname(exe_dir);
+    char *config_path = malloc(strlen(exe_dir) + 12);
+    strcpy(config_path, exe_dir);
+    strcat(config_path, "/tfm-config");
     const char *shortopts = "hI:O:suaftkwV";
     int status = 0;
+    char *abspath = NULL;
     int opt;
     _Bool opt_a = 0;
     _Bool opt_s = 0;
@@ -281,11 +294,20 @@ int cli(int argc, char **argv) {
                 printf("0.1.0-dev\n");
                 return 0;
             case 'I':
+                abspath = realpath(optarg, abspath);
+                if (abspath == NULL) {
+                    fprintf(stderr, ERROR("Invalid path\n"));
+                    return 1;
+                }
                 status |= tanabata_init(&tanabata);
-                status |= tanabata_dump(&tanabata, optarg);
+                status |= tanabata_dump(&tanabata, abspath);
                 if (status == 0) {
-                    FILE *config = fopen("./config", "w");
-                    fputs(optarg, config);
+                    FILE *config = fopen(config_path, "w");
+                    if (config == NULL) {
+                        fprintf(stderr, ERROR("Failed to write to config file\n"));
+                        return 1;
+                    }
+                    fputs(abspath, config);
                     fclose(config);
                     printf("Successfully initialized Tanabata database\n");
                     return 0;
@@ -293,9 +315,18 @@ int cli(int argc, char **argv) {
                 fprintf(stderr, ERROR("Failed to initialize Tanabata database\n"));
                 return 1;
             case 'O':
-                if (tanabata_open(&tanabata, optarg) == 0) {
-                    FILE *config = fopen("./config", "w");
-                    fputs(optarg, config);
+                abspath = realpath(optarg, abspath);
+                if (abspath == NULL) {
+                    fprintf(stderr, ERROR("Invalid path\n"));
+                    return 1;
+                }
+                if (tanabata_open(&tanabata, abspath) == 0) {
+                    FILE *config = fopen(config_path, "w");
+                    if (config == NULL) {
+                        fprintf(stderr, ERROR("Failed to write to config file\n"));
+                        return 1;
+                    }
+                    fputs(abspath, config);
                     fclose(config);
                     printf("Successfully opened Tanabata database\n");
                     return 0;
@@ -333,7 +364,7 @@ int cli(int argc, char **argv) {
         opt_s = 0;
         opt_u = 0;
     }
-    FILE *config = fopen("./tfm-config", "r");
+    FILE *config = fopen(config_path, "r");
     if (config == NULL) {
         fprintf(stderr, ERROR("Config file not found\n"));
         return 1;
