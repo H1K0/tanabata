@@ -381,9 +381,8 @@ int cli(int argc, char **argv) {
         opt_s = 0;
         opt_u = 0;
     }
-    FILE *config = fopen(config_path, "r");
-    if (config == NULL) {
-        fprintf(stderr, ERROR("Config file not found\n"));
+    if (tanabata_open(&tanabata, tanabata_path) != 0) {
+        fprintf(stderr, ERROR("Failed to load database\n"));
         return 1;
     }
     free(tanabata_path);
