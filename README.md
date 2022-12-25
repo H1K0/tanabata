@@ -34,12 +34,12 @@ Tanabata FM is a file manager for Linux that will let you enjoy the Tanabata fes
 
 ## Usage
 
-First of all, compile the source code or simply download [this executable file](https://github.com/H1K0/tanabata/releases/download/v0.1.0-dev/tfm). For better experience, move the executable file to `/usr/bin` folder (totally safe if you don't have any other app with the name `tfm`) or add the folder with it to `PATH`.
+First of all, compile the source code or just download [this executable file](https://github.com/H1K0/tanabata/releases/download/v0.1.1-dev/tfm). For better experience, move the executable to the `/usr/bin` directory (totally safe unless you have another app named `tfm`) or add the directory with it to `PATH`.
 
-Then just open the terminal and run `tfm -h`. You should get the following.
+Then just open the terminal and run `tfm -h`. If you are running it for the first time, run it with `sudo` or manually create the `/etc/tfm` directory and check its permissions. This is the directory where TFM stores its config file. If everything is set up properly, you should get the following.
 
 ```
-(C) Masahiko AMANO aka H1K0, 2022
+(C) Masahiko AMANO aka H1K0, 2022—present
 (https://github.com/H1K0/tanabata)
 
 Usage:
@@ -47,8 +47,8 @@ tfm <options>
 
 Options:
 -h        Print this help and exit
--I <dir>  Initialize Tanabata database in directory <dir>
--O <dir>  Open Tanabata database from directory <dir>
+-I <dir>  Initialize new Tanabata database in directory <dir>
+-O <dir>  Open existing Tanabata database from directory <dir>
 -a        View all
 -s        Set or add
 -u        Unset or remove
@@ -57,9 +57,11 @@ Options:
 -k        Kazari menu (can only be used with the '-s' or '-u' option)
 -w        Weed (defragment) database
 -V        Print version and exit
+
+No database connected
 ```
 
-So, here is the list of all available options.
+So, let's take a look at each option.
 
 Using the `-I <dir>` option, you can initialize the TFM database in the specified directory. The app creates empty sasahyou, sappyou and shoppyou files and saves the directory path to a configuration file. The new database will be used the next time you run the app until you change it.
 
