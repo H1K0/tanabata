@@ -1,8 +1,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
-#include <unistd.h>
-#include <libgen.h>
+#include <sys/stat.h>
 
 #include "../include/tanabata.h"
 #include "../include/cli.h"
@@ -248,16 +247,6 @@ int cli(int argc, char **argv) {
         fprintf(stderr, ERROR("No options provided\n"));
         return 1;
     }
-    char *exe_dir = malloc(4096);
-    memset(exe_dir, 0, 4096);
-    if (readlink("/proc/self/exe", exe_dir, 4096) == -1) {
-        fprintf(stderr, ERROR("Failed to get executable directory\n"));
-        return 1;
-    }
-    exe_dir = dirname(exe_dir);
-    char *config_path = malloc(strlen(exe_dir) + 12);
-    strcpy(config_path, exe_dir);
-    strcat(config_path, "/tfm-config");
     const char *shortopts = "hI:O:suaftkwV";
     int status = 0;
     char *abspath = NULL;
@@ -269,17 +258,37 @@ int cli(int argc, char **argv) {
     _Bool opt_t = 0;
     _Bool opt_k = 0;
     _Bool opt_w = 0;
-    FILE *config = fopen(config_path, "r");
+    char *tanabata_path;
+    FILE *config = fopen("/etc/tfm/config", "r");
     if (config == NULL) {
-        fprintf(stderr, ERROR("Config file not found\n"));
-        return 1;
-    }
-    fseek(config, 0L, SEEK_END);
-    char *tanabata_path = malloc(ftell(config) + 1);
-    rewind(config);
-    if (fgets(tanabata_path, INT32_MAX, config) == NULL) {
-        fprintf(stderr, ERROR("Failed to read config file\n"));
-        return 1;
+        tanabata_path = NULL;
+        struct stat st;
+        if (stat("/etc/tfm", &st) == -1) {
+            if (mkdir("/etc/tfm", 0755) != 0) {
+                fprintf(stderr, ERROR("Failed to create '/etc/tfm' directory. "
+                                      "Try again with 'sudo' or check your permissions\n"));
+                return 1;
+            }
+        }
+        config = fopen("/etc/tfm/config", "w");
+        if (config == NULL) {
+            fprintf(stderr, ERROR("Failed to create config file. "
+                                  "Try again with 'sudo' or check your permissions\n"));
+            return 1;
+        }
+    } else {
+        fseek(config, 0L, SEEK_END);
+        long fsize = ftell(config);
+        rewind(config);
+        if (fsize == 0) {
+            tanabata_path = NULL;
+        } else {
+            tanabata_path = malloc(fsize + 1);
+            if (fgets(tanabata_path, INT32_MAX, config) == NULL) {
+                fprintf(stderr, ERROR("Failed to read config file\n"));
+                return 1;
+            }
+        }
     }
     while ((opt = getopt(argc, argv, shortopts)) != -1) {
         switch (opt) {
@@ -321,7 +330,8 @@ int cli(int argc, char **argv) {
                 if (status == 0) {
                     config = freopen(NULL, "w", config);
                     if (config == NULL) {
-                        fprintf(stderr, ERROR("Failed to write to config file\n"));
+                        fprintf(stderr, ERROR("Failed to write to config file. "
+                                              "Try again with 'sudo' or check your permissions\n"));
                         return 1;
                     }
                     fputs(abspath, config);
@@ -340,7 +350,8 @@ int cli(int argc, char **argv) {
                 if (tanabata_open(&tanabata, abspath) == 0) {
                     config = freopen(NULL, "w", config);
                     if (config == NULL) {
-                        fprintf(stderr, ERROR("Failed to write to config file\n"));
+                        fprintf(stderr, ERROR("Failed to write to config file. "
+                                              "Try again with 'sudo' or check your permissions\n"));
                         return 1;
                     }
                     fputs(abspath, config);
@@ -377,13 +388,17 @@ int cli(int argc, char **argv) {
                 break;
         }
     }
-    if (opt_s && opt_u) {
-        opt_s = 0;
-        opt_u = 0;
+    if (tanabata_path == NULL) {
+        fprintf(stderr, ERROR("No connected database\n"));
+        return 1;
     }
     if (tanabata_open(&tanabata, tanabata_path) != 0) {
         fprintf(stderr, ERROR("Failed to load database\n"));
         return 1;
+    }
+    if (opt_s && opt_u) {
+        opt_s = 0;
+        opt_u = 0;
     }
     free(tanabata_path);
     fclose(config);
