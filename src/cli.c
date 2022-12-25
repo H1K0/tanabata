@@ -294,13 +294,13 @@ int cli(int argc, char **argv) {
         switch (opt) {
             case 'h':
                 printf(
-                        HIGHLIGHT("(C) Masahiko AMANO aka H1K0, 2022\n(https://github.com/H1K0/tanabata)\n\n")
+                        HIGHLIGHT("(C) Masahiko AMANO aka H1K0, 2022—present\n(https://github.com/H1K0/tanabata)\n\n")
                         HIGHLIGHT("Usage:\n")
                         "tfm <options>\n\n"
                         HIGHLIGHT("Options:\n")
                         HIGHLIGHT("-h")"        Print this help and exit\n"
-                        HIGHLIGHT("-I <dir>")"  Initialize Tanabata database in directory <dir>\n"
-                        HIGHLIGHT("-O <dir>")"  Open Tanabata database from directory <dir>\n"
+                        HIGHLIGHT("-I <dir>")"  Initialize new Tanabata database in directory <dir>\n"
+                        HIGHLIGHT("-O <dir>")"  Open existing Tanabata database from directory <dir>\n"
                         HIGHLIGHT("-a")"        View all\n"
                         HIGHLIGHT("-s")"        Set or add\n"
                         HIGHLIGHT("-u")"        Unset or remove\n"
