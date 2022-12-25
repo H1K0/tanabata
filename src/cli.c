@@ -317,7 +317,7 @@ int cli(int argc, char **argv) {
                 }
                 return 0;
             case 'V':
-                printf("0.1.0-dev\n");
+                printf("0.1.1-dev\n");
                 return 0;
             case 'I':
                 abspath = realpath(optarg, abspath);
