@@ -30,7 +30,7 @@ void print_tanzaku_all() {
     printf(TABLE_HEADER("Tanzaku ID\tCreation timestamp\tName\n"));
     for (uint64_t i = 0; i < tanabata.sappyou.size; i++) {
         if (tanabata.sappyou.database[i].id != HOLE_ID) {
-            printf("%10lu\t%18lu\t%s\n",
+            printf("%10lx\t%18lu\t%s\n",
                    tanabata.sappyou.database[i].id, tanabata.sappyou.database[i].created_ts,
                    tanabata.sappyou.database[i].name);
         }
