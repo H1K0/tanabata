@@ -34,7 +34,7 @@ Tanabata FM is a file manager for Linux that will let you enjoy the Tanabata fes
 
 ## Usage
 
-First of all, compile the source code or just download [this executable file](https://github.com/H1K0/tanabata/releases/download/v0.1.1-dev/tfm). For better experience, move the executable to the `/usr/bin` directory (totally safe unless you have another app named `tfm`) or add the directory with it to `PATH`.
+First of all, compile the source code or just download [this executable file](https://github.com/H1K0/tanabata/releases/download/v0.1.2-dev/tfm). For better experience, move the executable to the `/usr/bin` directory (totally safe unless you have another app named `tfm`) or add the directory with it to `PATH`.
 
 Then just open the terminal and run `tfm -h`. If you are running it for the first time, run it with `sudo` or manually create the `/etc/tfm` directory and check its permissions. This is the directory where TFM stores its config file. If everything is set up properly, you should get the following.
 
