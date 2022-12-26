@@ -167,8 +167,10 @@ int menu_add_kazari() {
         return 1;
     }
     if (tanabata_kazari_add(&tanabata, sasa_id, tanzaku_id) == 0) {
-        printf("Successfully added kazari\n");
-        return 0;
+        if (tanabata_save(&tanabata) == 0) {
+            printf("Successfully added kazari\n");
+            return 0;
+        }
     }
     fprintf(stderr, ERROR("Failed to add kazari\n"));
     return 1;
@@ -235,8 +237,10 @@ int menu_rem_kazari() {
         return 1;
     }
     if (tanabata_kazari_rem(&tanabata, sasa_id, tanzaku_id) == 0) {
-        printf("Successfully removed kazari\n");
-        return 0;
+        if (tanabata_save(&tanabata) == 0) {
+            printf("Successfully removed kazari\n");
+            return 0;
+        }
     }
     fprintf(stderr, ERROR("Failed to remove kazari\n"));
     return 1;
