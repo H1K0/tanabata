@@ -334,9 +334,8 @@ int cli(int argc, char **argv) {
                 if (status == 0) {
                     config = freopen(NULL, "w", config);
                     if (config == NULL) {
-                        fprintf(stderr, ERROR("Failed to write to config file. "
+                        fprintf(stderr, ERROR("Failed to update config file. "
                                               "Try again with 'sudo' or check your permissions\n"));
-                        return 1;
                     }
                     fputs(abspath, config);
                     fclose(config);
@@ -354,7 +353,7 @@ int cli(int argc, char **argv) {
                 if (tanabata_open(&tanabata, abspath) == 0) {
                     config = freopen(NULL, "w", config);
                     if (config == NULL) {
-                        fprintf(stderr, ERROR("Failed to write to config file. "
+                        fprintf(stderr, ERROR("Failed to update config file. "
                                               "Try again with 'sudo' or check your permissions\n"));
                         return 1;
                     }
