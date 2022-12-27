@@ -107,6 +107,10 @@ int menu_view_tanzaku() {
 
 // Sasa add menu handler
 int menu_add_sasa() {
+    if (tanabata.sasahyou.size == -1 && tanabata.sasahyou.hole_cnt == 0) {
+        fprintf(stderr, ERROR("Failed to add file to database: sasahyou is full\n"));
+        return 1;
+    }
     char path[4096];
     printf(HIGHLIGHT("Enter file path: "));
     fgets(path, 4096, stdin);
@@ -126,6 +130,10 @@ int menu_add_sasa() {
 
 // Tanzaku add menu handler
 int menu_add_tanzaku() {
+    if (tanabata.sappyou.size == -1 && tanabata.sappyou.hole_cnt == 0) {
+        fprintf(stderr, ERROR("Failed to add tanzaku: sappyou is full\n"));
+        return 1;
+    }
     char name[4096];
     char description[4096];
     printf(HIGHLIGHT("Enter tanzaku name:        "));
@@ -149,6 +157,10 @@ int menu_add_tanzaku() {
 
 // Kazari add menu handler
 int menu_add_kazari() {
+    if (tanabata.shoppyou.size == -1 && tanabata.shoppyou.hole_cnt == 0) {
+        fprintf(stderr, ERROR("Failed to add kazari: shoppyou is full\n"));
+        return 1;
+    }
     char input[16];
     printf(HIGHLIGHT("Enter sasa ID:    "));
     fgets(input, 16, stdin);
