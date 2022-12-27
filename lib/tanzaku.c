@@ -1,5 +1,6 @@
 #include <string.h>
-#include "../../include/tanabata.h"
+
+#include "../include/tanabata.h"
 
 int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description) {
     Tanzaku *current_tanzaku = tanabata->sappyou.database;

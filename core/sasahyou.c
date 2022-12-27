@@ -3,7 +3,7 @@
 #include <time.h>
 #include <stdio.h>
 
-#include "../../include/core.h"
+#include "../include/core.h"
 
 const Sasa HOLE_SASA = {HOLE_ID};
 

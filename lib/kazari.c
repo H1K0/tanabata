@@ -1,6 +1,6 @@
 #include <malloc.h>
 
-#include "../../include/tanabata.h"
+#include "../include/tanabata.h"
 
 int tanabata_kazari_add(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_id) {
     if (sasa_id >= tanabata->sasahyou.size) {

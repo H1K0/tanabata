@@ -7,18 +7,24 @@ project(tanabata
 set(CMAKE_C_STANDARD 99)
 
 set(CORE_SRC
-        src/core/sasahyou.c
-        src/core/sappyou.c
-        src/core/shoppyou.c)
+        include/core.h
+        core/sasahyou.c
+        core/sappyou.c
+        core/shoppyou.c)
 
 set(TANABATA_SRC
-        src/tanabata/database.c
-        src/tanabata/sasa.c
-        src/tanabata/tanzaku.c
-        src/tanabata/kazari.c)
+        ${CORE_SRC}
+        include/tanabata.h
+        lib/database.c
+        lib/sasa.c
+        lib/tanzaku.c
+        lib/kazari.c)
 
-# Tanabata shared main lib
-add_library(tanabata SHARED ${CORE_SRC} ${TANABATA_SRC})
+set(CLI_SRC
+        cli/cli.c)
+
+# Tanabata shared lib
+add_library(tanabata SHARED ${TANABATA_SRC})
 
 # Tanabata CLI app
-add_executable(tfm main.c include/core.h ${CORE_SRC} include/tanabata.h ${TANABATA_SRC} include/cli.h src/cli.c)
+add_executable(tfm ${TANABATA_SRC} ${CLI_SRC})

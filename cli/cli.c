@@ -4,7 +4,6 @@
 #include <sys/stat.h>
 
 #include "../include/tanabata.h"
-#include "../include/cli.h"
 
 // Stylization macros
 #define TABLE_HEADER(s) "[7;36m"s"[0m"
@@ -246,7 +245,7 @@ int menu_rem_kazari() {
     return 1;
 }
 
-int cli(int argc, char **argv) {
+int main(int argc, char **argv) {
     if (argc == 1) {
         fprintf(stderr, ERROR("No options provided\n"));
         return 1;

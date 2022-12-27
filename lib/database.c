@@ -2,7 +2,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include "../../include/tanabata.h"
+#include "../include/tanabata.h"
 
 int tanabata_init(Tanabata *tanabata) {
     if (sasahyou_init(&tanabata->sasahyou) != 0) {
