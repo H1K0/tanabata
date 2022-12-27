@@ -195,11 +195,10 @@ int menu_rem_sasa() {
     char *endptr;
     uint64_t sasa_id = strtoull(input, &endptr, 16);
     if (*input != '\n' && *endptr == '\n') {
-        if (tanabata_sasa_rem_by_id(&tanabata, sasa_id) == 0) {
-            if (tanabata_save(&tanabata) == 0) {
-                printf("Successfully removed sasa\n");
-                return 0;
-            }
+        if (tanabata_sasa_rem_by_id(&tanabata, sasa_id) == 0 &&
+            tanabata_save(&tanabata) == 0) {
+            printf("Successfully removed sasa\n");
+            return 0;
         }
         fprintf(stderr, ERROR("Failed to remove sasa\n"));
         return 1;
@@ -216,11 +215,10 @@ int menu_rem_tanzaku() {
     char *endptr;
     uint64_t tanzaku_id = strtoull(input, &endptr, 16);
     if (*input != '\n' && *endptr == '\n') {
-        if (tanabata_tanzaku_rem_by_id(&tanabata, tanzaku_id) == 0) {
-            if (tanabata_save(&tanabata) == 0) {
-                printf("Successfully removed tanzaku\n");
-                return 0;
-            }
+        if (tanabata_tanzaku_rem_by_id(&tanabata, tanzaku_id) == 0 &&
+            tanabata_save(&tanabata) == 0) {
+            printf("Successfully removed tanzaku\n");
+            return 0;
         }
         fprintf(stderr, ERROR("Failed to remove tanzaku\n"));
         return 1;
@@ -247,11 +245,10 @@ int menu_rem_kazari() {
         fprintf(stderr, "Invalid ID\n");
         return 1;
     }
-    if (tanabata_kazari_rem(&tanabata, sasa_id, tanzaku_id) == 0) {
-        if (tanabata_save(&tanabata) == 0) {
-            printf("Successfully removed kazari\n");
-            return 0;
-        }
+    if (tanabata_kazari_rem(&tanabata, sasa_id, tanzaku_id) == 0 &&
+        tanabata_save(&tanabata) == 0) {
+        printf("Successfully removed kazari\n");
+        return 0;
     }
     fprintf(stderr, ERROR("Failed to remove kazari\n"));
     return 1;
@@ -263,7 +260,6 @@ int main(int argc, char **argv) {
         return 1;
     }
     const char *shortopts = "hI:O:suaftkwV";
-    int status = 0;
     char *abspath = NULL;
     int opt;
     _Bool opt_a = 0;
@@ -323,12 +319,12 @@ int main(int argc, char **argv) {
                         HIGHLIGHT("-t")"        Tanzaku menu\n"
                         HIGHLIGHT("-k")"        Kazari menu (can only be used with the '-s' or '-u' option)\n"
                         HIGHLIGHT("-w")"        Weed (defragment) database\n"
-                        HIGHLIGHT("-V")"        Print version and exit\n"
+                        HIGHLIGHT("-V")"        Print version and exit\n\n"
                 );
                 if (tanabata_path != NULL) {
-                    printf(HIGHLIGHT("\nCurrent database location: %s\n"), tanabata_path);
+                    printf(HIGHLIGHT("Current database location: %s\n"), tanabata_path);
                 } else {
-                    printf(HIGHLIGHT("\nNo database connected\n"));
+                    printf(HIGHLIGHT("No database connected\n"));
                 }
                 return 0;
             case 'V':
@@ -340,9 +336,8 @@ int main(int argc, char **argv) {
                     fprintf(stderr, ERROR("Invalid path\n"));
                     return 1;
                 }
-                status |= tanabata_init(&tanabata);
-                status |= tanabata_dump(&tanabata, abspath);
-                if (status == 0) {
+                if (tanabata_init(&tanabata) == 0 &&
+                    tanabata_dump(&tanabata, abspath) == 0) {
                     config = freopen(NULL, "w", config);
                     if (config == NULL) {
                         fprintf(stderr, ERROR("Failed to update config file. "
