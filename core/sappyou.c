@@ -38,61 +38,64 @@ int sappyou_load(Sappyou *sappyou) {
         return 1;
     }
     uint16_t signature[4];
-    rewind(sappyou->file);
-    fread(signature, 2, 4, sappyou->file);
-    if (memcmp(signature, SAPPYOU_SIG, 8) != 0) {
+    if (fread(signature, 2, 4, sappyou->file) < 4 ||
+        memcmp(signature, SAPPYOU_SIG, 8) != 0 ||
+        fread(&sappyou->created_ts, 8, 1, sappyou->file) == 0 ||
+        fread(&sappyou->modified_ts, 8, 1, sappyou->file) == 0 ||
+        fread(&sappyou->size, 8, 1, sappyou->file) == 0 ||
+        fread(&sappyou->hole_cnt, 8, 1, sappyou->file) == 0) {
         return 1;
     }
-    fread(&sappyou->created_ts, 8, 1, sappyou->file);
-    fread(&sappyou->modified_ts, 8, 1, sappyou->file);
-    fread(&sappyou->size, 8, 1, sappyou->file);
-    fread(&sappyou->hole_cnt, 8, 1, sappyou->file);
     sappyou->database = malloc(sappyou->size * sizeof(Tanzaku));
     sappyou->holes = malloc(sappyou->hole_cnt * sizeof(Tanzaku *));
     size_t max_string_len = SIZE_MAX;
     for (uint64_t i = 0, r = sappyou->hole_cnt; i < sappyou->size; i++) {
         if (fgetc(sappyou->file) != 0) {
             sappyou->database[i].id = i;
-            fread(&sappyou->database[i].created_ts, 8, 1, sappyou->file);
-            fread(&sappyou->database[i].modified_ts, 8, 1, sappyou->file);
-            getdelim(&sappyou->database[i].name, &max_string_len, 0, sappyou->file);
-            getdelim(&sappyou->database[i].description, &max_string_len, 0, sappyou->file);
+            if (fread(&sappyou->database[i].created_ts, 8, 1, sappyou->file) == 0 ||
+                fread(&sappyou->database[i].modified_ts, 8, 1, sappyou->file) == 0 ||
+                getdelim(&sappyou->database[i].name, &max_string_len, 0, sappyou->file) == -1 ||
+                getdelim(&sappyou->database[i].description, &max_string_len, 0, sappyou->file) == -1) {
+                return 1;
+            }
         } else {
             sappyou->database[i].id = HOLE_ID;
             r--;
             sappyou->holes[r] = sappyou->database + i;
         }
     }
-    return 0;
+    return fflush(sappyou->file);
 }
 
 int sappyou_save(Sappyou *sappyou) {
     sappyou->file = freopen(NULL, "wb", sappyou->file);
-    if (sappyou->file == NULL) {
+    if (sappyou->file == NULL ||
+        fwrite(SAPPYOU_SIG, 2, 4, sappyou->file) < 4 ||
+        fwrite(&sappyou->created_ts, 8, 1, sappyou->file) == 0 ||
+        fwrite(&sappyou->modified_ts, 8, 1, sappyou->file) == 0 ||
+        fwrite(&sappyou->size, 8, 1, sappyou->file) == 0 ||
+        fwrite(&sappyou->hole_cnt, 8, 1, sappyou->file) == 0 ||
+        fflush(sappyou->file) != 0) {
         return 1;
     }
-    rewind(sappyou->file);
-    fwrite(SAPPYOU_SIG, 2, 4, sappyou->file);
-    fwrite(&sappyou->created_ts, 8, 1, sappyou->file);
-    fwrite(&sappyou->modified_ts, 8, 1, sappyou->file);
-    fwrite(&sappyou->size, 8, 1, sappyou->file);
-    fwrite(&sappyou->hole_cnt, 8, 1, sappyou->file);
-    fflush(sappyou->file);
     for (uint64_t i = 0; i < sappyou->size; i++) {
         if (sappyou->database[i].id != HOLE_ID) {
-            fputc(-1, sappyou->file);
-            fwrite(&sappyou->database[i].created_ts, 8, 1, sappyou->file);
-            fwrite(&sappyou->database[i].modified_ts, 8, 1, sappyou->file);
-            fputs(sappyou->database[i].name, sappyou->file);
-            fputc(0, sappyou->file);
-            fputs(sappyou->database[i].description, sappyou->file);
-            fputc(0, sappyou->file);
+            if (fputc(-1, sappyou->file) == EOF ||
+                fwrite(&sappyou->database[i].created_ts, 8, 1, sappyou->file) == 0 ||
+                fwrite(&sappyou->database[i].modified_ts, 8, 1, sappyou->file) == 0 ||
+                fputs(sappyou->database[i].name, sappyou->file) == EOF ||
+                fputc(0, sappyou->file) == EOF ||
+                fputs(sappyou->database[i].description, sappyou->file) == EOF ||
+                fputc(0, sappyou->file) == EOF) {
+                return 1;
+            }
         } else {
-            fputc(0, sappyou->file);
+            if (fputc(0, sappyou->file) == EOF) {
+                return 1;
+            }
         }
     }
-    fflush(sappyou->file);
-    return 0;
+    return fflush(sappyou->file);
 }
 
 int sappyou_open(Sappyou *sappyou, const char *path) {

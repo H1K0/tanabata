@@ -39,56 +39,62 @@ int sasahyou_load(Sasahyou *sasahyou) {
         return 1;
     }
     uint16_t signature[4];
-    rewind(sasahyou->file);
-    fread(signature, 2, 4, sasahyou->file);
-    if (memcmp(signature, SASAHYOU_SIG, 8) != 0) {
+    if (fread(signature, 2, 4, sasahyou->file) < 4 ||
+        memcmp(signature, SASAHYOU_SIG, 8) != 0 ||
+        fread(&sasahyou->created_ts, 8, 1, sasahyou->file) == 0 ||
+        fread(&sasahyou->modified_ts, 8, 1, sasahyou->file) == 0 ||
+        fread(&sasahyou->size, 8, 1, sasahyou->file) == 0 ||
+        fread(&sasahyou->hole_cnt, 8, 1, sasahyou->file) == 0) {
         return 1;
     }
-    fread(&sasahyou->created_ts, 8, 1, sasahyou->file);
-    fread(&sasahyou->modified_ts, 8, 1, sasahyou->file);
-    fread(&sasahyou->size, 8, 1, sasahyou->file);
-    fread(&sasahyou->hole_cnt, 8, 1, sasahyou->file);
     sasahyou->database = malloc(sasahyou->size * sizeof(Sasa));
     sasahyou->holes = malloc(sasahyou->hole_cnt * sizeof(Sasa *));
     size_t max_path_len = SIZE_MAX;
     for (uint64_t i = 0, r = sasahyou->hole_cnt; i < sasahyou->size; i++) {
         if (fgetc(sasahyou->file) != 0) {
             sasahyou->database[i].id = i;
-            fread(&sasahyou->database[i].created_ts, 8, 1, sasahyou->file);
-            getdelim(&sasahyou->database[i].path, &max_path_len, 0, sasahyou->file);
+            if (fread(&sasahyou->database[i].created_ts, 8, 1, sasahyou->file) == 0 ||
+                getdelim(&sasahyou->database[i].path, &max_path_len, 0, sasahyou->file) == -1) {
+                return 1;
+            }
         } else {
             sasahyou->database[i].id = HOLE_ID;
             r--;
             sasahyou->holes[r] = sasahyou->database + i;
         }
     }
-    return 0;
+    return fflush(sasahyou->file);
 }
 
 int sasahyou_save(Sasahyou *sasahyou) {
     sasahyou->file = freopen(NULL, "wb", sasahyou->file);
-    if (sasahyou->file == NULL) {
+    if (sasahyou->file == NULL ||
+        fwrite(SASAHYOU_SIG, 2, 4, sasahyou->file) < 4 ||
+        fwrite(&sasahyou->created_ts, 8, 1, sasahyou->file) == 0 ||
+        fwrite(&sasahyou->modified_ts, 8, 1, sasahyou->file) == 0 ||
+        fwrite(&sasahyou->size, 8, 1, sasahyou->file) == 0 ||
+        fwrite(&sasahyou->hole_cnt, 8, 1, sasahyou->file) == 0 ||
+        fflush(sasahyou->file) != 0) {
         return 1;
     }
-    rewind(sasahyou->file);
-    fwrite(SASAHYOU_SIG, 2, 4, sasahyou->file);
-    fwrite(&sasahyou->created_ts, 8, 1, sasahyou->file);
-    fwrite(&sasahyou->modified_ts, 8, 1, sasahyou->file);
-    fwrite(&sasahyou->size, 8, 1, sasahyou->file);
-    fwrite(&sasahyou->hole_cnt, 8, 1, sasahyou->file);
-    fflush(sasahyou->file);
     for (uint64_t i = 0; i < sasahyou->size; i++) {
+        if (feof(sasahyou->file) != 0 || ferror(sasahyou->file) != 0) {
+            return 1;
+        }
         if (sasahyou->database[i].id != HOLE_ID) {
-            fputc(-1, sasahyou->file);
-            fwrite(&sasahyou->database[i].created_ts, 8, 1, sasahyou->file);
-            fputs(sasahyou->database[i].path, sasahyou->file);
-            fputc(0, sasahyou->file);
+            if (fputc(-1, sasahyou->file) == EOF ||
+                fwrite(&sasahyou->database[i].created_ts, 8, 1, sasahyou->file) == 0 ||
+                fputs(sasahyou->database[i].path, sasahyou->file) == EOF ||
+                fputc(0, sasahyou->file) == EOF) {
+                return 1;
+            }
         } else {
-            fputc(0, sasahyou->file);
+            if (fputc(0, sasahyou->file) == EOF) {
+                return 1;
+            }
         }
     }
-    fflush(sasahyou->file);
-    return 0;
+    return fflush(sasahyou->file);
 }
 
 int sasahyou_open(Sasahyou *sasahyou, const char *path) {
