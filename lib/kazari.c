@@ -3,13 +3,8 @@
 #include "../include/tanabata.h"
 
 int tanabata_kazari_add(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_id) {
-    if (sasa_id >= tanabata->sasahyou.size) {
-        return 1;
-    }
-    if (tanzaku_id >= tanabata->sappyou.size) {
-        return 1;
-    }
-    if (tanabata->shoppyou.size == -1 && tanabata->shoppyou.hole_cnt == 0) {
+    if (sasa_id >= tanabata->sasahyou.size || tanzaku_id >= tanabata->sappyou.size ||
+        tanabata->shoppyou.size == -1 && tanabata->shoppyou.hole_cnt == 0) {
         return 1;
     }
     Kazari *current_kazari = tanabata->shoppyou.database;
