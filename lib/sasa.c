@@ -4,6 +4,9 @@
 #include "../include/tanabata.h"
 
 int tanabata_sasa_add(Tanabata *tanabata, const char *path) {
+    if (tanabata->sasahyou.size == -1 && tanabata->sasahyou.hole_cnt == 0) {
+        return 1;
+    }
     Sasa *current_sasa = tanabata->sasahyou.database;
     for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
         if (current_sasa->id != HOLE_ID && strcmp(current_sasa->path, path) == 0) {

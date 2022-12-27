@@ -3,6 +3,9 @@
 #include "../include/tanabata.h"
 
 int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description) {
+    if (tanabata->sappyou.size == -1 && tanabata->sappyou.hole_cnt == 0) {
+        return 1;
+    }
     Tanzaku *current_tanzaku = tanabata->sappyou.database;
     for (uint64_t i = 0; i < tanabata->sappyou.size; i++) {
         if (current_tanzaku->id != HOLE_ID && strcmp(current_tanzaku->name, name) == 0) {

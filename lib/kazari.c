@@ -9,6 +9,9 @@ int tanabata_kazari_add(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_i
     if (tanzaku_id >= tanabata->sappyou.size) {
         return 1;
     }
+    if (tanabata->shoppyou.size == -1 && tanabata->shoppyou.hole_cnt == 0) {
+        return 1;
+    }
     Kazari *current_kazari = tanabata->shoppyou.database;
     for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
         if (current_kazari->sasa_id == sasa_id && current_kazari->tanzaku_id == tanzaku_id) {
