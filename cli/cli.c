@@ -2,6 +2,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #include "../include/tanabata.h"
 
@@ -10,15 +11,20 @@
 #define HIGHLIGHT(s)    "[0;36m"s"[0m"
 #define ERROR(s)        "[0;31m"s"[0m"
 
+#define DT_FORMAT       "%F %T"
+
 static Tanabata tanabata;
 
 // Print the list of all sasa
 void print_sasa_all() {
-    printf(TABLE_HEADER("Sasa ID\tCreation timestamp\tFile path\n"));
+    printf(TABLE_HEADER("Sasa ID\tCreation datetime\tFile path\n"));
+    char datetime[20];
     for (uint64_t i = 0; i < tanabata.sasahyou.size; i++) {
         if (tanabata.sasahyou.database[i].id != HOLE_ID) {
-            printf("%7lx\t%18lu\t%s\n",
-                   tanabata.sasahyou.database[i].id, tanabata.sasahyou.database[i].created_ts,
+            strftime(datetime, 20, DT_FORMAT,
+                     localtime((const time_t *) &tanabata.sasahyou.database[i].created_ts));
+            printf("%7lx\t%19s\t%s\n",
+                   tanabata.sasahyou.database[i].id, datetime,
                    tanabata.sasahyou.database[i].path);
         }
     }
@@ -26,11 +32,14 @@ void print_sasa_all() {
 
 // Print the list of all tanzaku
 void print_tanzaku_all() {
-    printf(TABLE_HEADER("Tanzaku ID\tCreation timestamp\tName\n"));
+    printf(TABLE_HEADER("Tanzaku ID\tCreation datetime\tName\n"));
+    char datetime[20];
     for (uint64_t i = 0; i < tanabata.sappyou.size; i++) {
         if (tanabata.sappyou.database[i].id != HOLE_ID) {
-            printf("%10lx\t%18lu\t%s\n",
-                   tanabata.sappyou.database[i].id, tanabata.sappyou.database[i].created_ts,
+            strftime(datetime, 20, DT_FORMAT,
+                     localtime((const time_t *) &tanabata.sappyou.database[i].created_ts));
+            printf("%10lx\t%19s\t%s\n",
+                   tanabata.sappyou.database[i].id, datetime,
                    tanabata.sappyou.database[i].name);
         }
     }
@@ -46,9 +55,12 @@ int menu_view_sasa() {
     if (*input != '\n' && *endptr == '\n') {
         Sasa current_sasa = tanabata_sasa_get_by_id(&tanabata, sasa_id);
         if (current_sasa.id != HOLE_ID) {
+            char datetime[20];
+            strftime(datetime, 20, DT_FORMAT,
+                     localtime((const time_t *) &current_sasa.created_ts));
             printf(HIGHLIGHT("File path")"          %s\n"
-                   HIGHLIGHT("Added timestamp")"    %lu\n",
-                   current_sasa.path, current_sasa.created_ts);
+                   HIGHLIGHT("Added datetime")"     %s\n",
+                   current_sasa.path, datetime);
             Tanzaku *related_tanzaku = tanabata_tanzaku_get_by_sasa(&tanabata, current_sasa.id);
             if (related_tanzaku != NULL) {
                 printf(HIGHLIGHT("\n↓ Related tanzaku ↓\n"));
@@ -79,12 +91,15 @@ int menu_view_tanzaku() {
     if (*input != '\n' && *endptr == '\n') {
         Tanzaku current_tanzaku = tanabata_tanzaku_get_by_id(&tanabata, tanzaku_id);
         if (current_tanzaku.id != HOLE_ID) {
+            char datetime[20];
+            strftime(datetime, 20, DT_FORMAT,
+                     localtime((const time_t *) &current_tanzaku.created_ts));
             printf(HIGHLIGHT("Name")"               %s\n"
-                   HIGHLIGHT("Created timestamp")"  %lu\n"
+                   HIGHLIGHT("Created datetime")"   %s\n"
                    HIGHLIGHT("\n↓ Description ↓\n")
                    "%s\n"
                    HIGHLIGHT("↑ Description ↑\n"),
-                   current_tanzaku.name, current_tanzaku.created_ts, current_tanzaku.description);
+                   current_tanzaku.name, datetime, current_tanzaku.description);
             Sasa *related_sasa = tanabata_sasa_get_by_tanzaku(&tanabata, tanzaku_id);
             if (related_sasa != NULL) {
                 printf(HIGHLIGHT("\n↓ Related sasa ↓\n"));
