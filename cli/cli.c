@@ -429,13 +429,13 @@ int main(int argc, char **argv) {
     free(tanabata_path);
     fclose(config);
     if (opt_w) {
-        if (tanabata_weed(&tanabata) != 0) {
-            fprintf(stderr, ERROR("Failed to weed database\n"));
-            return 1;
+        if (tanabata_weed(&tanabata) == 0 &&
+            tanabata_save(&tanabata) == 0) {
+            printf(SUCCESS("Successfully weeded database\n"));
+            return 0;
         }
-        tanabata_save(&tanabata);
-        printf(SUCCESS("Successfully weeded database\n"));
-        return 0;
+        fprintf(stderr, ERROR("Failed to weed database\n"));
+        return 1;
     }
     if (opt_a) {
         if (opt_f) {
