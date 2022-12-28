@@ -20,9 +20,9 @@ typedef struct tanabata {
     Sasahyou   sasahyou;      // Sasahyou struct
     Sappyou    sappyou;       // Sappyou struct
     Shoppyou   shoppyou;      // Shoppyou struct
-    _Bool      sasahyou_mod;  // Sasahyou modified flag
-    _Bool      sappyou_mod;   // Sappyou modified flag
-    _Bool      shoppyou_mod;  // Shoppyou modified flag
+    uint64_t   sasahyou_mod;  // Sasahyou file last modificaton timestamp
+    uint64_t   sappyou_mod;   // Sappyou file last modificaton timestamp
+    uint64_t   shoppyou_mod;  // Shoppyou file last modificaton timestamp
 } Tanabata;
 
 // ==================== DATABASE SECTION ==================== //
