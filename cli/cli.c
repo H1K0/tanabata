@@ -357,6 +357,7 @@ int main(int argc, char **argv) {
                     if (config == NULL) {
                         fprintf(stderr, ERROR("Failed to update config file. "
                                               "Try again with 'sudo' or check your permissions\n"));
+                        return 1;
                     }
                     fputs(abspath, config);
                     fclose(config);
