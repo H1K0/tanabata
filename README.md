@@ -26,6 +26,8 @@ Tanabata FM is a file manager for Linux that will let you enjoy the Tanabata fes
 
 **Kazari (_jp._ 飾り)** is a sasa-tanzaku association record. It contains the creation timestamp and associated sasa and tanzaku IDs.
 
+**Hyou (_jp._ 表)** is a table or database.
+
 **Sasahyou (_jp._ 笹表)** is a database of sasa.
 
 **Sappyou (_jp._ 冊表)** is a database of tanzaku.
