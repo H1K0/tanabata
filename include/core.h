@@ -163,6 +163,12 @@ int kazari_add(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id);
 // Remove kazari from shoppyou
 int kazari_rem(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id);
 
+// Remove all kazari with a specific sasa ID from shoppyou
+int kazari_rem_by_sasa(Shoppyou *shoppyou, uint64_t sasa_id);
+
+// Remove all kazari with a specific tanzaku ID from shoppyou
+int kazari_rem_by_tanzaku(Shoppyou *shoppyou, uint64_t tanzaku_id);
+
 #ifdef __cplusplus
 }
 #endif
