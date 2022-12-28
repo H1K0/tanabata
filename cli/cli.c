@@ -275,9 +275,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, ERROR("No options provided\n"));
         return 1;
     }
-    const char *shortopts = "hI:O:suaftkwV";
+    const char *shortopts = "hI:O:isuaftkwV";
     char *abspath = NULL;
     int opt;
+    _Bool opt_i = 0;
     _Bool opt_a = 0;
     _Bool opt_s = 0;
     _Bool opt_u = 0;
@@ -328,6 +329,7 @@ int main(int argc, char **argv) {
                         HIGHLIGHT("-h")"        Print this help and exit\n"
                         HIGHLIGHT("-I <dir>")"  Initialize new Tanabata database in directory <dir>\n"
                         HIGHLIGHT("-O <dir>")"  Open existing Tanabata database from directory <dir>\n"
+                        HIGHLIGHT("-i")"        View database info\n"
                         HIGHLIGHT("-a")"        View all\n"
                         HIGHLIGHT("-s")"        Set or add\n"
                         HIGHLIGHT("-u")"        Unset or remove\n"
@@ -387,6 +389,9 @@ int main(int argc, char **argv) {
                 }
                 fprintf(stderr, ERROR("Failed to open Tanabata database\n"));
                 return 1;
+            case 'i':
+                opt_i = 1;
+                break;
             case 'a':
                 opt_a = 1;
                 break;
@@ -426,8 +431,41 @@ int main(int argc, char **argv) {
         opt_s = 0;
         opt_u = 0;
     }
-    free(tanabata_path);
     fclose(config);
+    if (opt_i) {
+        char datetime[20];
+        printf(HIGHLIGHT("Current database location: %s\n\n")
+               HIGHLIGHT("SASAHYOU\n"), tanabata_path);
+        strftime(datetime, 20, DT_FORMAT,
+                 localtime((const time_t *) &tanabata.sasahyou.created_ts));
+        printf("  "HIGHLIGHT("Created")"             %s\n", datetime);
+        strftime(datetime, 20, DT_FORMAT,
+                 localtime((const time_t *) &tanabata.sasahyou.modified_ts));
+        printf("  "HIGHLIGHT("Last modified")"       %s\n"
+               "  "HIGHLIGHT("Number of sasa")"      %lu\n"
+               "  "HIGHLIGHT("Number of holes")"     %lu\n\n"
+               HIGHLIGHT("SAPPYOU\n"), datetime, tanabata.sasahyou.size, tanabata.sasahyou.hole_cnt);
+        strftime(datetime, 20, DT_FORMAT,
+                 localtime((const time_t *) &tanabata.sappyou.created_ts));
+        printf("  "HIGHLIGHT("Created")"             %s\n", datetime);
+        strftime(datetime, 20, DT_FORMAT,
+                 localtime((const time_t *) &tanabata.sappyou.modified_ts));
+        printf("  "HIGHLIGHT("Last modified")"       %s\n"
+               "  "HIGHLIGHT("Number of tanzaku")"   %lu\n"
+               "  "HIGHLIGHT("Number of holes")"     %lu\n\n"
+               HIGHLIGHT("SHOPPYOU\n"), datetime, tanabata.sappyou.size, tanabata.sappyou.hole_cnt);
+        strftime(datetime, 20, DT_FORMAT,
+                 localtime((const time_t *) &tanabata.shoppyou.created_ts));
+        printf("  "HIGHLIGHT("Created")"             %s\n", datetime);
+        strftime(datetime, 20, DT_FORMAT,
+                 localtime((const time_t *) &tanabata.shoppyou.modified_ts));
+        printf("  "HIGHLIGHT("Last modified")"       %s\n"
+               "  "HIGHLIGHT("Number of kazari")"    %lu\n"
+               "  "HIGHLIGHT("Number of holes")"     %lu\n",
+               datetime, tanabata.shoppyou.size, tanabata.shoppyou.hole_cnt);
+        return 0;
+    }
+    free(tanabata_path);
     if (opt_w) {
         if (tanabata_weed(&tanabata) == 0 &&
             tanabata_save(&tanabata) == 0) {

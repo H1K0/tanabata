@@ -53,6 +53,7 @@ Options:
 -h        Print this help and exit
 -I <dir>  Initialize new Tanabata database in directory <dir>
 -O <dir>  Open existing Tanabata database from directory <dir>
+-i        View database info
 -a        View all
 -s        Set or add
 -u        Unset or remove
@@ -70,6 +71,8 @@ So, let's take a look at each option.
 Using the `-I <dir>` option, you can initialize the TFM database in the specified directory. The app creates empty sasahyou, sappyou and shoppyou files and saves the directory path to a configuration file. The new database will be used the next time you run the app until you change it.
 
 Using the `-O <dir>` option, you can open the TFM database in the specified directory. The app checks if the directory contains the sasahyou, sappyou and shoppyou files, and if they exist and are valid, saves the directory path to a configuration file. The new database will be used the next time you run the app until you change it.
+
+Using the `-i` option, you can get info about your database. When your hyous were created and last modified, how many records and holes they have, and so on.
 
 Using the `-a` option, you get the full list of what you specify. For example, `-af` prints the full list of sasa.
 
