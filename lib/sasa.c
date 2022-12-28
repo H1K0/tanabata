@@ -16,8 +16,9 @@ int tanabata_sasa_add(Tanabata *tanabata, const char *path) {
     }
     char *abspath = NULL;
     abspath = realpath(path, abspath);
-    if (abspath != NULL) {
-        return sasa_add(&tanabata->sasahyou, abspath);
+    if (abspath != NULL && sasa_add(&tanabata->sasahyou, abspath) == 0) {
+        tanabata->sasahyou_mod = 1;
+        return 0;
     }
     return 1;
 }
@@ -30,10 +31,15 @@ int tanabata_sasa_rem_by_id(Tanabata *tanabata, uint64_t sasa_id) {
     for (uint64_t j = 0; j < tanabata->shoppyou.size; j++) {
         if (current_kazari->sasa_id == sasa_id) {
             current_kazari->sasa_id = HOLE_ID;
+            tanabata->shoppyou_mod = 1;
         }
         current_kazari++;
     }
-    return sasa_rem(&tanabata->sasahyou, sasa_id);
+    if (sasa_rem(&tanabata->sasahyou, sasa_id) == 0) {
+        tanabata->sasahyou_mod = 1;
+        return 0;
+    }
+    return 1;
 }
 
 int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path) {
@@ -44,10 +50,15 @@ int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path) {
             for (uint64_t j = 0; j < tanabata->shoppyou.size; j++) {
                 if (current_kazari->sasa_id == current_sasa->id) {
                     current_kazari->sasa_id = HOLE_ID;
+                    tanabata->shoppyou_mod = 1;
                 }
                 current_kazari++;
             }
-            return sasa_rem(&tanabata->sasahyou, current_sasa->id);
+            if (sasa_rem(&tanabata->sasahyou, current_sasa->id) == 0) {
+                tanabata->sasahyou_mod = 1;
+                return 0;
+            }
+            return 1;
         }
         current_sasa++;
     }

@@ -14,6 +14,9 @@ int tanabata_init(Tanabata *tanabata) {
     if (shoppyou_init(&tanabata->shoppyou) != 0) {
         return 1;
     }
+    tanabata->sasahyou_mod = 1;
+    tanabata->sappyou_mod = 1;
+    tanabata->shoppyou_mod = 1;
     return 0;
 }
 
@@ -51,6 +54,7 @@ int tanabata_weed(Tanabata *tanabata) {
         tanabata->shoppyou.hole_cnt = 0;
         free(tanabata->shoppyou.holes);
         tanabata->shoppyou.database = realloc(tanabata->shoppyou.database, tanabata->shoppyou.size * sizeof(Kazari));
+        tanabata->shoppyou_mod = 1;
     }
     if (tanabata->sasahyou.hole_cnt > 0) {
         hole_cnt = 0;
@@ -63,6 +67,7 @@ int tanabata_weed(Tanabata *tanabata) {
                     for (uint64_t j = 0; j < tanabata->shoppyou.size; j++) {
                         if (current_kazari->sasa_id == current_sasa->id) {
                             current_kazari->sasa_id = new_id;
+                            tanabata->shoppyou_mod = 1;
                         }
                         current_kazari++;
                     }
@@ -78,6 +83,7 @@ int tanabata_weed(Tanabata *tanabata) {
         tanabata->sasahyou.hole_cnt = 0;
         free(tanabata->sasahyou.holes);
         tanabata->sasahyou.database = realloc(tanabata->sasahyou.database, tanabata->sasahyou.size * sizeof(Sasa));
+        tanabata->sasahyou_mod = 1;
     }
     if (tanabata->sappyou.hole_cnt > 0) {
         hole_cnt = 0;
@@ -90,6 +96,7 @@ int tanabata_weed(Tanabata *tanabata) {
                     for (uint64_t j = 0; j < tanabata->shoppyou.size; j++) {
                         if (current_kazari->tanzaku_id == current_tanzaku->id) {
                             current_kazari->tanzaku_id = new_id;
+                            tanabata->shoppyou_mod = 1;
                         }
                         current_kazari++;
                     }
@@ -105,6 +112,7 @@ int tanabata_weed(Tanabata *tanabata) {
         tanabata->sappyou.hole_cnt = 0;
         free(tanabata->sappyou.holes);
         tanabata->sappyou.database = realloc(tanabata->sappyou.database, tanabata->sappyou.size * sizeof(Tanzaku));
+        tanabata->sappyou_mod = 1;
     }
     return 0;
 }
@@ -119,19 +127,25 @@ int tanabata_load(Tanabata *tanabata) {
     if (shoppyou_load(&tanabata->shoppyou) != 0) {
         return 1;
     }
+    tanabata->sasahyou_mod = 0;
+    tanabata->sappyou_mod = 0;
+    tanabata->shoppyou_mod = 0;
     return 0;
 }
 
 int tanabata_save(Tanabata *tanabata) {
-    if (sasahyou_save(&tanabata->sasahyou) != 0) {
+    if (tanabata->sasahyou_mod && sasahyou_save(&tanabata->sasahyou) != 0) {
         return 1;
     }
-    if (sappyou_save(&tanabata->sappyou) != 0) {
+    if (tanabata->sappyou_mod && sappyou_save(&tanabata->sappyou) != 0) {
         return 1;
     }
-    if (shoppyou_save(&tanabata->shoppyou) != 0) {
+    if (tanabata->shoppyou_mod && shoppyou_save(&tanabata->shoppyou) != 0) {
         return 1;
     }
+    tanabata->sasahyou_mod = 0;
+    tanabata->sappyou_mod = 0;
+    tanabata->shoppyou_mod = 0;
     return 0;
 }
 
@@ -154,6 +168,9 @@ int tanabata_open(Tanabata *tanabata, const char *path) {
         return 1;
     }
     free(file_path);
+    tanabata->sasahyou_mod = 0;
+    tanabata->sappyou_mod = 0;
+    tanabata->shoppyou_mod = 0;
     return 0;
 }
 
@@ -163,17 +180,26 @@ int tanabata_dump(Tanabata *tanabata, const char *path) {
         return 1;
     }
     char *file_path = malloc(strlen(path) + 10);
-    strcpy(file_path, path);
-    if (sasahyou_dump(&tanabata->sasahyou, strcat(file_path, "/sasahyou")) != 0) {
-        return 1;
+    if (tanabata->sasahyou_mod) {
+        strcpy(file_path, path);
+        if (sasahyou_dump(&tanabata->sasahyou, strcat(file_path, "/sasahyou")) != 0) {
+            return 1;
+        }
+        tanabata->sasahyou_mod = 0;
     }
-    strcpy(file_path, path);
-    if (sappyou_dump(&tanabata->sappyou, strcat(file_path, "/sappyou")) != 0) {
-        return 1;
+    if (tanabata->sappyou_mod) {
+        strcpy(file_path, path);
+        if (sappyou_dump(&tanabata->sappyou, strcat(file_path, "/sappyou")) != 0) {
+            return 1;
+        }
+        tanabata->sappyou_mod = 0;
     }
-    strcpy(file_path, path);
-    if (shoppyou_dump(&tanabata->shoppyou, strcat(file_path, "/shoppyou")) != 0) {
-        return 1;
+    if (tanabata->shoppyou_mod) {
+        strcpy(file_path, path);
+        if (shoppyou_dump(&tanabata->shoppyou, strcat(file_path, "/shoppyou")) != 0) {
+            return 1;
+        }
+        tanabata->shoppyou_mod = 0;
     }
     free(file_path);
     return 0;

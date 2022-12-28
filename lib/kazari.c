@@ -14,11 +14,19 @@ int tanabata_kazari_add(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_i
         }
         current_kazari++;
     }
-    return kazari_add(&tanabata->shoppyou, sasa_id, tanzaku_id);
+    if (kazari_add(&tanabata->shoppyou, sasa_id, tanzaku_id) == 0) {
+        tanabata->shoppyou_mod = 1;
+        return 0;
+    }
+    return 1;
 }
 
 int tanabata_kazari_rem(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_id) {
-    return kazari_rem(&tanabata->shoppyou, sasa_id, tanzaku_id);
+    if (kazari_rem(&tanabata->shoppyou, sasa_id, tanzaku_id) == 0) {
+        tanabata->shoppyou_mod = 1;
+        return 0;
+    }
+    return 1;
 }
 
 Tanzaku *tanabata_tanzaku_get_by_sasa(Tanabata *tanabata, uint64_t sasa_id) {

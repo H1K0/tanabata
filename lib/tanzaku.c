@@ -13,7 +13,11 @@ int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *descr
         }
         current_tanzaku++;
     }
-    return tanzaku_add(&tanabata->sappyou, name, description);
+    if (tanzaku_add(&tanabata->sappyou, name, description) == 0) {
+        tanabata->sappyou_mod = 1;
+        return 0;
+    }
+    return 1;
 }
 
 int tanabata_tanzaku_rem_by_id(Tanabata *tanabata, uint64_t tanzaku_id) {
@@ -24,10 +28,15 @@ int tanabata_tanzaku_rem_by_id(Tanabata *tanabata, uint64_t tanzaku_id) {
     for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
         if (current_kazari->tanzaku_id == tanzaku_id) {
             current_kazari->tanzaku_id = HOLE_ID;
+            tanabata->shoppyou_mod = 1;
         }
         current_kazari++;
     }
-    return tanzaku_rem(&tanabata->sappyou, tanzaku_id);
+    if (tanzaku_rem(&tanabata->sappyou, tanzaku_id) == 0) {
+        tanabata->sappyou_mod = 1;
+        return 0;
+    }
+    return 1;
 }
 
 int tanabata_tanzaku_rem_by_name(Tanabata *tanabata, const char *name) {
@@ -38,10 +47,15 @@ int tanabata_tanzaku_rem_by_name(Tanabata *tanabata, const char *name) {
             for (uint64_t j = 0; j < tanabata->shoppyou.size; j++) {
                 if (current_kazari->tanzaku_id == current_tanzaku->id) {
                     current_kazari->tanzaku_id = HOLE_ID;
+                    tanabata->shoppyou_mod = 1;
                 }
                 current_kazari++;
             }
-            return tanzaku_rem(&tanabata->sappyou, current_tanzaku->id);
+            if (tanzaku_rem(&tanabata->sappyou, current_tanzaku->id) == 0) {
+                tanabata->sappyou_mod = 1;
+                return 0;
+            }
+            return 1;
         }
         current_tanzaku++;
     }
