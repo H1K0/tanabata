@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.16)
 project(tanabata
         VERSION 0.1.2
         HOMEPAGE_URL https://github.com/H1K0/tanabata
