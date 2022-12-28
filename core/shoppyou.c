@@ -142,14 +142,18 @@ int kazari_rem_by_sasa(Shoppyou *shoppyou, uint64_t sasa_id) {
     if (sasa_id == HOLE_ID) {
         return 1;
     }
+    _Bool changed = 0;
     for (uint64_t i = 0; i < shoppyou->size; i++) {
         if (shoppyou->database[i].sasa_id == sasa_id) {
             shoppyou->database[i].sasa_id = HOLE_ID;
             shoppyou->hole_cnt++;
             shoppyou->holes = realloc(shoppyou->holes, shoppyou->hole_cnt * sizeof(Kazari *));
             shoppyou->holes[shoppyou->hole_cnt - 1] = shoppyou->database + i;
-            shoppyou->modified_ts = time(NULL);
+            changed = 1;
         }
+    }
+    if (changed) {
+        shoppyou->modified_ts = time(NULL);
     }
     return 0;
 }
@@ -158,14 +162,18 @@ int kazari_rem_by_tanzaku(Shoppyou *shoppyou, uint64_t tanzaku_id) {
     if (tanzaku_id == HOLE_ID) {
         return 1;
     }
+    _Bool changed = 0;
     for (uint64_t i = 0; i < shoppyou->size; i++) {
         if (shoppyou->database[i].tanzaku_id == tanzaku_id) {
             shoppyou->database[i].tanzaku_id = HOLE_ID;
             shoppyou->hole_cnt++;
             shoppyou->holes = realloc(shoppyou->holes, shoppyou->hole_cnt * sizeof(Kazari *));
             shoppyou->holes[shoppyou->hole_cnt - 1] = shoppyou->database + i;
-            shoppyou->modified_ts = time(NULL);
+            changed = 1;
         }
+    }
+    if (changed) {
+        shoppyou->modified_ts = time(NULL);
     }
     return 0;
 }
