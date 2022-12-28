@@ -63,14 +63,7 @@ int tanabata_weed(Tanabata *tanabata) {
             if (current_sasa->id != HOLE_ID) {
                 if (hole_cnt > 0) {
                     new_id = current_sasa->id - hole_cnt;
-                    current_kazari = tanabata->shoppyou.database;
-                    for (uint64_t j = 0; j < tanabata->shoppyou.size; j++) {
-                        if (current_kazari->sasa_id == current_sasa->id) {
-                            current_kazari->sasa_id = new_id;
-                            tanabata->shoppyou_mod = 1;
-                        }
-                        current_kazari++;
-                    }
+                    kazari_rem_by_sasa(&tanabata->shoppyou, current_sasa->id);
                     current_sasa->id = new_id;
                     *(current_sasa - hole_cnt) = *current_sasa;
                 }
@@ -92,14 +85,7 @@ int tanabata_weed(Tanabata *tanabata) {
             if (current_tanzaku->id != HOLE_ID) {
                 if (hole_cnt > 0) {
                     new_id = current_tanzaku->id - hole_cnt;
-                    current_kazari = tanabata->shoppyou.database;
-                    for (uint64_t j = 0; j < tanabata->shoppyou.size; j++) {
-                        if (current_kazari->tanzaku_id == current_tanzaku->id) {
-                            current_kazari->tanzaku_id = new_id;
-                            tanabata->shoppyou_mod = 1;
-                        }
-                        current_kazari++;
-                    }
+                    kazari_rem_by_tanzaku(&tanabata->shoppyou, current_tanzaku->id);
                     current_tanzaku->id = new_id;
                     *(current_tanzaku - hole_cnt) = *current_tanzaku;
                 } else {
