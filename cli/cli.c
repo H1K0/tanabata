@@ -9,6 +9,7 @@
 // Stylization macros
 #define TABLE_HEADER(s) "[7;36m"s"[0m"
 #define HIGHLIGHT(s)    "[0;36m"s"[0m"
+#define SUCCESS(s)      "[0;32m"s"[0m"
 #define ERROR(s)        "[0;31m"s"[0m"
 
 #define DT_FORMAT       "%F %T"
@@ -133,7 +134,7 @@ int menu_add_sasa() {
         path[strlen(path) - 1] = 0;
         if (tanabata_sasa_add(&tanabata, path) == 0) {
             if (tanabata_save(&tanabata) == 0) {
-                printf("Successfully added file to database\n");
+                printf(SUCCESS("Successfully added file to database\n"));
                 return 0;
             }
         }
@@ -160,7 +161,7 @@ int menu_add_tanzaku() {
         description[strlen(description) - 1] = 0;
         if (tanabata_tanzaku_add(&tanabata, name, description) == 0) {
             if (tanabata_save(&tanabata) == 0) {
-                printf("Successfully added tanzaku to database\n");
+                printf(SUCCESS("Successfully added tanzaku to database\n"));
                 return 0;
             }
         }
@@ -194,7 +195,7 @@ int menu_add_kazari() {
     }
     if (tanabata_kazari_add(&tanabata, sasa_id, tanzaku_id) == 0) {
         if (tanabata_save(&tanabata) == 0) {
-            printf("Successfully added kazari\n");
+            printf(SUCCESS("Successfully added kazari\n"));
             return 0;
         }
     }
@@ -212,7 +213,7 @@ int menu_rem_sasa() {
     if (*input != '\n' && *endptr == '\n') {
         if (tanabata_sasa_rem_by_id(&tanabata, sasa_id) == 0 &&
             tanabata_save(&tanabata) == 0) {
-            printf("Successfully removed sasa\n");
+            printf(SUCCESS("Successfully removed sasa\n"));
             return 0;
         }
         fprintf(stderr, ERROR("Failed to remove sasa\n"));
@@ -232,7 +233,7 @@ int menu_rem_tanzaku() {
     if (*input != '\n' && *endptr == '\n') {
         if (tanabata_tanzaku_rem_by_id(&tanabata, tanzaku_id) == 0 &&
             tanabata_save(&tanabata) == 0) {
-            printf("Successfully removed tanzaku\n");
+            printf(SUCCESS("Successfully removed tanzaku\n"));
             return 0;
         }
         fprintf(stderr, ERROR("Failed to remove tanzaku\n"));
@@ -262,7 +263,7 @@ int menu_rem_kazari() {
     }
     if (tanabata_kazari_rem(&tanabata, sasa_id, tanzaku_id) == 0 &&
         tanabata_save(&tanabata) == 0) {
-        printf("Successfully removed kazari\n");
+        printf(SUCCESS("Successfully removed kazari\n"));
         return 0;
     }
     fprintf(stderr, ERROR("Failed to remove kazari\n"));
@@ -361,7 +362,7 @@ int main(int argc, char **argv) {
                     }
                     fputs(abspath, config);
                     fclose(config);
-                    printf("Successfully initialized Tanabata database\n");
+                    printf(SUCCESS("Successfully initialized Tanabata database\n"));
                     return 0;
                 }
                 fprintf(stderr, ERROR("Failed to initialize Tanabata database\n"));
@@ -381,7 +382,7 @@ int main(int argc, char **argv) {
                     }
                     fputs(abspath, config);
                     fclose(config);
-                    printf("Successfully opened Tanabata database\n");
+                    printf(SUCCESS("Successfully opened Tanabata database\n"));
                     return 0;
                 }
                 fprintf(stderr, ERROR("Failed to open Tanabata database\n"));
@@ -433,7 +434,7 @@ int main(int argc, char **argv) {
             return 1;
         }
         tanabata_save(&tanabata);
-        printf("Successfully weeded database\n");
+        printf(SUCCESS("Successfully weeded database\n"));
         return 0;
     }
     if (opt_a) {
