@@ -50,18 +50,17 @@ Usage:
 tfm <options>
 
 Options:
--h        Print this help and exit
--I <dir>  Initialize new Tanabata database in directory <dir>
--O <dir>  Open existing Tanabata database from directory <dir>
--i        View database info
--a        View all
--s        Set or add
--u        Unset or remove
--f        File-sasa menu
--t        Tanzaku menu
--k        Kazari menu (can only be used with the '-s' or '-u' option)
--w        Weed (defragment) database
--V        Print version and exit
+-h                         Print this help and exit
+-I <dir>                   Initialize new Tanabata database in directory <dir>
+-O <dir>                   Open existing Tanabata database from directory <dir>
+-i                         View database info
+-s                         Set or add
+-u                         Unset or remove
+-f <sasa_id or path>       File-sasa menu
+-t <tanzaku_id or name>    Tanzaku menu
+-c <sasa_id>-<tanzaku_id>  Kazari menu (can only be used with the '-s' or '-u' option)
+-w                         Weed (defragment) database
+-V                         Print version and exit
 
 No database connected
 ```
@@ -74,19 +73,17 @@ Using the `-O <dir>` option, you can open the TFM database in the specified dire
 
 Using the `-i` option, you can get info about your database. When your hyous were created and last modified, how many records and holes they have, and so on.
 
-Using the `-a` option, you get the full list of what you specify. For example, `-af` prints the full list of sasa.
+Using the `-s` option, you can add new sasa, tanzaku, or kazari.
 
-Using the `-s` option, you can add new sasa, tanzaku, or kazari. For example, `-st` launches a menu for adding new tanzaku. Just enter its name and description.
+Using the `-u` option, you can remove sasa, tanzaku, or kazari.
 
-Using the `-u` option, you can remove sasa, tanzaku, or kazari. For example, `-uk` launches a menu for removing kazari. Just enter the sasa and tanzaku IDs to dissociate them.
+Using the `-f` option, you can manage your sasa. It takes sasa ID when used single or with the `-u` option or target file path when used with the `-s` option. If you want to view the list of all sasa, pass `.` as an argument. For example, `tfm -f 2d` prints the info about sasa with ID `2d` and `tfm -sf path/to/file` adds a new file to the database.
 
-Using the `-f` option without others, you can view the info about a specific sasa. Just enter the sasa ID.
+Using the `-t` option, you can manage your tanzaku. It takes tanzaku ID when used single or with the `-u` option or the name of new tanzaku when used with the `-s` option. If you want to view the list of all tanzaku, pass `.` as an argument. For example, `tfm -t c4` prints the info about sasa with ID `c4` and `tfm -st "New tag name"` adds a new tanzaku to the database.
 
-Using the `-t` option without others, you can view the info about a specific tanzaku. Just enter the tanzaku ID.
+The `-c` option can be used only with the `-s` or `-u` option. It takes the IDs of sasa and tanzaku to link/unlink separated with a hyphen. For example, `tfm -sc 10-4d` links sasa with ID `10` and tanzaku with ID `4d`.
 
-The `-k` option can be used only with the `-s` or `-u` option.
-
-Using the `-w` option, you can _weed_ the database. It's like defragmentation. For example, if you had 4 files with sasa IDs 0, 1, 2, 3 in your database and you removed the 1st one, then your database would only have sasa IDs 0, 2, 3 and ID 1 would be a _hole_. Weeding fixes this hole by changing sasa ID 2 to 1, 3 to 2, and updating all associated kazari, so for large databases this can take a while.
+Using the `-w` option, you can _weed_ the database. It's like defragmentation. For example, if you had 4 files with sasa IDs 0, 1, 2, 3 in your database and removed the 1st one, then your database would only have sasa IDs 0, 2, 3 and ID 1 would be a _hole_. Weeding fixes this hole by changing sasa ID 2 to 1, 3 to 2, and updating all associated kazari, so for large databases this can take a while.
 
 Using the `-V` option, you just get the current version of TFM.
 
