@@ -146,10 +146,7 @@ int sasa_add(Sasahyou *sasahyou, const char *path) {
 }
 
 int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {
-    if (sasa_id == HOLE_ID) {
-        return 1;
-    }
-    if (sasa_id >= sasahyou->size) {
+    if (sasa_id == HOLE_ID || sasa_id >= sasahyou->size) {
         return 1;
     }
     if (sasahyou->database[sasa_id].id == HOLE_ID) {

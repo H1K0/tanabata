@@ -104,10 +104,7 @@ int shoppyou_dump(Shoppyou *shoppyou, const char *path) {
 }
 
 int kazari_add(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
-    if (sasa_id == HOLE_ID || tanzaku_id == HOLE_ID) {
-        return 1;
-    }
-    if (shoppyou->size == -1 && shoppyou->hole_cnt == 0) {
+    if (sasa_id == HOLE_ID || tanzaku_id == HOLE_ID || shoppyou->size == -1 && shoppyou->hole_cnt == 0) {
         return 1;
     }
     Kazari newbie;

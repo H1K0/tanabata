@@ -152,10 +152,7 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *description) {
 }
 
 int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {
-    if (tanzaku_id == HOLE_ID) {
-        return 1;
-    }
-    if (tanzaku_id >= sappyou->size) {
+    if (tanzaku_id == HOLE_ID || tanzaku_id >= sappyou->size) {
         return 1;
     }
     if (sappyou->database[tanzaku_id].id == HOLE_ID) {
