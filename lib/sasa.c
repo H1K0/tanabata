@@ -4,7 +4,7 @@
 #include "../include/tanabata.h"
 
 int tanabata_sasa_add(Tanabata *tanabata, const char *path) {
-    if (tanabata->sasahyou.size == -1 && tanabata->sasahyou.hole_cnt == 0) {
+    if (path == NULL || tanabata->sasahyou.size == -1 && tanabata->sasahyou.hole_cnt == 0) {
         return 1;
     }
     Sasa *current_sasa = tanabata->sasahyou.database;
@@ -34,6 +34,9 @@ int tanabata_sasa_rem_by_id(Tanabata *tanabata, uint64_t sasa_id) {
 }
 
 int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path) {
+    if (path == NULL) {
+        return 1;
+    }
     Sasa *current_sasa = tanabata->sasahyou.database;
     for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
         if (current_sasa->id != HOLE_ID && strcmp(current_sasa->path, path) == 0) {
@@ -56,6 +59,9 @@ Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id) {
 }
 
 Sasa tanabata_sasa_get_by_path(Tanabata *tanabata, const char *path) {
+    if (path == NULL) {
+        return HOLE_SASA;
+    }
     char *abspath = NULL;
     abspath = realpath(path, abspath);
     if (abspath == NULL) {

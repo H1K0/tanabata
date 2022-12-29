@@ -3,7 +3,7 @@
 #include "../include/tanabata.h"
 
 int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description) {
-    if (tanabata->sappyou.size == -1 && tanabata->sappyou.hole_cnt == 0) {
+    if (name == NULL || description == NULL || tanabata->sappyou.size == -1 && tanabata->sappyou.hole_cnt == 0) {
         return 1;
     }
     Tanzaku *current_tanzaku = tanabata->sappyou.database;
@@ -28,6 +28,9 @@ int tanabata_tanzaku_rem_by_id(Tanabata *tanabata, uint64_t tanzaku_id) {
 }
 
 int tanabata_tanzaku_rem_by_name(Tanabata *tanabata, const char *name) {
+    if (name == NULL) {
+        return 1;
+    }
     Tanzaku *current_tanzaku = tanabata->sappyou.database + 1;
     for (uint64_t i = 1; i < tanabata->sappyou.size; i++) {
         if (current_tanzaku->id != HOLE_ID && strcmp(current_tanzaku->name, name) == 0) {
@@ -50,6 +53,9 @@ Tanzaku tanabata_tanzaku_get_by_id(Tanabata *tanabata, uint64_t tanzaku_id) {
 }
 
 Tanzaku tanabata_tanzaku_get_by_name(Tanabata *tanabata, const char *name) {
+    if (name == NULL) {
+        return HOLE_TANZAKU;
+    }
     Tanzaku *current_tanzaku = tanabata->sappyou.database;
     for (uint64_t i = 0; i < tanabata->sappyou.size; i++) {
         if (current_tanzaku->id != HOLE_ID && strcmp(current_tanzaku->name, name) == 0) {

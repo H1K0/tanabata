@@ -139,6 +139,9 @@ int tanabata_save(Tanabata *tanabata) {
 }
 
 int tanabata_open(Tanabata *tanabata, const char *path) {
+    if (path == NULL) {
+        return 1;
+    }
     struct stat st;
     if (stat(path, &st) != 0 || !S_ISDIR(st.st_mode)) {
         return 1;
@@ -164,6 +167,9 @@ int tanabata_open(Tanabata *tanabata, const char *path) {
 }
 
 int tanabata_dump(Tanabata *tanabata, const char *path) {
+    if (path == NULL) {
+        return 1;
+    }
     struct stat st;
     if (stat(path, &st) != 0 || !S_ISDIR(st.st_mode)) {
         return 1;
