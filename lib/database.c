@@ -6,13 +6,9 @@
 #include "../include/tanabata.h"
 
 int tanabata_init(Tanabata *tanabata) {
-    if (sasahyou_init(&tanabata->sasahyou) != 0) {
-        return 1;
-    }
-    if (sappyou_init(&tanabata->sappyou) != 0) {
-        return 1;
-    }
-    if (shoppyou_init(&tanabata->shoppyou) != 0) {
+    if (sasahyou_init(&tanabata->sasahyou) != 0 ||
+        sappyou_init(&tanabata->sappyou) != 0 ||
+        shoppyou_init(&tanabata->shoppyou) != 0) {
         return 1;
     }
     tanabata->sasahyou_mod = 0;
@@ -22,13 +18,9 @@ int tanabata_init(Tanabata *tanabata) {
 }
 
 int tanabata_free(Tanabata *tanabata) {
-    if (sasahyou_free(&tanabata->sasahyou) != 0) {
-        return 1;
-    }
-    if (sappyou_free(&tanabata->sappyou) != 0) {
-        return 1;
-    }
-    if (shoppyou_free(&tanabata->shoppyou) != 0) {
+    if (sasahyou_free(&tanabata->sasahyou) != 0 ||
+        sappyou_free(&tanabata->sappyou) != 0 ||
+        shoppyou_free(&tanabata->shoppyou) != 0) {
         return 1;
     }
     return 0;
@@ -105,13 +97,9 @@ int tanabata_weed(Tanabata *tanabata) {
 }
 
 int tanabata_load(Tanabata *tanabata) {
-    if (sasahyou_load(&tanabata->sasahyou) != 0) {
-        return 1;
-    }
-    if (sappyou_load(&tanabata->sappyou) != 0) {
-        return 1;
-    }
-    if (shoppyou_load(&tanabata->shoppyou) != 0) {
+    if (sasahyou_load(&tanabata->sasahyou) != 0 ||
+        sappyou_load(&tanabata->sappyou) != 0 ||
+        shoppyou_load(&tanabata->shoppyou) != 0) {
         return 1;
     }
     tanabata->sasahyou_mod = tanabata->sasahyou.modified_ts;
@@ -121,13 +109,9 @@ int tanabata_load(Tanabata *tanabata) {
 }
 
 int tanabata_save(Tanabata *tanabata) {
-    if (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts && sasahyou_save(&tanabata->sasahyou) != 0) {
-        return 1;
-    }
-    if (tanabata->sappyou_mod != tanabata->sappyou.modified_ts && sappyou_save(&tanabata->sappyou) != 0) {
-        return 1;
-    }
-    if (tanabata->shoppyou_mod != tanabata->shoppyou.modified_ts && shoppyou_save(&tanabata->shoppyou) != 0) {
+    if (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts && sasahyou_save(&tanabata->sasahyou) != 0 ||
+        tanabata->sappyou_mod != tanabata->sappyou.modified_ts && sappyou_save(&tanabata->sappyou) != 0 ||
+        tanabata->shoppyou_mod != tanabata->shoppyou.modified_ts && shoppyou_save(&tanabata->shoppyou) != 0) {
         return 1;
     }
     tanabata->sasahyou_mod = tanabata->sasahyou.modified_ts;
