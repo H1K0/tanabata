@@ -58,9 +58,10 @@ int tanabata_weed(Tanabata *tanabata) {
     }
     if (tanabata->sasahyou.hole_cnt > 0) {
         hole_cnt = 0;
+        struct stat st;
         Sasa *current_sasa = tanabata->sasahyou.database;
         for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
-            if (current_sasa->id != HOLE_ID) {
+            if (current_sasa->id != HOLE_ID && stat(current_sasa->path, &st) == 0) {
                 if (hole_cnt > 0) {
                     new_id = current_sasa->id - hole_cnt;
                     kazari_rem_by_sasa(&tanabata->shoppyou, current_sasa->id);
