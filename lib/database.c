@@ -34,10 +34,38 @@ int tanabata_free(Tanabata *tanabata) {
 }
 
 int tanabata_weed(Tanabata *tanabata) {
-    uint64_t hole_cnt;
+    uint64_t hole_cnt = 0;
     uint64_t new_id;
+    Kazari *current_kazari;
+    struct stat st;
+    Sasa *current_sasa = tanabata->sasahyou.database;
+    for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
+        if (current_sasa->id != HOLE_ID && stat(current_sasa->path, &st) == 0) {
+            if (hole_cnt > 0) {
+                new_id = current_sasa->id - hole_cnt;
+                for (current_kazari = tanabata->shoppyou.database + tanabata->shoppyou.size - 1;
+                     current_kazari >= tanabata->shoppyou.database; current_kazari++) {
+                    if (current_kazari->sasa_id == current_sasa->id) {
+                        current_kazari->sasa_id = new_id;
+                    }
+                }
+                current_sasa->id = new_id;
+                *(current_sasa - hole_cnt) = *current_sasa;
+            }
+        } else {
+            kazari_rem_by_sasa(&tanabata->shoppyou, current_sasa->id);
+            hole_cnt++;
+        }
+        current_sasa++;
+    }
+    if (hole_cnt > 0) {
+        tanabata->sasahyou.size -= hole_cnt;
+        tanabata->sasahyou.hole_cnt = 0;
+        free(tanabata->sasahyou.holes);
+        tanabata->sasahyou.database = realloc(tanabata->sasahyou.database, tanabata->sasahyou.size * sizeof(Sasa));
+        tanabata->sasahyou.modified_ts = time(NULL);
+    }
     if (tanabata->shoppyou.hole_cnt > 0) {
-        Kazari *current_kazari;
         hole_cnt = 0;
         current_kazari = tanabata->shoppyou.database;
         for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
@@ -56,29 +84,6 @@ int tanabata_weed(Tanabata *tanabata) {
         tanabata->shoppyou.database = realloc(tanabata->shoppyou.database, tanabata->shoppyou.size * sizeof(Kazari));
         tanabata->shoppyou.modified_ts = time(NULL);
     }
-    if (tanabata->sasahyou.hole_cnt > 0) {
-        hole_cnt = 0;
-        struct stat st;
-        Sasa *current_sasa = tanabata->sasahyou.database;
-        for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
-            if (current_sasa->id != HOLE_ID && stat(current_sasa->path, &st) == 0) {
-                if (hole_cnt > 0) {
-                    new_id = current_sasa->id - hole_cnt;
-                    kazari_rem_by_sasa(&tanabata->shoppyou, current_sasa->id);
-                    current_sasa->id = new_id;
-                    *(current_sasa - hole_cnt) = *current_sasa;
-                }
-            } else {
-                hole_cnt++;
-            }
-            current_sasa++;
-        }
-        tanabata->sasahyou.size -= tanabata->sasahyou.hole_cnt;
-        tanabata->sasahyou.hole_cnt = 0;
-        free(tanabata->sasahyou.holes);
-        tanabata->sasahyou.database = realloc(tanabata->sasahyou.database, tanabata->sasahyou.size * sizeof(Sasa));
-        tanabata->sasahyou.modified_ts = time(NULL);
-    }
     if (tanabata->sappyou.hole_cnt > 0) {
         hole_cnt = 0;
         Tanzaku *current_tanzaku = tanabata->sappyou.database;
@@ -86,7 +91,12 @@ int tanabata_weed(Tanabata *tanabata) {
             if (current_tanzaku->id != HOLE_ID) {
                 if (hole_cnt > 0) {
                     new_id = current_tanzaku->id - hole_cnt;
-                    kazari_rem_by_tanzaku(&tanabata->shoppyou, current_tanzaku->id);
+                    for (current_kazari = tanabata->shoppyou.database + tanabata->shoppyou.size - 1;
+                         current_kazari >= tanabata->shoppyou.database; current_kazari++) {
+                        if (current_kazari->tanzaku_id == current_tanzaku->id) {
+                            current_kazari->tanzaku_id = new_id;
+                        }
+                    }
                     current_tanzaku->id = new_id;
                     *(current_tanzaku - hole_cnt) = *current_tanzaku;
                 } else {
