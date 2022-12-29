@@ -99,6 +99,9 @@ int sappyou_save(Sappyou *sappyou) {
 }
 
 int sappyou_open(Sappyou *sappyou, const char *path) {
+    if (path == NULL) {
+        return 1;
+    }
     sappyou->file = fopen(path, "rb");
     if (sappyou->file == NULL) {
         return 1;
@@ -107,6 +110,9 @@ int sappyou_open(Sappyou *sappyou, const char *path) {
 }
 
 int sappyou_dump(Sappyou *sappyou, const char *path) {
+    if (path == NULL) {
+        return 1;
+    }
     sappyou->file = fopen(path, "wb");
     if (sappyou->file == NULL) {
         return 1;
@@ -115,7 +121,7 @@ int sappyou_dump(Sappyou *sappyou, const char *path) {
 }
 
 int tanzaku_add(Sappyou *sappyou, const char *name, const char *description) {
-    if (sappyou->size == -1 && sappyou->hole_cnt == 0) {
+    if (name == NULL || description == NULL || sappyou->size == -1 && sappyou->hole_cnt == 0) {
         return 1;
     }
     Tanzaku newbie;

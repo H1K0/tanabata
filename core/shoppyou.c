@@ -81,6 +81,9 @@ int shoppyou_save(Shoppyou *shoppyou) {
 }
 
 int shoppyou_open(Shoppyou *shoppyou, const char *path) {
+    if (path == NULL) {
+        return 1;
+    }
     shoppyou->file = fopen(path, "rb");
     if (shoppyou->file == NULL) {
         return 1;
@@ -90,6 +93,9 @@ int shoppyou_open(Shoppyou *shoppyou, const char *path) {
 }
 
 int shoppyou_dump(Shoppyou *shoppyou, const char *path) {
+    if (path == NULL) {
+        return 1;
+    }
     shoppyou->file = fopen(path, "wb");
     if (shoppyou->file == NULL) {
         return 1;

@@ -98,6 +98,9 @@ int sasahyou_save(Sasahyou *sasahyou) {
 }
 
 int sasahyou_open(Sasahyou *sasahyou, const char *path) {
+    if (path == NULL) {
+        return 1;
+    }
     sasahyou->file = fopen(path, "rb");
     if (sasahyou->file == NULL) {
         return 1;
@@ -106,6 +109,9 @@ int sasahyou_open(Sasahyou *sasahyou, const char *path) {
 }
 
 int sasahyou_dump(Sasahyou *sasahyou, const char *path) {
+    if (path == NULL) {
+        return 1;
+    }
     sasahyou->file = fopen(path, "wb");
     if (sasahyou->file == NULL) {
         return 1;
@@ -114,7 +120,7 @@ int sasahyou_dump(Sasahyou *sasahyou, const char *path) {
 }
 
 int sasa_add(Sasahyou *sasahyou, const char *path) {
-    if (sasahyou->size == -1 && sasahyou->hole_cnt == 0) {
+    if (path == NULL || sasahyou->size == -1 && sasahyou->hole_cnt == 0) {
         return 1;
     }
     Sasa newbie;
