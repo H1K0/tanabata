@@ -7,19 +7,19 @@ int tanabata_sasa_add(Tanabata *tanabata, const char *path) {
     if (path == NULL || tanabata->sasahyou.size == -1 && tanabata->sasahyou.hole_cnt == 0) {
         return 1;
     }
+    char *abspath = NULL;
+    abspath = realpath(path, abspath);
+    if (abspath == NULL) {
+        return 1;
+    }
     Sasa *current_sasa = tanabata->sasahyou.database;
     for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
-        if (current_sasa->id != HOLE_ID && strcmp(current_sasa->path, path) == 0) {
+        if (current_sasa->id != HOLE_ID && strcmp(current_sasa->path, abspath) == 0) {
             return 1;
         }
         current_sasa++;
     }
-    char *abspath = NULL;
-    abspath = realpath(path, abspath);
-    if (abspath != NULL) {
-        return sasa_add(&tanabata->sasahyou, abspath);
-    }
-    return 1;
+    return sasa_add(&tanabata->sasahyou, abspath);
 }
 
 int tanabata_sasa_rem_by_id(Tanabata *tanabata, uint64_t sasa_id) {
@@ -37,9 +37,14 @@ int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path) {
     if (path == NULL) {
         return 1;
     }
+    char *abspath = NULL;
+    abspath = realpath(path, abspath);
+    if (abspath == NULL) {
+        return 1;
+    }
     Sasa *current_sasa = tanabata->sasahyou.database;
     for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
-        if (current_sasa->id != HOLE_ID && strcmp(current_sasa->path, path) == 0) {
+        if (current_sasa->id != HOLE_ID && strcmp(current_sasa->path, abspath) == 0) {
             if (sasa_rem(&tanabata->sasahyou, current_sasa->id) == 0 &&
                 kazari_rem_by_sasa(&tanabata->shoppyou, current_sasa->id) == 0) {
                 return 0;
