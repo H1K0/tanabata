@@ -128,7 +128,6 @@ int sasa_add(Sasahyou *sasahyou, const char *path) {
     size_t path_size = strlen(path);
     newbie.path = malloc(path_size + 1);
     strcpy(newbie.path, path);
-    newbie.path[path_size] = 0;
     if (sasahyou->hole_cnt > 0) {
         sasahyou->hole_cnt--;
         Sasa **hole_ptr = sasahyou->holes + sasahyou->hole_cnt;

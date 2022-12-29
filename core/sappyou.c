@@ -131,10 +131,8 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *description) {
             description_size = strlen(description);
     newbie.name = malloc(name_size + 1);
     strcpy(newbie.name, name);
-    newbie.name[name_size] = 0;
     newbie.description = malloc(description_size + 1);
     strcpy(newbie.description, description);
-    newbie.description[description_size] = 0;
     if (sappyou->hole_cnt > 0) {
         sappyou->hole_cnt--;
         Tanzaku **hole_ptr = sappyou->holes + sappyou->hole_cnt;
