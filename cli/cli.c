@@ -296,6 +296,72 @@ int menu_rem_kazari(char *arg) {
     return 1;
 }
 
+// Sasa update menu handler
+int menu_upd_sasa(const char *arg) {
+    if (arg == NULL) {
+        return 1;
+    }
+    char *endptr;
+    uint64_t sasa_id = strtoull(arg, &endptr, 16);
+    if (*endptr == 0) {
+        char *path = malloc(4096);
+        printf(HIGHLIGHT("Enter the new file path (leave empty to keep current)\n"));
+        fgets(path, 4096, stdin);
+        if (*path == '\n') {
+            free(path);
+            path = NULL;
+        } else {
+            path[strlen(path) - 1] = 0;
+        }
+        if (tanabata_sasa_upd(&tanabata, sasa_id, path) == 0 &&
+            tanabata_save(&tanabata) == 0) {
+            printf(SUCCESS("Successfully updated sasa\n"));
+            return 0;
+        }
+        fprintf(stderr, ERROR("Failed to update sasa\n"));
+        return 1;
+    }
+    fprintf(stderr, ERROR("Invalid ID\n"));
+    return 1;
+}
+
+// Tanzaku update menu handler
+int menu_upd_tanzaku(const char *arg) {
+    if (arg == NULL) {
+        return 1;
+    }
+    char *endptr;
+    uint64_t tanzaku_id = strtoull(arg, &endptr, 16);
+    if (*endptr == 0) {
+        char *name = malloc(4096), *description = malloc(4096);
+        printf(HIGHLIGHT("Enter the new name of tanzaku (leave empty to keep current)\n"));
+        fgets(name, 4096, stdin);
+        if (*name == '\n') {
+            free(name);
+            name = NULL;
+        } else {
+            name[strlen(name) - 1] = 0;
+        }
+        printf(HIGHLIGHT("Enter the new description of tanzaku (leave empty to keep current)\n"));
+        fgets(description, 4096, stdin);
+        if (*description == '\n') {
+            free(description);
+            description = NULL;
+        } else {
+            description[strlen(description) - 1] = 0;
+        }
+        if (tanabata_tanzaku_upd(&tanabata, tanzaku_id, name, description) == 0 &&
+            tanabata_save(&tanabata) == 0) {
+            printf(SUCCESS("Successfully updated sasa\n"));
+            return 0;
+        }
+        fprintf(stderr, ERROR("Failed to update sasa\n"));
+        return 1;
+    }
+    fprintf(stderr, ERROR("Invalid ID\n"));
+    return 1;
+}
+
 int main(int argc, char **argv) {
     if (argc == 1) {
         fprintf(stderr, ERROR("No options provided\n"));
@@ -333,12 +399,13 @@ int main(int argc, char **argv) {
             }
         }
     }
-    const char *shortopts = "hI:O:isuf:t:c:wV";
+    const char *shortopts = "hI:O:isuef:t:c:wV";
     char *abspath = NULL;
     int opt;
     _Bool opt_i = 0;
     _Bool opt_s = 0;
     _Bool opt_u = 0;
+    _Bool opt_e = 0;
     _Bool opt_f = 0;
     _Bool opt_t = 0;
     _Bool opt_c = 0;
@@ -360,6 +427,7 @@ int main(int argc, char **argv) {
                         HIGHLIGHT("-i")"                         View database info\n"
                         HIGHLIGHT("-s")"                         Set or add\n"
                         HIGHLIGHT("-u")"                         Unset or remove\n"
+                        HIGHLIGHT("-e")"                         Edit or update\n"
                         HIGHLIGHT("-f <sasa_id or path>")"       File-sasa menu\n"
                         HIGHLIGHT("-t <tanzaku_id or name>")"    Tanzaku menu\n"
                         HIGHLIGHT(
@@ -425,6 +493,9 @@ int main(int argc, char **argv) {
                 break;
             case 'u':
                 opt_u = 1;
+                break;
+            case 'e':
+                opt_e = 1;
                 break;
             case 'f':
                 opt_f = 1;
@@ -522,6 +593,13 @@ int main(int argc, char **argv) {
         }
         if (opt_c) {
             return menu_rem_kazari(opt_c_arg);
+        }
+    } else if (opt_e) {
+        if (opt_f) {
+            return menu_upd_sasa(opt_f_arg);
+        }
+        if (opt_t) {
+            return menu_upd_tanzaku(opt_t_arg);
         }
     } else {
         if (opt_f) {
