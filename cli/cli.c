@@ -167,7 +167,7 @@ int menu_add_tanzaku(const char *arg) {
     }
     if (*arg != 0) {
         char description[4096];
-        printf(HIGHLIGHT("Enter tanzaku description: "));
+        printf(HIGHLIGHT("Enter tanzaku description:\n"));
         fgets(description, 4096, stdin);
         description[strlen(description) - 1] = 0;
         if (tanabata_tanzaku_add(&tanabata, arg, description) == 0 &&
@@ -305,7 +305,7 @@ int menu_upd_sasa(const char *arg) {
     uint64_t sasa_id = strtoull(arg, &endptr, 16);
     if (*endptr == 0) {
         char *path = malloc(4096);
-        printf(HIGHLIGHT("Enter the new file path (leave blank to keep current)\n"));
+        printf(HIGHLIGHT("Enter the new file path (leave blank to keep current):\n"));
         fgets(path, 4096, stdin);
         if (*path == '\n') {
             free(path);
@@ -334,7 +334,7 @@ int menu_upd_tanzaku(const char *arg) {
     uint64_t tanzaku_id = strtoull(arg, &endptr, 16);
     if (*endptr == 0) {
         char *name = malloc(4096), *description = malloc(4096);
-        printf(HIGHLIGHT("Enter the new name of tanzaku (leave blank to keep current)\n"));
+        printf(HIGHLIGHT("Enter the new name of tanzaku (leave blank to keep current):\n"));
         fgets(name, 4096, stdin);
         if (*name == '\n') {
             free(name);
@@ -342,7 +342,7 @@ int menu_upd_tanzaku(const char *arg) {
         } else {
             name[strlen(name) - 1] = 0;
         }
-        printf(HIGHLIGHT("Enter the new description of tanzaku (leave blank to keep current)\n"));
+        printf(HIGHLIGHT("Enter the new description of tanzaku (leave blank to keep current):\n"));
         fgets(description, 4096, stdin);
         if (*description == '\n') {
             free(description);
