@@ -163,3 +163,14 @@ int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {
     sasahyou->modified_ts = time(NULL);
     return 0;
 }
+
+int sasa_upd(Sasahyou *sasahyou, uint64_t sasa_id, const char *path) {
+    if (sasa_id == HOLE_ID || sasa_id >= sasahyou->size) {
+        return 1;
+    }
+    if (path != NULL) {
+        strcpy(sasahyou->database[sasa_id].path, path);
+        sasahyou->modified_ts = time(NULL);
+    }
+    return 0;
+}

@@ -168,3 +168,22 @@ int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {
     sappyou->modified_ts = time(NULL);
     return 0;
 }
+
+int tanzaku_upd(Sappyou *sappyou, uint64_t tanzaku_id, const char *name, const char *description) {
+    if (tanzaku_id == HOLE_ID || tanzaku_id >= sappyou->size) {
+        return 1;
+    }
+    _Bool changed = 0;
+    if (name != NULL) {
+        strcpy(sappyou->database[tanzaku_id].name, name);
+        changed = 1;
+    }
+    if (description != NULL) {
+        strcpy(sappyou->database[tanzaku_id].description, description);
+        changed = 1;
+    }
+    if (changed) {
+        sappyou->modified_ts = time(NULL);
+    }
+    return 0;
+}

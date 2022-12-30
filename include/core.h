@@ -111,6 +111,9 @@ int sasa_add(Sasahyou *sasahyou, const char *path);
 // Remove sasa from sasahyou
 int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id);
 
+// Update sasa file path
+int sasa_upd(Sasahyou *sasahyou, uint64_t sasa_id, const char *path);
+
 // ==================== SAPPYOU SECTION ==================== //
 
 // Initialize empty sappyou
@@ -136,6 +139,9 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *description);
 
 // Remove tanzaku from sappyou
 int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id);
+
+// Update tanzaku name and description
+int tanzaku_upd(Sappyou *sappyou, uint64_t tanzaku_id, const char *name, const char *description);
 
 // ==================== SHOPPYOU SECTION ==================== //
 
