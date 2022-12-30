@@ -106,8 +106,11 @@ int menu_view_tanzaku(const char *arg) {
                      localtime((const time_t *) &current_tanzaku.created_ts));
             printf(HIGHLIGHT("Tanzaku ID")"         %lx\n"
                    HIGHLIGHT("Name")"               %s\n"
-                   HIGHLIGHT("Created datetime")"   %s\n\n",
+                   HIGHLIGHT("Created datetime")"   %s\n",
                    tanzaku_id, current_tanzaku.name, datetime);
+            strftime(datetime, 20, DT_FORMAT,
+                     localtime((const time_t *) &current_tanzaku.modified_ts));
+            printf(HIGHLIGHT("Modified datetime")"  %s\n\n", datetime);
             if (*current_tanzaku.description != 0) {
                 printf(HIGHLIGHT("↓ Description ↓\n")
                        "%s\n"
