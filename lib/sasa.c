@@ -56,6 +56,21 @@ int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path) {
     return 1;
 }
 
+int tanabata_sasa_upd(Tanabata *tanabata, uint64_t sasa_id, const char *path) {
+    if (sasa_id == HOLE_ID || sasa_id >= tanabata->sasahyou.size) {
+        return 1;
+    }
+    if (path == NULL) {
+        return 0;
+    }
+    char *abspath = NULL;
+    abspath = realpath(path, abspath);
+    if (abspath == NULL) {
+        return 1;
+    }
+    return sasa_upd(&tanabata->sasahyou, sasa_id, abspath);
+}
+
 Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id) {
     if (sasa_id == HOLE_ID || sasa_id >= tanabata->sasahyou.size) {
         return HOLE_SASA;

@@ -45,6 +45,10 @@ int tanabata_tanzaku_rem_by_name(Tanabata *tanabata, const char *name) {
     return 1;
 }
 
+int tanabata_tanzaku_upd(Tanabata *tanabata, uint64_t tanzaku_id, const char *name, const char *description) {
+    return tanzaku_upd(&tanabata->sappyou, tanzaku_id, name, description);
+}
+
 Tanzaku tanabata_tanzaku_get_by_id(Tanabata *tanabata, uint64_t tanzaku_id) {
     if (tanzaku_id == HOLE_ID || tanzaku_id >= tanabata->sappyou.size) {
         return HOLE_TANZAKU;
