@@ -65,19 +65,21 @@ int tanabata_weed(Tanabata *tanabata) {
         tanabata->sasahyou.database = realloc(tanabata->sasahyou.database, tanabata->sasahyou.size * sizeof(Sasa));
         tanabata->sasahyou.modified_ts = time(NULL);
     }
-    if (tanabata->shoppyou.hole_cnt > 0) {
-        hole_cnt = 0;
-        current_kazari = tanabata->shoppyou.database;
-        for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
-            if (current_kazari->sasa_id != HOLE_ID && current_kazari->tanzaku_id != HOLE_ID) {
-                if (hole_cnt > 0) {
-                    *(current_kazari - hole_cnt) = *current_kazari;
-                }
-            } else {
-                hole_cnt++;
+    hole_cnt = 0;
+    current_kazari = tanabata->shoppyou.database;
+    for (uint64_t i = 0; i < tanabata->shoppyou.size; i++) {
+        if (current_kazari->sasa_id != HOLE_ID && current_kazari->tanzaku_id != HOLE_ID &&
+            current_kazari->sasa_id < tanabata->sasahyou.size &&
+            current_kazari->tanzaku_id < tanabata->sappyou.size) {
+            if (hole_cnt > 0) {
+                *(current_kazari - hole_cnt) = *current_kazari;
             }
-            current_kazari++;
+        } else {
+            hole_cnt++;
         }
+        current_kazari++;
+    }
+    if (hole_cnt > 0) {
         tanabata->shoppyou.size -= tanabata->shoppyou.hole_cnt;
         tanabata->shoppyou.hole_cnt = 0;
         free(tanabata->shoppyou.holes);
