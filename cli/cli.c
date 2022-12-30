@@ -233,7 +233,7 @@ int menu_rem_sasa(const char *arg) {
         fprintf(stderr, ERROR("Failed to remove sasa\n"));
         return 1;
     }
-    fprintf(stderr, "Invalid ID\n");
+    fprintf(stderr, ERROR("Invalid ID\n"));
     return 1;
 }
 
