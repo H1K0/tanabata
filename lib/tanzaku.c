@@ -28,7 +28,7 @@ int tanabata_tanzaku_rem_by_id(Tanabata *tanabata, uint64_t tanzaku_id) {
 }
 
 int tanabata_tanzaku_rem_by_name(Tanabata *tanabata, const char *name) {
-    if (name == NULL) {
+    if (tanabata->sasahyou.size == 0 || name == NULL) {
         return 1;
     }
     Tanzaku *current_tanzaku = tanabata->sappyou.database + 1;

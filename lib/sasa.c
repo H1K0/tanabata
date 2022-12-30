@@ -34,7 +34,7 @@ int tanabata_sasa_rem_by_id(Tanabata *tanabata, uint64_t sasa_id) {
 }
 
 int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path) {
-    if (path == NULL) {
+    if (tanabata->sasahyou.size == 0 || path == NULL) {
         return 1;
     }
     char *abspath = NULL;
