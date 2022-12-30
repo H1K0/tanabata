@@ -56,6 +56,7 @@ Options:
 -i                         View database info
 -s                         Set or add
 -u                         Unset or remove
+-e                         Edit or update
 -f <sasa_id or path>       File-sasa menu
 -t <tanzaku_id or name>    Tanzaku menu
 -c <sasa_id>-<tanzaku_id>  Kazari menu (can only be used with the '-s' or '-u' option)
@@ -77,9 +78,11 @@ Using the `-s` option, you can add new sasa, tanzaku, or kazari.
 
 Using the `-u` option, you can remove sasa, tanzaku, or kazari.
 
-Using the `-f` option, you can manage your sasa. It takes sasa ID when used single or with the `-u` option or target file path when used with the `-s` option. If you want to view the list of all sasa, pass `.` as an argument. For example, `tfm -f 2d` prints the info about sasa with ID `2d` and `tfm -sf path/to/file` adds a new file to the database.
+Using the `-e` option, you can update sasa file path or tanzaku name or description. If you want to keep the current value of a field (for example, if you want to change the description of tanzaku while keeping its name), just leave its line blank.
 
-Using the `-t` option, you can manage your tanzaku. It takes tanzaku ID when used single or with the `-u` option or the name of new tanzaku when used with the `-s` option. If you want to view the list of all tanzaku, pass `.` as an argument. For example, `tfm -t c4` prints the info about sasa with ID `c4` and `tfm -st "New tag name"` adds a new tanzaku to the database.
+Using the `-f` option, you can manage your sasa. It takes sasa ID when used alone or with the `-u` or `-e` option or target file path when used with the `-s` option. If you want to view the list of all sasa, pass `.` as an argument. For example, `tfm -f 2d` prints the info about sasa with ID `2d` and `tfm -sf path/to/file` adds a new file to the database.
+
+Using the `-t` option, you can manage your tanzaku. It takes tanzaku ID when used alone or with the `-u` or `-e` option or the name of new tanzaku when used with the `-s` option. If you want to view the list of all tanzaku, pass `.` as an argument. For example, `tfm -t c4` prints the info about sasa with ID `c4` and `tfm -st "New tag name"` adds a new tanzaku to the database.
 
 The `-c` option can be used only with the `-s` or `-u` option. It takes the IDs of sasa and tanzaku to link/unlink separated with a hyphen. For example, `tfm -sc 10-4d` links sasa with ID `10` and tanzaku with ID `4d`.
 
