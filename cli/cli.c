@@ -18,30 +18,20 @@ static Tanabata tanabata;
 
 // Print the list of all sasa
 void print_sasa_all() {
-    printf(TABLE_HEADER("         Sasa ID\t Creation datetime \tFile path")"\n");
-    char datetime[20];
+    printf(TABLE_HEADER("         Sasa ID\tFile path")"\n");
     for (uint64_t i = 0; i < tanabata.sasahyou.size; i++) {
         if (tanabata.sasahyou.database[i].id != HOLE_ID) {
-            strftime(datetime, 20, DT_FORMAT,
-                     localtime((const time_t *) &tanabata.sasahyou.database[i].created_ts));
-            printf("%16lx\t%19s\t%s\n",
-                   tanabata.sasahyou.database[i].id, datetime,
-                   tanabata.sasahyou.database[i].path);
+            printf("%16lx\t%s\n", tanabata.sasahyou.database[i].id, tanabata.sasahyou.database[i].path);
         }
     }
 }
 
 // Print the list of all tanzaku
 void print_tanzaku_all() {
-    printf(TABLE_HEADER("      Tanzaku ID\t Creation datetime \tName")"\n");
-    char datetime[20];
+    printf(TABLE_HEADER("      Tanzaku ID\tName")"\n");
     for (uint64_t i = 0; i < tanabata.sappyou.size; i++) {
         if (tanabata.sappyou.database[i].id != HOLE_ID) {
-            strftime(datetime, 20, DT_FORMAT,
-                     localtime((const time_t *) &tanabata.sappyou.database[i].created_ts));
-            printf("%16lx\t%19s\t%s\n",
-                   tanabata.sappyou.database[i].id, datetime,
-                   tanabata.sappyou.database[i].name);
+            printf("%16lx\t%s\n", tanabata.sappyou.database[i].id, tanabata.sappyou.database[i].name);
         }
     }
 }
