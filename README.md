@@ -9,6 +9,7 @@
 - [About](#about)
 - [Glossary](#glossary)
 - [Usage](#usage)
+  - [Command Line Interface](#command-line-interface)
 
 ## About
 
@@ -38,7 +39,9 @@ Tanabata FM is a file manager for Linux that will let you enjoy the Tanabata fes
 
 First of all, compile the source code with `./build.sh`. By default, it builds all targets to the `./build/` directory, but you can specify your custom build directory and target with `./build.sh -b <build_dir> -t <target>`. For example, if you want to build just the CLI app to the `./tfm-cli/` directory, run `./build.sh -t tfm -b ./tfm-cli/`.
 
-For better experience, you can move the CLI executable to the `/usr/bin/` directory (totally safe unless you have another app named `tfm`) or add the directory with it to `PATH`.
+### Command Line Interface
+
+Build the CLI app using `./build.sh -t tfm [-b <build_dir>]`. For better experience, you can move the CLI executable to the `/usr/bin/` directory (totally safe unless you have another app named `tfm`) or add the directory with it to `PATH`.
 
 Then just open the terminal and run `tfm -h`. If you are running it for the first time, run it with `sudo` or manually create the `/etc/tfm/` directory and check its permissions. This is the directory where TFM stores its config file. If everything is set up properly, you should get the following.
 
