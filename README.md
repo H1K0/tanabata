@@ -1,4 +1,4 @@
-<h1 align="center">Tanabata file manager</h1>
+<h1 align="center">Tanabata File Manager</h1>
 
 ---
 
@@ -37,7 +37,7 @@ Tanabata FM is a file manager for Linux that will let you enjoy the Tanabata fes
 
 ## Usage
 
-First of all, compile the source code with `./build.sh`. By default, it builds all targets to the `./build/` directory, but you can specify your custom build directory and target with `./build.sh -b <build_dir> -t <target>`. For example, if you want to build just the CLI app to the `./tfm-cli/` directory, run `./build.sh -t tfm -b ./tfm-cli/`.
+First of all, compile the source code with `./build.sh`. By default, it builds all targets to the `./build/` directory, but you can specify your custom build directory and target with `./build.sh [-b <build_dir>] [-t <target>]`. Both of options are... yeah, optional. For example, if you want to build just the CLI app to the `./tfm-cli/` directory, run `./build.sh -t tfm -b ./tfm-cli/`.
 
 ### Command Line Interface
 
