@@ -18,7 +18,7 @@ static Tanabata tanabata;
 
 // Print the list of all sasa
 void print_sasa_all() {
-    printf(TABLE_HEADER("         Sasa ID\t Creation datetime \tFile path\n"));
+    printf(TABLE_HEADER("         Sasa ID\t Creation datetime \tFile path")"\n");
     char datetime[20];
     for (uint64_t i = 0; i < tanabata.sasahyou.size; i++) {
         if (tanabata.sasahyou.database[i].id != HOLE_ID) {
@@ -33,7 +33,7 @@ void print_sasa_all() {
 
 // Print the list of all tanzaku
 void print_tanzaku_all() {
-    printf(TABLE_HEADER("      Tanzaku ID\t Creation datetime \tName\n"));
+    printf(TABLE_HEADER("      Tanzaku ID\t Creation datetime \tName")"\n");
     char datetime[20];
     for (uint64_t i = 0; i < tanabata.sappyou.size; i++) {
         if (tanabata.sappyou.database[i].id != HOLE_ID) {
@@ -65,25 +65,25 @@ int menu_view_sasa(const char *arg) {
                      localtime((const time_t *) &current_sasa.created_ts));
             printf(HIGHLIGHT("Sasa ID")"            %lx\n"
                    HIGHLIGHT("File path")"          %s\n"
-                   HIGHLIGHT("Added datetime")"     %s\n",
+                   HIGHLIGHT("Added datetime")"     %s\n\n",
                    sasa_id, current_sasa.path, datetime);
             Tanzaku *related_tanzaku = tanabata_tanzaku_get_by_sasa(&tanabata, current_sasa.id);
             if (related_tanzaku != NULL) {
-                printf(HIGHLIGHT("\n↓ Related tanzaku ↓\n"));
+                printf(HIGHLIGHT("↓ Related tanzaku ↓")"\n");
                 for (Tanzaku *current_tanzaku = related_tanzaku;
                      current_tanzaku->id != HOLE_ID; current_tanzaku++) {
                     printf("'%s'\n", current_tanzaku->name);
                 }
-                printf(HIGHLIGHT("↑ Related tanzaku ↑\n"));
+                printf(HIGHLIGHT("↑ Related tanzaku ↑")"\n");
             } else {
-                printf(HIGHLIGHT("\nNo related tanzaku\n"));
+                printf(HIGHLIGHT("No related tanzaku")"\n");
             }
             return 0;
         }
-        fprintf(stderr, ERROR("No sasa with this ID\n"));
+        fprintf(stderr, ERROR("No sasa with this ID")"\n");
         return 1;
     }
-    fprintf(stderr, ERROR("Invalid ID\n"));
+    fprintf(stderr, ERROR("Invalid ID")"\n");
     return 1;
 }
 
@@ -112,29 +112,29 @@ int menu_view_tanzaku(const char *arg) {
                      localtime((const time_t *) &current_tanzaku.modified_ts));
             printf(HIGHLIGHT("Modified datetime")"  %s\n\n", datetime);
             if (*current_tanzaku.description != 0) {
-                printf(HIGHLIGHT("↓ Description ↓\n")
+                printf(HIGHLIGHT("↓ Description ↓")"\n"
                        "%s\n"
-                       HIGHLIGHT("↑ Description ↑\n"), current_tanzaku.description);
+                       HIGHLIGHT("↑ Description ↑")"\n\n", current_tanzaku.description);
             } else {
-                printf(HIGHLIGHT("No description\n"));
+                printf(HIGHLIGHT("No description")"\n\n");
             }
             Sasa *related_sasa = tanabata_sasa_get_by_tanzaku(&tanabata, tanzaku_id);
             if (related_sasa != NULL) {
-                printf(HIGHLIGHT("\n↓ Related sasa ↓\n"));
+                printf(HIGHLIGHT("↓ Related sasa ↓")"\n");
                 for (Sasa *current_sasa = related_sasa;
                      current_sasa->id != HOLE_ID; current_sasa++) {
                     printf("'%s'\n", current_sasa->path);
                 }
-                printf(HIGHLIGHT("↑ Related sasa ↑\n"));
+                printf(HIGHLIGHT("↑ Related sasa ↑")"\n");
             } else {
-                printf(HIGHLIGHT("\nNo related sasa\n"));
+                printf(HIGHLIGHT("No related sasa")"\n");
             }
             return 0;
         }
-        fprintf(stderr, ERROR("No tanzaku with this ID\n"));
+        fprintf(stderr, ERROR("No tanzaku with this ID")"\n");
         return 1;
     }
-    fprintf(stderr, ERROR("Invalid ID\n"));
+    fprintf(stderr, ERROR("Invalid ID")"\n");
     return 1;
 }
 
@@ -144,15 +144,15 @@ int menu_add_sasa(const char *arg) {
         return 1;
     }
     if (tanabata.sasahyou.size == -1 && tanabata.sasahyou.hole_cnt == 0) {
-        fprintf(stderr, ERROR("Failed to add file to database: sasahyou is full\n"));
+        fprintf(stderr, ERROR("Failed to add file to database: sasahyou is full")"\n");
         return 1;
     }
     if (tanabata_sasa_add(&tanabata, arg) == 0 &&
         tanabata_save(&tanabata) == 0) {
-        printf(SUCCESS("Successfully added file to database\n"));
+        printf(SUCCESS("Successfully added file to database")"\n");
         return 0;
     }
-    fprintf(stderr, ERROR("Failed to add file to database\n"));
+    fprintf(stderr, ERROR("Failed to add file to database")"\n");
     return 1;
 }
 
@@ -162,21 +162,21 @@ int menu_add_tanzaku(const char *arg) {
         return 1;
     }
     if (tanabata.sappyou.size == -1 && tanabata.sappyou.hole_cnt == 0) {
-        fprintf(stderr, ERROR("Failed to add tanzaku: sappyou is full\n"));
+        fprintf(stderr, ERROR("Failed to add tanzaku: sappyou is full")"\n");
         return 1;
     }
     if (*arg != 0) {
         char description[4096];
-        printf(HIGHLIGHT("Enter tanzaku description:\n"));
+        printf(HIGHLIGHT("Enter tanzaku description:")"\n");
         fgets(description, 4096, stdin);
         description[strlen(description) - 1] = 0;
         if (tanabata_tanzaku_add(&tanabata, arg, description) == 0 &&
             tanabata_save(&tanabata) == 0) {
-            printf(SUCCESS("Successfully added tanzaku to database\n"));
+            printf(SUCCESS("Successfully added tanzaku to database")"\n");
             return 0;
         }
     }
-    fprintf(stderr, ERROR("Failed to add tanzaku to database\n"));
+    fprintf(stderr, ERROR("Failed to add tanzaku to database")"\n");
     return 1;
 }
 
@@ -186,7 +186,7 @@ int menu_add_kazari(char *arg) {
         return 1;
     }
     if (tanabata.shoppyou.size == -1 && tanabata.shoppyou.hole_cnt == 0) {
-        fprintf(stderr, ERROR("Failed to add kazari: shoppyou is full\n"));
+        fprintf(stderr, ERROR("Failed to add kazari: shoppyou is full")"\n");
         return 1;
     }
     char *left = arg, *right = "\0", *endptr;
@@ -198,25 +198,25 @@ int menu_add_kazari(char *arg) {
         }
     }
     if (*left == 0 || *right == 0) {
-        fprintf(stderr, ERROR("Failed to add kazari: invalid argument\n"));
+        fprintf(stderr, ERROR("Failed to add kazari: invalid argument")"\n");
         return 1;
     }
     uint64_t sasa_id = strtoull(left, &endptr, 16);
     if (*endptr != 0) {
-        fprintf(stderr, ERROR("Failed to add kazari: invalid sasa ID\n"));
+        fprintf(stderr, ERROR("Failed to add kazari: invalid sasa ID")"\n");
         return 1;
     }
     uint64_t tanzaku_id = strtoull(right, &endptr, 16);
     if (*endptr != 0) {
-        fprintf(stderr, ERROR("Failed to add kazari: invalid tanzaku ID\n"));
+        fprintf(stderr, ERROR("Failed to add kazari: invalid tanzaku ID")"\n");
         return 1;
     }
     if (tanabata_kazari_add(&tanabata, sasa_id, tanzaku_id) == 0 &&
         tanabata_save(&tanabata) == 0) {
-        printf(SUCCESS("Successfully added kazari\n"));
+        printf(SUCCESS("Successfully added kazari")"\n");
         return 0;
     }
-    fprintf(stderr, ERROR("Failed to add kazari\n"));
+    fprintf(stderr, ERROR("Failed to add kazari")"\n");
     return 1;
 }
 
@@ -230,13 +230,13 @@ int menu_rem_sasa(const char *arg) {
     if (*endptr == 0) {
         if (tanabata_sasa_rem_by_id(&tanabata, sasa_id) == 0 &&
             tanabata_save(&tanabata) == 0) {
-            printf(SUCCESS("Successfully removed sasa\n"));
+            printf(SUCCESS("Successfully removed sasa")"\n");
             return 0;
         }
-        fprintf(stderr, ERROR("Failed to remove sasa\n"));
+        fprintf(stderr, ERROR("Failed to remove sasa")"\n");
         return 1;
     }
-    fprintf(stderr, ERROR("Invalid ID\n"));
+    fprintf(stderr, ERROR("Invalid ID")"\n");
     return 1;
 }
 
@@ -250,13 +250,13 @@ int menu_rem_tanzaku(const char *arg) {
     if (*endptr == 0) {
         if (tanabata_tanzaku_rem_by_id(&tanabata, tanzaku_id) == 0 &&
             tanabata_save(&tanabata) == 0) {
-            printf(SUCCESS("Successfully removed tanzaku\n"));
+            printf(SUCCESS("Successfully removed tanzaku")"\n");
             return 0;
         }
-        fprintf(stderr, ERROR("Failed to remove tanzaku\n"));
+        fprintf(stderr, ERROR("Failed to remove tanzaku")"\n");
         return 1;
     }
-    fprintf(stderr, ERROR("Invalid ID\n"));
+    fprintf(stderr, ERROR("Invalid ID")"\n");
     return 1;
 }
 
@@ -274,25 +274,25 @@ int menu_rem_kazari(char *arg) {
         }
     }
     if (*left == 0 || *right == 0) {
-        fprintf(stderr, ERROR("Failed to remove kazari: invalid argument\n"));
+        fprintf(stderr, ERROR("Failed to remove kazari: invalid argument")"\n");
         return 1;
     }
     uint64_t sasa_id = strtoull(left, &endptr, 16);
     if (*endptr != 0) {
-        fprintf(stderr, ERROR("Failed to remove kazari: invalid sasa ID\n"));
+        fprintf(stderr, ERROR("Failed to remove kazari: invalid sasa ID")"\n");
         return 1;
     }
     uint64_t tanzaku_id = strtoull(right, &endptr, 16);
     if (*endptr != 0) {
-        fprintf(stderr, ERROR("Failed to remove kazari: invalid tanzaku ID\n"));
+        fprintf(stderr, ERROR("Failed to remove kazari: invalid tanzaku ID")"\n");
         return 1;
     }
     if (tanabata_kazari_rem(&tanabata, sasa_id, tanzaku_id) == 0 &&
         tanabata_save(&tanabata) == 0) {
-        printf(SUCCESS("Successfully removed kazari\n"));
+        printf(SUCCESS("Successfully removed kazari")"\n");
         return 0;
     }
-    fprintf(stderr, ERROR("Failed to remove kazari\n"));
+    fprintf(stderr, ERROR("Failed to remove kazari")"\n");
     return 1;
 }
 
@@ -305,7 +305,7 @@ int menu_upd_sasa(const char *arg) {
     uint64_t sasa_id = strtoull(arg, &endptr, 16);
     if (*endptr == 0) {
         char *path = malloc(4096);
-        printf(HIGHLIGHT("Enter the new file path (leave blank to keep current):\n"));
+        printf(HIGHLIGHT("Enter the new file path (leave blank to keep current):")"\n");
         fgets(path, 4096, stdin);
         if (*path == '\n') {
             free(path);
@@ -315,13 +315,13 @@ int menu_upd_sasa(const char *arg) {
         }
         if (tanabata_sasa_upd(&tanabata, sasa_id, path) == 0 &&
             tanabata_save(&tanabata) == 0) {
-            printf(SUCCESS("Successfully updated sasa\n"));
+            printf(SUCCESS("Successfully updated sasa")"\n");
             return 0;
         }
-        fprintf(stderr, ERROR("Failed to update sasa\n"));
+        fprintf(stderr, ERROR("Failed to update sasa")"\n");
         return 1;
     }
-    fprintf(stderr, ERROR("Invalid ID\n"));
+    fprintf(stderr, ERROR("Invalid ID")"\n");
     return 1;
 }
 
@@ -334,7 +334,7 @@ int menu_upd_tanzaku(const char *arg) {
     uint64_t tanzaku_id = strtoull(arg, &endptr, 16);
     if (*endptr == 0) {
         char *name = malloc(4096), *description = malloc(4096);
-        printf(HIGHLIGHT("Enter the new name of tanzaku (leave blank to keep current):\n"));
+        printf(HIGHLIGHT("Enter the new name of tanzaku (leave blank to keep current):")"\n");
         fgets(name, 4096, stdin);
         if (*name == '\n') {
             free(name);
@@ -342,7 +342,7 @@ int menu_upd_tanzaku(const char *arg) {
         } else {
             name[strlen(name) - 1] = 0;
         }
-        printf(HIGHLIGHT("Enter the new description of tanzaku (leave blank to keep current):\n"));
+        printf(HIGHLIGHT("Enter the new description of tanzaku (leave blank to keep current):")"\n");
         fgets(description, 4096, stdin);
         if (*description == '\n') {
             free(description);
@@ -352,19 +352,19 @@ int menu_upd_tanzaku(const char *arg) {
         }
         if (tanabata_tanzaku_upd(&tanabata, tanzaku_id, name, description) == 0 &&
             tanabata_save(&tanabata) == 0) {
-            printf(SUCCESS("Successfully updated tanzaku\n"));
+            printf(SUCCESS("Successfully updated tanzaku")"\n");
             return 0;
         }
-        fprintf(stderr, ERROR("Failed to update tanzaku\n"));
+        fprintf(stderr, ERROR("Failed to update tanzaku")"\n");
         return 1;
     }
-    fprintf(stderr, ERROR("Invalid ID\n"));
+    fprintf(stderr, ERROR("Invalid ID")"\n");
     return 1;
 }
 
 int main(int argc, char **argv) {
     if (argc == 1) {
-        fprintf(stderr, ERROR("No options provided\n"));
+        fprintf(stderr, ERROR("No options provided")"\n");
         return 1;
     }
     char *tanabata_path;
@@ -375,14 +375,14 @@ int main(int argc, char **argv) {
         if (stat("/etc/tfm", &st) == -1) {
             if (mkdir("/etc/tfm", 0755) != 0) {
                 fprintf(stderr, ERROR("Failed to create '/etc/tfm' directory. "
-                                      "Try again with 'sudo' or check your permissions\n"));
+                                      "Try again with 'sudo' or check your permissions")"\n");
                 return 1;
             }
         }
         config = fopen("/etc/tfm/config", "w");
         if (config == NULL) {
             fprintf(stderr, ERROR("Failed to create config file. "
-                                  "Try again with 'sudo' or check your permissions\n"));
+                                  "Try again with 'sudo' or check your permissions")"\n");
             return 1;
         }
     } else {
@@ -394,7 +394,7 @@ int main(int argc, char **argv) {
         } else {
             tanabata_path = malloc(fsize + 1);
             if (fgets(tanabata_path, INT32_MAX, config) == NULL) {
-                fprintf(stderr, ERROR("Failed to read config file\n"));
+                fprintf(stderr, ERROR("Failed to read config file")"\n");
                 return 1;
             }
         }
@@ -417,10 +417,11 @@ int main(int argc, char **argv) {
         switch (opt) {
             case 'h':
                 printf(
-                        HIGHLIGHT("(C) Masahiko AMANO aka H1K0, 2022—present\n(https://github.com/H1K0/tanabata)\n\n")
-                        HIGHLIGHT("Usage:\n")
+                        HIGHLIGHT("(C) Masahiko AMANO aka H1K0, 2022—present")"\n"
+                        HIGHLIGHT("(https://github.com/H1K0/tanabata)")"\n\n"
+                        HIGHLIGHT("Usage:")"\n"
                         "tfm <options>\n\n"
-                        HIGHLIGHT("Options:\n")
+                        HIGHLIGHT("Options:")"\n"
                         HIGHLIGHT("-h")"                         Print this help and exit\n"
                         HIGHLIGHT("-I <dir>")"                   Initialize new Tanabata database in directory <dir>\n"
                         HIGHLIGHT("-O <dir>")"                   Open existing Tanabata database from directory <dir>\n"
@@ -430,15 +431,15 @@ int main(int argc, char **argv) {
                         HIGHLIGHT("-e")"                         Edit or update\n"
                         HIGHLIGHT("-f <sasa_id or path>")"       File-sasa menu\n"
                         HIGHLIGHT("-t <tanzaku_id or name>")"    Tanzaku menu\n"
-                        HIGHLIGHT(
-                                "-c <sasa_id>-<tanzaku_id>")"  Kazari menu (can only be used with the '-s' or '-u' option)\n"
+                        HIGHLIGHT("-c <sasa_id>-<tanzaku_id>")"  Kazari menu "
+                        "(can only be used with the '-s' or '-u' option)\n"
                         HIGHLIGHT("-w")"                         Weed (defragment) database\n"
                         HIGHLIGHT("-V")"                         Print version and exit\n\n"
                 );
                 if (tanabata_path != NULL) {
-                    printf(HIGHLIGHT("Current database location: %s\n"), tanabata_path);
+                    printf(HIGHLIGHT("Current database location: %s")"\n", tanabata_path);
                 } else {
-                    printf(HIGHLIGHT("No database connected\n"));
+                    printf(HIGHLIGHT("No database connected")"\n");
                 }
                 return 0;
             case 'V':
@@ -447,7 +448,7 @@ int main(int argc, char **argv) {
             case 'I':
                 abspath = realpath(optarg, abspath);
                 if (abspath == NULL) {
-                    fprintf(stderr, ERROR("Invalid path\n"));
+                    fprintf(stderr, ERROR("Invalid path")"\n");
                     return 1;
                 }
                 if (tanabata_init(&tanabata) == 0 &&
@@ -455,35 +456,35 @@ int main(int argc, char **argv) {
                     config = freopen(NULL, "w", config);
                     if (config == NULL) {
                         fprintf(stderr, ERROR("Failed to update config file. "
-                                              "Try again with 'sudo' or check your permissions\n"));
+                                              "Try again with 'sudo' or check your permissions")"\n");
                         return 1;
                     }
                     fputs(abspath, config);
                     fclose(config);
-                    printf(SUCCESS("Successfully initialized Tanabata database\n"));
+                    printf(SUCCESS("Successfully initialized Tanabata database")"\n");
                     return 0;
                 }
-                fprintf(stderr, ERROR("Failed to initialize Tanabata database\n"));
+                fprintf(stderr, ERROR("Failed to initialize Tanabata database")"\n");
                 return 1;
             case 'O':
                 abspath = realpath(optarg, abspath);
                 if (abspath == NULL) {
-                    fprintf(stderr, ERROR("Invalid path\n"));
+                    fprintf(stderr, ERROR("Invalid path")"\n");
                     return 1;
                 }
                 if (tanabata_open(&tanabata, abspath) == 0) {
                     config = freopen(NULL, "w", config);
                     if (config == NULL) {
                         fprintf(stderr, ERROR("Failed to update config file. "
-                                              "Try again with 'sudo' or check your permissions\n"));
+                                              "Try again with 'sudo' or check your permissions")"\n");
                         return 1;
                     }
                     fputs(abspath, config);
                     fclose(config);
-                    printf(SUCCESS("Successfully opened Tanabata database\n"));
+                    printf(SUCCESS("Successfully opened Tanabata database")"\n");
                     return 0;
                 }
-                fprintf(stderr, ERROR("Failed to open Tanabata database\n"));
+                fprintf(stderr, ERROR("Failed to open Tanabata database")"\n");
                 return 1;
             case 'i':
                 opt_i = 1;
@@ -519,18 +520,18 @@ int main(int argc, char **argv) {
         }
     }
     if (tanabata_path == NULL) {
-        fprintf(stderr, ERROR("No connected database\n"));
+        fprintf(stderr, ERROR("No connected database")"\n");
         return 1;
     }
     if (tanabata_open(&tanabata, tanabata_path) != 0) {
-        fprintf(stderr, ERROR("Failed to load database\n"));
+        fprintf(stderr, ERROR("Failed to load database")"\n");
         return 1;
     }
     fclose(config);
     if (opt_i) {
         char datetime[20];
-        printf(HIGHLIGHT("Current database location: %s\n\n")
-               HIGHLIGHT("SASAHYOU\n"), tanabata_path);
+        printf(HIGHLIGHT("Current database location: %s")"\n\n"
+               HIGHLIGHT("SASAHYOU")"\n", tanabata_path);
         strftime(datetime, 20, DT_FORMAT,
                  localtime((const time_t *) &tanabata.sasahyou.created_ts));
         printf("  "HIGHLIGHT("Created")"             %s\n", datetime);
@@ -539,7 +540,7 @@ int main(int argc, char **argv) {
         printf("  "HIGHLIGHT("Last modified")"       %s\n"
                "  "HIGHLIGHT("Number of sasa")"      %lu\n"
                "  "HIGHLIGHT("Number of holes")"     %lu\n\n"
-               HIGHLIGHT("SAPPYOU\n"), datetime, tanabata.sasahyou.size, tanabata.sasahyou.hole_cnt);
+               HIGHLIGHT("SAPPYOU")"\n", datetime, tanabata.sasahyou.size, tanabata.sasahyou.hole_cnt);
         strftime(datetime, 20, DT_FORMAT,
                  localtime((const time_t *) &tanabata.sappyou.created_ts));
         printf("  "HIGHLIGHT("Created")"             %s\n", datetime);
@@ -548,7 +549,7 @@ int main(int argc, char **argv) {
         printf("  "HIGHLIGHT("Last modified")"       %s\n"
                "  "HIGHLIGHT("Number of tanzaku")"   %lu\n"
                "  "HIGHLIGHT("Number of holes")"     %lu\n\n"
-               HIGHLIGHT("SHOPPYOU\n"), datetime, tanabata.sappyou.size, tanabata.sappyou.hole_cnt);
+               HIGHLIGHT("SHOPPYOU")"\n", datetime, tanabata.sappyou.size, tanabata.sappyou.hole_cnt);
         strftime(datetime, 20, DT_FORMAT,
                  localtime((const time_t *) &tanabata.shoppyou.created_ts));
         printf("  "HIGHLIGHT("Created")"             %s\n", datetime);
@@ -564,10 +565,10 @@ int main(int argc, char **argv) {
     if (opt_w) {
         if (tanabata_weed(&tanabata) == 0 &&
             tanabata_save(&tanabata) == 0) {
-            printf(SUCCESS("Successfully weeded database\n"));
+            printf(SUCCESS("Successfully weeded database")"\n");
             return 0;
         }
-        fprintf(stderr, ERROR("Failed to weed database\n"));
+        fprintf(stderr, ERROR("Failed to weed database")"\n");
         return 1;
     }
     if (opt_s && opt_u) {
