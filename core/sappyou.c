@@ -184,6 +184,7 @@ int tanzaku_upd(Sappyou *sappyou, uint64_t tanzaku_id, const char *name, const c
     }
     if (changed) {
         sappyou->modified_ts = time(NULL);
+        sappyou->database[tanzaku_id].modified_ts = sappyou->modified_ts;
     }
     return 0;
 }
