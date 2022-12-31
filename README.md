@@ -41,9 +41,9 @@ First of all, compile the source code with `./build.sh`. By default, it builds a
 
 ### Command Line Interface
 
-Build the CLI app using `./build.sh -t tfm [-b <build_dir>]`. For better experience, you can move the CLI executable to the `/usr/bin/` directory (totally safe unless you have another app named `tfm`) or add the directory with it to `PATH`.
+Build the CLI app using `./build.sh -t tfm [-b <build_dir>]`. For better experience, you can move the executable to the `/usr/bin/` directory (totally safe unless you have another app named `tfm`) or add the directory with it to `PATH`.
 
-Then just open the terminal and run `tfm -h`. If you are running it for the first time, run it with `sudo` or manually create the `/etc/tfm/` directory and check its permissions. This is the directory where TFM stores its config file. If everything is set up properly, you should get the following.
+Then just open the terminal and run `tfm -h`. If you are running it for the first time, run it with `sudo` or manually create the `/etc/tfm/` directory and check its permissions. This is the directory where TFM stores its config file. If everything is set up properly, you should get the following help message.
 
 ```
 (C) Masahiko AMANO aka H1K0, 2022—present
@@ -71,9 +71,9 @@ No database connected
 
 So, let's take a look at each option.
 
-Using the `-I <dir>` option, you can initialize the TFM database in the specified directory. The app creates empty sasahyou, sappyou and shoppyou files and saves the directory path to a configuration file. The new database will be used the next time you run the app until you change it.
+Using the `-I <dir>` option, you can initialize an empty TFM database in the specified directory. The app creates empty sasahyou, sappyou and shoppyou files and saves the directory path to the configuration file. The new database will be used the next time you run the app until you change it.
 
-Using the `-O <dir>` option, you can open the TFM database in the specified directory. The app checks if the directory contains the sasahyou, sappyou and shoppyou files, and if they exist and are valid, saves the directory path to a configuration file. The new database will be used the next time you run the app until you change it.
+Using the `-O <dir>` option, you can open an existing TFM database in the specified directory. The app checks if the directory contains sasahyou, sappyou and shoppyou files, and if they exist and are valid, saves the directory path to the configuration file. The new database will be used the next time you run the app until you change it.
 
 Using the `-i` option, you can get info about your database. When your hyous were created and last modified, how many records and holes they have, and so on.
 
@@ -89,7 +89,7 @@ Using the `-t` option, you can manage your tanzaku. It takes tanzaku ID when use
 
 The `-c` option can be used only with the `-s` or `-u` option. It takes the IDs of sasa and tanzaku to link/unlink separated with a hyphen. For example, `tfm -sc 10-4d` links sasa with ID `10` and tanzaku with ID `4d`.
 
-Using the `-w` option, you can _weed_ the database. It's like defragmentation. For example, if you had 4 files with sasa IDs 0, 1, 2, 3 in your database and removed the 1st one, then your database would only have sasa IDs 0, 2, 3 and ID 1 would be a _hole_. Weeding fixes this hole by changing sasa ID 2 to 1, 3 to 2, and updating all associated kazari, so for large databases this can take a while.
+Using the `-w` option, you can _weed_ the database. It's like defragmentation. For example, if you had 4 files with sasa IDs 0, 1, 2, 3 in your database and removed the 1st one, then your database would only have sasa IDs 0, 2, 3 and ID 1 would be a _hole_. Weeding fixes this hole by changing sasa ID 2 to 1, 3 to 2, and updating all related kazari, so for large databases this can take a while.
 
 Using the `-V` option, you just get the current version of TFM.
 
