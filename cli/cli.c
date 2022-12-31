@@ -433,7 +433,7 @@ int main(int argc, char **argv) {
                 }
                 return 0;
             case 'V':
-                printf("0.1.3-dev\n");
+                printf("1.0.0\n");
                 return 0;
             case 'I':
                 abspath = realpath(optarg, abspath);

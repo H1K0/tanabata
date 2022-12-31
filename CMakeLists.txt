@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(tanabata
-        VERSION 0.1.3
+        VERSION 1.0.0
         HOMEPAGE_URL https://github.com/H1K0/tanabata
         LANGUAGES C)
 
