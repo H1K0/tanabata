@@ -22,5 +22,4 @@ if [ ! -d "$BUILD_DIR" ]; then
   fi
 fi
 
-cmake -S . -B "$BUILD_DIR"
-cmake --build "$BUILD_DIR" --target "$TARGET"
+cmake -S . -B "$BUILD_DIR" && cmake --build "$BUILD_DIR" --target "$TARGET"
