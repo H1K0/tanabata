@@ -59,10 +59,11 @@ int menu_view_sasa(const char *arg) {
                    sasa_id, current_sasa.path, datetime);
             Tanzaku *related_tanzaku = tanabata_tanzaku_get_by_sasa(&tanabata, current_sasa.id);
             if (related_tanzaku != NULL) {
-                printf(HIGHLIGHT("↓ Related tanzaku ↓")"\n");
+                printf(HIGHLIGHT("↓ Related tanzaku ↓")"\n"
+                       HIGHLIGHT("      Tanzaku ID\tName")"\n");
                 for (Tanzaku *current_tanzaku = related_tanzaku;
                      current_tanzaku->id != HOLE_ID; current_tanzaku++) {
-                    printf("'%s'\n", current_tanzaku->name);
+                    printf("%16lx\t%s\n", current_tanzaku->id, current_tanzaku->name);
                 }
                 printf(HIGHLIGHT("↑ Related tanzaku ↑")"\n");
             } else {
@@ -110,10 +111,11 @@ int menu_view_tanzaku(const char *arg) {
             }
             Sasa *related_sasa = tanabata_sasa_get_by_tanzaku(&tanabata, tanzaku_id);
             if (related_sasa != NULL) {
-                printf(HIGHLIGHT("↓ Related sasa ↓")"\n");
+                printf(HIGHLIGHT("↓ Related sasa ↓")"\n"
+                       HIGHLIGHT("         Sasa ID\tFile path")"\n");
                 for (Sasa *current_sasa = related_sasa;
                      current_sasa->id != HOLE_ID; current_sasa++) {
-                    printf("'%s'\n", current_sasa->path);
+                    printf("%16lx\t%s\n", current_sasa->id, current_sasa->path);
                 }
                 printf(HIGHLIGHT("↑ Related sasa ↑")"\n");
             } else {
