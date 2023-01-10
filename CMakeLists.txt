@@ -28,7 +28,3 @@ add_library(tanabata SHARED ${TANABATA_SRC})
 
 # Tanabata CLI app
 add_executable(tfm ${TANABATA_SRC} ${CLI_SRC})
-
-# Authentication CGI app
-add_executable(tfm-cgi ${TANABATA_SRC} cgi/cgi.c)
-target_link_libraries(tfm-cgi fcgi ssl crypto pthread)
