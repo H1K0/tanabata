@@ -2,7 +2,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "../include/core.h"
+#include "../include/core_func.h"
 
 const Tanzaku HOLE_TANZAKU = {HOLE_ID};
 
