@@ -1,6 +1,7 @@
 // Tanabata file manager lib
 // By Masahiko AMANO aka H1K0
 
+#pragma once
 #ifndef TANABATA_H
 #define TANABATA_H
 
