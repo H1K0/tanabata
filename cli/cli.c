@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#include "../include/constants.h"
 #include "../include/tanabata.h"
 
 // Stylization macros
@@ -360,18 +361,18 @@ int main(int argc, char **argv) {
         return 1;
     }
     char *tanabata_path;
-    FILE *config = fopen("/etc/tfm/config", "r");
+    FILE *config = fopen(CONFIG_DIR"/config", "r");
     if (config == NULL) {
         tanabata_path = NULL;
         struct stat st;
-        if (stat("/etc/tfm", &st) == -1) {
-            if (mkdir("/etc/tfm", 0755) != 0) {
-                fprintf(stderr, ERROR("Failed to create '/etc/tfm' directory. "
-                                      "Try again with 'sudo' or check your permissions")"\n");
+        if (stat(CONFIG_DIR, &st) == -1) {
+            if (mkdir(CONFIG_DIR, 0755) != 0) {
+                fprintf(stderr, ERROR("Failed to create %s directory. "
+                                      "Try again with 'sudo' or check your permissions")"\n", CONFIG_DIR);
                 return 1;
             }
         }
-        config = fopen("/etc/tfm/config", "w");
+        config = fopen(CONFIG_DIR"/config", "w");
         if (config == NULL) {
             fprintf(stderr, ERROR("Failed to create config file. "
                                   "Try again with 'sudo' or check your permissions")"\n");
