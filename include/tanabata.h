@@ -7,11 +7,9 @@
 
 #ifdef __cplusplus
 #include <cstdint>
-#include <cstdio>
 extern "C" {
 #else
 #include <stdint.h>
-#include <stdio.h>
 #endif
 
 #include "core.h"
