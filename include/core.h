@@ -72,6 +72,16 @@ typedef struct shoppyou {
     FILE      *file;         // Storage file for shoppyou
 } Shoppyou;
 
+// Tanabata (七夕) - the struct with all databases
+typedef struct tanabata {
+    Sasahyou   sasahyou;      // Sasahyou struct
+    Sappyou    sappyou;       // Sappyou struct
+    Shoppyou   shoppyou;      // Shoppyou struct
+    uint64_t   sasahyou_mod;  // Sasahyou file last modificaton timestamp
+    uint64_t   sappyou_mod;   // Sappyou file last modificaton timestamp
+    uint64_t   shoppyou_mod;  // Shoppyou file last modificaton timestamp
+} Tanabata;
+
 // ==================== CONSTANTS ==================== //
 
 // ID of hole - an invalid record
