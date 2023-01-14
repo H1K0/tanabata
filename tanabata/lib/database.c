@@ -3,7 +3,7 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#include "../../include/core_func.h"
+#include "../core/core_func.h"
 #include "../../include/tanabata.h"
 
 int tanabata_init(Tanabata *tanabata) {

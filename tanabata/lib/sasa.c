@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../../include/core_func.h"
+#include "../core/core_func.h"
 #include "../../include/tanabata.h"
 
 int tanabata_sasa_add(Tanabata *tanabata, const char *path) {

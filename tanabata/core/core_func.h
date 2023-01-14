@@ -12,7 +12,7 @@ extern "C" {
 #include <stdint.h>
 #endif
 
-#include "core.h"
+#include "../../include/core.h"
 
 // ==================== SASAHYOU SECTION ==================== //
 

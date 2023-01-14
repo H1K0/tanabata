@@ -8,23 +8,25 @@ set(CMAKE_C_STANDARD 99)
 
 set(CORE_SRC
         include/core.h
-        core/sasahyou.c
-        core/sappyou.c
-        core/shoppyou.c)
+        tanabata/core/core_func.h
+        tanabata/core/sasahyou.c
+        tanabata/core/sappyou.c
+        tanabata/core/shoppyou.c)
 
 set(TANABATA_SRC
         ${CORE_SRC}
         include/tanabata.h
-        lib/database.c
-        lib/sasa.c
-        lib/tanzaku.c
-        lib/kazari.c)
+        tanabata/lib/database.c
+        tanabata/lib/sasa.c
+        tanabata/lib/tanzaku.c
+        tanabata/lib/kazari.c)
 
 set(CLI_SRC
-        cli/cli.c)
+        ${TANABATA_SRC}
+        tfm/cli/tfm-cli.c)
 
 # Tanabata shared lib
 add_library(tanabata SHARED ${TANABATA_SRC})
 
 # Tanabata CLI app
-add_executable(tfm ${TANABATA_SRC} ${CLI_SRC})
+add_executable(tfm ${CLI_SRC})

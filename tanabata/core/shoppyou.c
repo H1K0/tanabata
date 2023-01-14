@@ -2,7 +2,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "../../include/core_func.h"
+#include "core_func.h"
 
 const Kazari HOLE_KAZARI = {HOLE_ID};
 

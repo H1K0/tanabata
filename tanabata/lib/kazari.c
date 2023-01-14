@@ -1,6 +1,6 @@
 #include <malloc.h>
 
-#include "../../include/core_func.h"
+#include "../core/core_func.h"
 #include "../../include/tanabata.h"
 
 int tanabata_kazari_add(Tanabata *tanabata, uint64_t sasa_id, uint64_t tanzaku_id) {
