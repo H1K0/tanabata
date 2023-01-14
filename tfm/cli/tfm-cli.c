@@ -4,8 +4,8 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#include "../include/constants.h"
-#include "../include/tanabata.h"
+#include "../../include/constants.h"
+#include "../../include/tanabata.h"
 
 // Stylization macros
 #define TABLE_HEADER(s) "[7;36m"s"[0m"

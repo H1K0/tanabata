@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../include/core_func.h"
-#include "../include/tanabata.h"
+#include "../../include/core_func.h"
+#include "../../include/tanabata.h"
 
 int tanabata_sasa_add(Tanabata *tanabata, const char *path) {
     if (path == NULL || tanabata->sasahyou.size == -1 && tanabata->sasahyou.hole_cnt == 0) {

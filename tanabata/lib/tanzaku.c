@@ -1,7 +1,7 @@
 #include <string.h>
 
-#include "../include/core_func.h"
-#include "../include/tanabata.h"
+#include "../../include/core_func.h"
+#include "../../include/tanabata.h"
 
 int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description) {
     if (name == NULL || description == NULL || tanabata->sappyou.size == -1 && tanabata->sappyou.hole_cnt == 0) {

@@ -3,8 +3,8 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#include "../include/core_func.h"
-#include "../include/tanabata.h"
+#include "../../include/core_func.h"
+#include "../../include/tanabata.h"
 
 int tanabata_init(Tanabata *tanabata) {
     if (sasahyou_init(&tanabata->sasahyou) != 0 ||
