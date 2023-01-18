@@ -26,6 +26,7 @@ int sappyou_free(Sappyou *sappyou) {
         free(sappyou->database[i].description);
     }
     free(sappyou->database);
+    free(sappyou->holes);
     if (sappyou->file != NULL) {
         fclose(sappyou->file);
     }
