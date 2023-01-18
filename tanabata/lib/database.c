@@ -17,8 +17,10 @@ int tanabata_init(Tanabata *tanabata) {
     tanabata->sappyou.database->id = 0;
     tanabata->sappyou.database->created_ts = tanabata->sappyou.created_ts;
     tanabata->sappyou.database->modified_ts = tanabata->sappyou.created_ts;
-    tanabata->sappyou.database->name = "FAVORITE";
-    tanabata->sappyou.database->description = "Special tanzaku for favorites";
+    tanabata->sappyou.database->name = malloc(9);
+    tanabata->sappyou.database->description = malloc(30);
+    strcpy(tanabata->sappyou.database->name, "FAVORITE");
+    strcpy(tanabata->sappyou.database->description, "Special tanzaku for favorites");
     tanabata->sasahyou_mod = 0;
     tanabata->sappyou_mod = 0;
     tanabata->shoppyou_mod = 0;
