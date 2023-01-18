@@ -30,8 +30,8 @@ int shoppyou_free(Shoppyou *shoppyou) {
 }
 
 int shoppyou_load(Shoppyou *shoppyou) {
-    shoppyou->file = freopen(NULL, "rb", shoppyou->file);
-    if (shoppyou->file == NULL) {
+    if (shoppyou->file == NULL ||
+        (shoppyou->file = freopen(NULL, "rb", shoppyou->file)) == 0) {
         return 1;
     }
     uint16_t signature[4];
@@ -56,8 +56,8 @@ int shoppyou_load(Shoppyou *shoppyou) {
 }
 
 int shoppyou_save(Shoppyou *shoppyou) {
-    shoppyou->file = freopen(NULL, "wb", shoppyou->file);
     if (shoppyou->file == NULL ||
+        (shoppyou->file = freopen(NULL, "wb", shoppyou->file)) == NULL ||
         fwrite(SHOPPYOU_SIG, 2, 4, shoppyou->file) < 4 ||
         fwrite(&shoppyou->created_ts, 8, 1, shoppyou->file) == 0 ||
         fwrite(&shoppyou->modified_ts, 8, 1, shoppyou->file) == 0) {

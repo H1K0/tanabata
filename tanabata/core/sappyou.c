@@ -33,8 +33,8 @@ int sappyou_free(Sappyou *sappyou) {
 }
 
 int sappyou_load(Sappyou *sappyou) {
-    sappyou->file = freopen(NULL, "rb", sappyou->file);
-    if (sappyou->file == NULL) {
+    if (sappyou->file == NULL ||
+        (sappyou->file = freopen(NULL, "rb", sappyou->file)) == 0) {
         return 1;
     }
     uint16_t signature[4];
@@ -68,8 +68,8 @@ int sappyou_load(Sappyou *sappyou) {
 }
 
 int sappyou_save(Sappyou *sappyou) {
-    sappyou->file = freopen(NULL, "wb", sappyou->file);
     if (sappyou->file == NULL ||
+        (sappyou->file = freopen(NULL, "wb", sappyou->file)) == NULL ||
         fwrite(SAPPYOU_SIG, 2, 4, sappyou->file) < 4 ||
         fwrite(&sappyou->created_ts, 8, 1, sappyou->file) == 0 ||
         fwrite(&sappyou->modified_ts, 8, 1, sappyou->file) == 0 ||

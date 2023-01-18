@@ -34,8 +34,8 @@ int sasahyou_free(Sasahyou *sasahyou) {
 }
 
 int sasahyou_load(Sasahyou *sasahyou) {
-    sasahyou->file = freopen(NULL, "rb", sasahyou->file);
-    if (sasahyou->file == NULL) {
+    if (sasahyou->file == NULL ||
+        (sasahyou->file = freopen(NULL, "rb", sasahyou->file)) == 0) {
         return 1;
     }
     uint16_t signature[4];
@@ -67,8 +67,8 @@ int sasahyou_load(Sasahyou *sasahyou) {
 }
 
 int sasahyou_save(Sasahyou *sasahyou) {
-    sasahyou->file = freopen(NULL, "wb", sasahyou->file);
     if (sasahyou->file == NULL ||
+        (sasahyou->file = freopen(NULL, "wb", sasahyou->file)) == NULL ||
         fwrite(SASAHYOU_SIG, 2, 4, sasahyou->file) < 4 ||
         fwrite(&sasahyou->created_ts, 8, 1, sasahyou->file) == 0 ||
         fwrite(&sasahyou->modified_ts, 8, 1, sasahyou->file) == 0 ||
