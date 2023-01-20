@@ -1,4 +1,4 @@
-// Tanabata file manager lib
+// Tanabata lib
 // By Masahiko AMANO aka H1K0
 
 #pragma once
@@ -43,13 +43,13 @@ int tanabata_dump(Tanabata *tanabata, const char *path);
 int tanabata_sasa_add(Tanabata *tanabata, const char *path);
 
 // Remove sasa by ID
-int tanabata_sasa_rem_by_id(Tanabata *tanabata, uint64_t sasa_id);
+int tanabata_sasa_rem(Tanabata *tanabata, uint64_t sasa_id);
 
 // Update sasa file path
 int tanabata_sasa_upd(Tanabata *tanabata, uint64_t sasa_id, const char *path);
 
 // Get sasa by ID
-Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id);
+Sasa tanabata_sasa_get(Tanabata *tanabata, uint64_t sasa_id);
 
 // ==================== TANZAKU SECTION ==================== //
 
@@ -57,13 +57,13 @@ Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id);
 int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description);
 
 // Remove tanzaku by ID
-int tanabata_tanzaku_rem_by_id(Tanabata *tanabata, uint64_t tanzaku_id);
+int tanabata_tanzaku_rem(Tanabata *tanabata, uint64_t tanzaku_id);
 
 // Update tanzaku name and description
 int tanabata_tanzaku_upd(Tanabata *tanabata, uint64_t tanzaku_id, const char *name, const char *description);
 
 // Get tanzaku by ID
-Tanzaku tanabata_tanzaku_get_by_id(Tanabata *tanabata, uint64_t tanzaku_id);
+Tanzaku tanabata_tanzaku_get(Tanabata *tanabata, uint64_t tanzaku_id);
 
 // ==================== KAZARI SECTION ==================== //
 
