@@ -413,6 +413,109 @@ int execute(char *request, char **response) {
         }
         return tanabata_weed(tanabata);
     }
+    if (request_code == trc_sasa_get) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        if (*request_body != 0) {
+            char *endptr;
+            uint64_t sasa_id = strtoull(request_body, &endptr, 0);
+            if (*endptr != 0) {
+                return 1;
+            }
+            Sasa temp = tanabata_sasa_get(tanabata, sasa_id);
+            if (temp.id == HOLE_ID) {
+                return 1;
+            }
+            sprintf(*response, "{\"status\":true,\"sasa_id\":0x%lx,\"sasa_cts\":0x%lx,\"sasa_path\":\"%s\"}",
+                    temp.id, temp.created_ts, temp.path);
+            return 0;
+        }
+        size_t resp_size = BUFSIZ;
+        buffer = malloc(BUFSIZ);
+        sprintf(*response, "{\"status\":true,\"sasa_list\":[");
+        Sasa *temp = tanabata->sasahyou.database;
+        for (uint64_t i = 0; i < tanabata->sasahyou.size; i++, temp++) {
+            if (temp->id == HOLE_ID) {
+                continue;
+            }
+            sprintf(buffer, "{\"sasa_id\":0x%lx,\"sasa_cts\":0x%lx,\"sasa_path\":\"%s\"},",
+                    temp->id, temp->created_ts, temp->path);
+            if (strlen(*response) + strlen(buffer) >= resp_size) {
+                resp_size += BUFSIZ;
+                *response = realloc(*response, resp_size);
+            }
+            strcat(*response, buffer);
+        }
+        sprintf(buffer, "]}");
+        if (strlen(*response) + 3 >= resp_size) {
+            *response = realloc(*response, resp_size + 3);
+        }
+        strcat(*response, buffer);
+        free(buffer);
+        return 0;
+    }
+    if (request_code == trc_sasa_get_by_tanzaku) {
+        if (tanabata == NULL || *request_body == 0) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t tanzaku_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != 0) {
+            return 1;
+        }
+        Sasa *list = tanabata_sasa_get_by_tanzaku(tanabata, tanzaku_id);
+        if (list == NULL) {
+            return 1;
+        }
+        size_t resp_size = BUFSIZ;
+        buffer = malloc(BUFSIZ);
+        sprintf(*response, "{\"status\":true,\"sasa_list\":[");
+        for (Sasa *temp = list; temp->id != HOLE_ID; temp++) {
+            sprintf(buffer, "{\"sasa_id\":0x%lx,\"sasa_cts\":0x%lx,\"sasa_path\":\"%s\"},",
+                    temp->id, temp->created_ts, temp->path);
+            if (strlen(*response) + strlen(buffer) >= resp_size) {
+                resp_size += BUFSIZ;
+                *response = realloc(*response, resp_size);
+            }
+            strcat(*response, buffer);
+        }
+        sprintf(buffer, "]}");
+        if (strlen(*response) + 3 >= resp_size) {
+            *response = realloc(*response, resp_size + 3);
+        }
+        strcat(*response, buffer);
+        free(buffer);
+        return 0;
+    }
+    if (request_code == trc_sasa_add) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        return tanabata_sasa_add(tanabata, request_body);
+    }
+    if (request_code == trc_sasa_update) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t sasa_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != ' ') {
+            return 1;
+        }
+        return tanabata_sasa_upd(tanabata, sasa_id, endptr + 1);
+    }
+    if (request_code == trc_sasa_remove) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t sasa_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != 0) {
+            return 1;
+        }
+        return tanabata_sasa_rem(tanabata, sasa_id);
+    }
     return 1;
 }
 
