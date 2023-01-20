@@ -55,7 +55,7 @@ int shoppyou_load(Shoppyou *shoppyou) {
     }
     temp.database = calloc(temp.size, sizeof(Kazari));
     Kazari *current_kazari = temp.database;
-    for (uint64_t i = 0; i < temp.size; i++) {
+    for (uint64_t i = 0; i < temp.size; i++, current_kazari++) {
         if (fread(&current_kazari->created_ts, 8, 1, temp.file) != 1 ||
             fread(&current_kazari->sasa_id, 8, 1, temp.file) != 1 ||
             fread(&current_kazari->tanzaku_id, 8, 1, temp.file) != 1) {
@@ -63,7 +63,6 @@ int shoppyou_load(Shoppyou *shoppyou) {
             shoppyou_free(&temp);
             return 1;
         }
-        current_kazari++;
     }
     if (fflush(temp.file) == 0) {
         shoppyou->file = NULL;
@@ -90,7 +89,7 @@ int shoppyou_save(Shoppyou *shoppyou) {
         return 1;
     }
     Kazari *current_kazari = shoppyou->database;
-    for (uint64_t i = 0; i < shoppyou->size; i++) {
+    for (uint64_t i = 0; i < shoppyou->size; i++, current_kazari++) {
         if (shoppyou->database[i].sasa_id != HOLE_ID && shoppyou->database[i].tanzaku_id != HOLE_ID) {
             if (fwrite(&current_kazari->created_ts, 8, 1, shoppyou->file) != 1 ||
                 fwrite(&current_kazari->sasa_id, 8, 1, shoppyou->file) != 1 ||
@@ -98,7 +97,6 @@ int shoppyou_save(Shoppyou *shoppyou) {
                 return 1;
             }
         }
-        current_kazari++;
     }
     return fflush(shoppyou->file);
 }
@@ -151,7 +149,7 @@ int kazari_rem(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
         return 1;
     }
     Kazari *current_kazari = shoppyou->database;
-    for (uint64_t i = 0; i < shoppyou->size; i++) {
+    for (uint64_t i = 0; i < shoppyou->size; i++, current_kazari++) {
         if (current_kazari->sasa_id == sasa_id && current_kazari->tanzaku_id == tanzaku_id) {
             current_kazari->sasa_id = HOLE_ID;
             current_kazari->tanzaku_id = HOLE_ID;
@@ -161,7 +159,6 @@ int kazari_rem(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
             shoppyou->modified_ts = time(NULL);
             return 0;
         }
-        current_kazari++;
     }
     return 1;
 }
@@ -172,7 +169,7 @@ int kazari_rem_by_sasa(Shoppyou *shoppyou, uint64_t sasa_id) {
     }
     Kazari *current_kazari = shoppyou->database;
     _Bool changed = 0;
-    for (uint64_t i = 0; i < shoppyou->size; i++) {
+    for (uint64_t i = 0; i < shoppyou->size; i++, current_kazari++) {
         if (current_kazari->sasa_id == sasa_id) {
             current_kazari->sasa_id = HOLE_ID;
             current_kazari->tanzaku_id = HOLE_ID;
@@ -181,7 +178,6 @@ int kazari_rem_by_sasa(Shoppyou *shoppyou, uint64_t sasa_id) {
             shoppyou->holes[shoppyou->hole_cnt - 1] = current_kazari;
             changed = 1;
         }
-        current_kazari++;
     }
     if (changed) {
         shoppyou->modified_ts = time(NULL);
@@ -196,7 +192,7 @@ int kazari_rem_by_tanzaku(Shoppyou *shoppyou, uint64_t tanzaku_id) {
     }
     Kazari *current_kazari = shoppyou->database;
     _Bool changed = 0;
-    for (uint64_t i = 0; i < shoppyou->size; i++) {
+    for (uint64_t i = 0; i < shoppyou->size; i++, current_kazari++) {
         if (current_kazari->tanzaku_id == tanzaku_id) {
             current_kazari->sasa_id = HOLE_ID;
             current_kazari->tanzaku_id = HOLE_ID;
@@ -205,7 +201,6 @@ int kazari_rem_by_tanzaku(Shoppyou *shoppyou, uint64_t tanzaku_id) {
             shoppyou->holes[shoppyou->hole_cnt - 1] = current_kazari;
             changed = 1;
         }
-        current_kazari++;
     }
     if (changed) {
         shoppyou->modified_ts = time(NULL);

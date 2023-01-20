@@ -65,7 +65,7 @@ int sappyou_load(Sappyou *sappyou) {
     temp.holes = calloc(temp.hole_cnt, sizeof(Tanzaku *));
     size_t max_string_len = SIZE_MAX;
     Tanzaku *current_tanzaku = temp.database;
-    for (uint64_t i = 0, r = temp.hole_cnt; i < temp.size; i++) {
+    for (uint64_t i = 0, r = temp.hole_cnt; i < temp.size; i++, current_tanzaku++) {
         if (fgetc(temp.file) != 0) {
             current_tanzaku->id = i;
             if (fread(&current_tanzaku->created_ts, 8, 1, temp.file) != 1 ||
@@ -86,7 +86,6 @@ int sappyou_load(Sappyou *sappyou) {
             r--;
             temp.holes[r] = current_tanzaku;
         }
-        current_tanzaku++;
     }
     if (fflush(temp.file) == 0) {
         sappyou->file = NULL;
@@ -111,7 +110,7 @@ int sappyou_save(Sappyou *sappyou) {
         return 1;
     }
     Tanzaku *current_tanzaku = sappyou->database;
-    for (uint64_t i = 0; i < sappyou->size; i++) {
+    for (uint64_t i = 0; i < sappyou->size; i++, current_tanzaku++) {
         if (current_tanzaku->id != HOLE_ID) {
             if (fputc(0xff, sappyou->file) == EOF ||
                 fwrite(&current_tanzaku->created_ts, 8, 1, sappyou->file) != 1 ||
@@ -125,7 +124,6 @@ int sappyou_save(Sappyou *sappyou) {
         } else if (fputc(0, sappyou->file) == EOF) {
             return 1;
         }
-        current_tanzaku++;
     }
     return fflush(sappyou->file);
 }

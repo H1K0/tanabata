@@ -64,7 +64,7 @@ int sasahyou_load(Sasahyou *sasahyou) {
     temp.holes = calloc(temp.hole_cnt, sizeof(Sasa *));
     size_t max_path_len = SIZE_MAX;
     Sasa *current_sasa = temp.database;
-    for (uint64_t i = 0, r = temp.hole_cnt; i < temp.size; i++) {
+    for (uint64_t i = 0, r = temp.hole_cnt; i < temp.size; i++, current_sasa++) {
         if (fgetc(temp.file) != 0) {
             current_sasa->id = i;
             if (fread(&current_sasa->created_ts, 8, 1, temp.file) != 1 ||
@@ -83,7 +83,6 @@ int sasahyou_load(Sasahyou *sasahyou) {
             r--;
             temp.holes[r] = current_sasa;
         }
-        current_sasa++;
     }
     if (fflush(temp.file) == 0) {
         sasahyou->file = NULL;
@@ -108,7 +107,7 @@ int sasahyou_save(Sasahyou *sasahyou) {
         return 1;
     }
     Sasa *current_sasa = sasahyou->database;
-    for (uint64_t i = 0; i < sasahyou->size; i++) {
+    for (uint64_t i = 0; i < sasahyou->size; i++, current_sasa++) {
         if (current_sasa->id != HOLE_ID) {
             if (fputc(0xff, sasahyou->file) == EOF ||
                 fwrite(&current_sasa->created_ts, 8, 1, sasahyou->file) != 1 ||
@@ -119,7 +118,6 @@ int sasahyou_save(Sasahyou *sasahyou) {
         } else if (fputc(0, sasahyou->file) == EOF) {
             return 1;
         }
-        current_sasa++;
     }
     return fflush(sasahyou->file);
 }
