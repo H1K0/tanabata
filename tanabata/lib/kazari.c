@@ -37,10 +37,8 @@ Tanzaku *tanabata_tanzaku_get_by_sasa(Tanabata *tanabata, uint64_t sasa_id) {
             tanzaku_list[tanzaku_count - 1] = temp;
         }
     }
-    if (tanzaku_list != NULL) {
-        tanzaku_list = reallocarray(tanzaku_list, (tanzaku_count + 1), sizeof(Tanzaku));
-        tanzaku_list[tanzaku_count] = HOLE_TANZAKU;
-    }
+    tanzaku_list = reallocarray(tanzaku_list, tanzaku_count + 1, sizeof(Tanzaku));
+    tanzaku_list[tanzaku_count] = HOLE_TANZAKU;
     return tanzaku_list;
 }
 
@@ -60,9 +58,7 @@ Sasa *tanabata_sasa_get_by_tanzaku(Tanabata *tanabata, uint64_t tanzaku_id) {
             sasa_list[sasa_count - 1] = temp;
         }
     }
-    if (sasa_list != NULL) {
-        sasa_list = reallocarray(sasa_list, (sasa_count + 1), sizeof(Sasa));
-        sasa_list[sasa_count] = HOLE_SASA;
-    }
+    sasa_list = reallocarray(sasa_list, sasa_count + 1, sizeof(Sasa));
+    sasa_list[sasa_count] = HOLE_SASA;
     return sasa_list;
 }
