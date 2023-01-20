@@ -45,17 +45,11 @@ int tanabata_sasa_add(Tanabata *tanabata, const char *path);
 // Remove sasa by ID
 int tanabata_sasa_rem_by_id(Tanabata *tanabata, uint64_t sasa_id);
 
-// Remove sasa by file path
-int tanabata_sasa_rem_by_path(Tanabata *tanabata, const char *path);
-
 // Update sasa file path
 int tanabata_sasa_upd(Tanabata *tanabata, uint64_t sasa_id, const char *path);
 
 // Get sasa by ID
 Sasa tanabata_sasa_get_by_id(Tanabata *tanabata, uint64_t sasa_id);
-
-// Get sasa by file path
-Sasa tanabata_sasa_get_by_path(Tanabata *tanabata, const char *path);
 
 // ==================== TANZAKU SECTION ==================== //
 
@@ -65,17 +59,11 @@ int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *descr
 // Remove tanzaku by ID
 int tanabata_tanzaku_rem_by_id(Tanabata *tanabata, uint64_t tanzaku_id);
 
-// Remove tanzaku by name
-int tanabata_tanzaku_rem_by_name(Tanabata *tanabata, const char *name);
-
 // Update tanzaku name and description
 int tanabata_tanzaku_upd(Tanabata *tanabata, uint64_t tanzaku_id, const char *name, const char *description);
 
 // Get tanzaku by ID
 Tanzaku tanabata_tanzaku_get_by_id(Tanabata *tanabata, uint64_t tanzaku_id);
-
-// Get tanzaku by name
-Tanzaku tanabata_tanzaku_get_by_name(Tanabata *tanabata, const char *name);
 
 // ==================== KAZARI SECTION ==================== //
 
