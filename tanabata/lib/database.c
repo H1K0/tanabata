@@ -40,10 +40,9 @@ int tanabata_weed(Tanabata *tanabata) {
     uint64_t hole_cnt = 0;
     uint64_t new_id;
     Kazari *current_kazari;
-    struct stat st;
     Sasa *current_sasa = tanabata->sasahyou.database;
     for (uint64_t i = 0; i < tanabata->sasahyou.size; i++) {
-        if (current_sasa->id != HOLE_ID && stat(current_sasa->path, &st) == 0) {
+        if (current_sasa->id != HOLE_ID) {
             if (hole_cnt > 0) {
                 new_id = current_sasa->id - hole_cnt;
                 for (current_kazari = tanabata->shoppyou.database + tanabata->shoppyou.size - 1;
