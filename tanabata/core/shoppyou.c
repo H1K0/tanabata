@@ -157,10 +157,10 @@ int kazari_rem(Shoppyou *shoppyou, uint64_t sasa_id, uint64_t tanzaku_id) {
             shoppyou->holes = reallocarray(shoppyou->holes, shoppyou->hole_cnt, sizeof(Kazari *));
             shoppyou->holes[shoppyou->hole_cnt - 1] = current_kazari;
             shoppyou->modified_ts = time(NULL);
-            return 0;
+            break;
         }
     }
-    return 1;
+    return 0;
 }
 
 int kazari_rem_by_sasa(Shoppyou *shoppyou, uint64_t sasa_id) {
@@ -181,9 +181,8 @@ int kazari_rem_by_sasa(Shoppyou *shoppyou, uint64_t sasa_id) {
     }
     if (changed) {
         shoppyou->modified_ts = time(NULL);
-        return 0;
     }
-    return 1;
+    return 0;
 }
 
 int kazari_rem_by_tanzaku(Shoppyou *shoppyou, uint64_t tanzaku_id) {
@@ -204,7 +203,6 @@ int kazari_rem_by_tanzaku(Shoppyou *shoppyou, uint64_t tanzaku_id) {
     }
     if (changed) {
         shoppyou->modified_ts = time(NULL);
-        return 0;
     }
-    return 1;
+    return 0;
 }
