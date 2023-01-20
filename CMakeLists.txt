@@ -25,6 +25,18 @@ set(TANABATA_SRC
         tanabata/lib/kazari.c
         )
 
+set(TDBMS_SERVER_SRC
+        ${TANABATA_SRC}
+        include/tdbms.h
+        tdbms/server/tdbms-server.c
+        )
+
+set(TDBMS_CLIENT_SRC
+        include/tdbms.h
+        include/tdbms-client.h
+        tdbms/client/tdbms-client.c
+        )
+
 set(CLI_SRC
         ${TANABATA_SRC}
         tfm/cli/tfm-cli.c
@@ -32,6 +44,12 @@ set(CLI_SRC
 
 # Tanabata shared lib
 add_library(tanabata SHARED ${TANABATA_SRC})
+
+# Tanabata DBMS server
+add_executable(tdbms ${TDBMS_SERVER_SRC})
+
+# Tanabata DMBS client lib
+add_library(tdb SHARED ${TDBMS_CLIENT_SRC})
 
 # Tanabata CLI app
 add_executable(tfm ${CLI_SRC})
