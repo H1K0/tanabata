@@ -159,11 +159,11 @@ int tanabata_open(Tanabata *tanabata, const char *path) {
     char *file_path = malloc(pathlen + 10);
     strcpy(file_path, path);
     if (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts &&
-        sasahyou_open(&tanabata->sasahyou, strcpy(file_path + pathlen, "/sasahyou")) != 0 ||
+        sasahyou_open(&tanabata->sasahyou, strcpy(file_path + pathlen, "/sasahyou") - pathlen) != 0 ||
         tanabata->sappyou_mod != tanabata->sappyou.modified_ts &&
-        sappyou_open(&tanabata->sappyou, strcpy(file_path + pathlen, "/sappyou")) != 0 ||
+        sappyou_open(&tanabata->sappyou, strcpy(file_path + pathlen, "/sappyou") - pathlen) != 0 ||
         tanabata->shoppyou_mod != tanabata->shoppyou.modified_ts &&
-        shoppyou_open(&tanabata->shoppyou, strcpy(file_path + pathlen, "/shoppyou")) != 0) {
+        shoppyou_open(&tanabata->shoppyou, strcpy(file_path + pathlen, "/shoppyou") - pathlen) != 0) {
         free(file_path);
         return 1;
     }
@@ -186,11 +186,11 @@ int tanabata_dump(Tanabata *tanabata, const char *path) {
     char *file_path = malloc(pathlen + 10);
     strcpy(file_path, path);
     if (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts &&
-        sasahyou_dump(&tanabata->sasahyou, strcpy(file_path + pathlen, "/sasahyou")) != 0 ||
+        sasahyou_dump(&tanabata->sasahyou, strcpy(file_path + pathlen, "/sasahyou") - pathlen) != 0 ||
         tanabata->sappyou_mod != tanabata->sappyou.modified_ts &&
-        sappyou_dump(&tanabata->sappyou, strcpy(file_path + pathlen, "/sappyou")) != 0 ||
+        sappyou_dump(&tanabata->sappyou, strcpy(file_path + pathlen, "/sappyou") - pathlen) != 0 ||
         tanabata->shoppyou_mod != tanabata->shoppyou.modified_ts &&
-        shoppyou_dump(&tanabata->shoppyou, strcpy(file_path + pathlen, "/shoppyou")) != 0) {
+        shoppyou_dump(&tanabata->shoppyou, strcpy(file_path + pathlen, "/shoppyou") - pathlen) != 0) {
         free(file_path);
         return 1;
     }
