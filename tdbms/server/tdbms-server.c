@@ -275,9 +275,9 @@ int execute(char *request, char **response) {
         }
         sprintf(*response, "{"
                            "\"status\":true,\"unsaved\":%s,"
-                           "\"sasahyou-cts\":0x%lx,\"sasahyou-mts\":0x%lx,\"sasahyou-size\":0x%lx,\"sasahyou-holes\":0x%lx,"
-                           "\"sappyou-cts\":0x%lx,\"sappyou-mts\":0x%lx,\"sappyou-size\":0x%lx,\"sappyou-holes\":0x%lx,"
-                           "\"shoppyou-cts\":0x%lx,\"shoppyou-mts\":0x%lx,\"shoppyou-size\":0x%lx,\"shoppyou-holes\":0x%lx"
+                           "\"sasahyou_cts\":0x%lx,\"sasahyou_mts\":0x%lx,\"sasahyou_size\":0x%lx,\"sasahyou_holes\":0x%lx,"
+                           "\"sappyou_cts\":0x%lx,\"sappyou_mts\":0x%lx,\"sappyou_size\":0x%lx,\"sappyou_holes\":0x%lx,"
+                           "\"shoppyou_cts\":0x%lx,\"shoppyou_mts\":0x%lx,\"shoppyou_size\":0x%lx,\"shoppyou_holes\":0x%lx"
                            "}",
                 (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts ||
                  tanabata->sappyou_mod != tanabata->sappyou.modified_ts ||
@@ -374,7 +374,7 @@ int execute(char *request, char **response) {
             free(tdb->database);
         }
         db_count--;
-        for (uint16_t i = 0; i < db_count; i++) {
+        for (uint16_t i = tdb - db_list; i < db_count; i++) {
             db_list[i] = db_list[i + 1];
         }
         db_list = reallocarray(db_list, db_count, sizeof(TDB));
@@ -394,7 +394,7 @@ int execute(char *request, char **response) {
             free(tdb->database);
         }
         db_count--;
-        for (uint16_t i = 0; i < db_count; i++) {
+        for (uint16_t i = tdb - db_list; i < db_count; i++) {
             db_list[i] = db_list[i + 1];
         }
         db_list = reallocarray(db_list, db_count, sizeof(TDB));
