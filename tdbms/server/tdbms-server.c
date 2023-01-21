@@ -270,24 +270,65 @@ int execute(char *request, char **response) {
     }
     char *buffer;
     if (request_code == trc_db_stats) {
-        if (tanabata == NULL) {
-            return 1;
+        if (*request_db_name != 0) {
+            if (tanabata == NULL) {
+                sprintf(*response, "{\"status\":true,\"loaded\":false}");
+                return 0;
+            }
+            sprintf(*response, "{"
+                               "\"status\":true,\"loaded\":true,\"unsaved\":%s,"
+                               "\"sasahyou_cts\":0x%lx,\"sasahyou_mts\":0x%lx,\"sasahyou_size\":0x%lx,\"sasahyou_holes\":0x%lx,"
+                               "\"sappyou_cts\":0x%lx,\"sappyou_mts\":0x%lx,\"sappyou_size\":0x%lx,\"sappyou_holes\":0x%lx,"
+                               "\"shoppyou_cts\":0x%lx,\"shoppyou_mts\":0x%lx,\"shoppyou_size\":0x%lx,\"shoppyou_holes\":0x%lx"
+                               "}",
+                    (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts ||
+                     tanabata->sappyou_mod != tanabata->sappyou.modified_ts ||
+                     tanabata->shoppyou_mod != tanabata->shoppyou.modified_ts) ? "true" : "false",
+                    tanabata->sasahyou.created_ts, tanabata->sasahyou.modified_ts, tanabata->sasahyou.size,
+                    tanabata->sasahyou.hole_cnt,
+                    tanabata->sappyou.created_ts, tanabata->sappyou.modified_ts, tanabata->sappyou.size,
+                    tanabata->sappyou.hole_cnt,
+                    tanabata->shoppyou.created_ts, tanabata->shoppyou.modified_ts, tanabata->shoppyou.size,
+                    tanabata->shoppyou.hole_cnt);
+            return 0;
         }
-        sprintf(*response, "{"
-                           "\"status\":true,\"unsaved\":%s,"
-                           "\"sasahyou_cts\":0x%lx,\"sasahyou_mts\":0x%lx,\"sasahyou_size\":0x%lx,\"sasahyou_holes\":0x%lx,"
-                           "\"sappyou_cts\":0x%lx,\"sappyou_mts\":0x%lx,\"sappyou_size\":0x%lx,\"sappyou_holes\":0x%lx,"
-                           "\"shoppyou_cts\":0x%lx,\"shoppyou_mts\":0x%lx,\"shoppyou_size\":0x%lx,\"shoppyou_holes\":0x%lx"
-                           "}",
-                (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts ||
-                 tanabata->sappyou_mod != tanabata->sappyou.modified_ts ||
-                 tanabata->shoppyou_mod != tanabata->shoppyou.modified_ts) ? "true" : "false",
-                tanabata->sasahyou.created_ts, tanabata->sasahyou.modified_ts, tanabata->sasahyou.size,
-                tanabata->sasahyou.hole_cnt,
-                tanabata->sappyou.created_ts, tanabata->sappyou.modified_ts, tanabata->sappyou.size,
-                tanabata->sappyou.hole_cnt,
-                tanabata->shoppyou.created_ts, tanabata->shoppyou.modified_ts, tanabata->shoppyou.size,
-                tanabata->shoppyou.hole_cnt);
+        sprintf(*response, "{\"status\":true,\"tdb_list\":[");
+        size_t resp_size = BUFSIZ;
+        buffer = malloc(BUFSIZ);
+        TDB *temp = db_list;
+        for (uint16_t i = 0; i < db_count; i++, temp++) {
+            if (temp->database == NULL) {
+                sprintf(buffer, "{\"tdb_name\":\"%s\",\"loaded\":false},", temp->name);
+            } else {
+                tanabata = temp->database;
+                sprintf(buffer, "{"
+                                "\"loaded\":true,\"unsaved\":%s,"
+                                "\"sasahyou_cts\":0x%lx,\"sasahyou_mts\":0x%lx,\"sasahyou_size\":0x%lx,\"sasahyou_holes\":0x%lx,"
+                                "\"sappyou_cts\":0x%lx,\"sappyou_mts\":0x%lx,\"sappyou_size\":0x%lx,\"sappyou_holes\":0x%lx,"
+                                "\"shoppyou_cts\":0x%lx,\"shoppyou_mts\":0x%lx,\"shoppyou_size\":0x%lx,\"shoppyou_holes\":0x%lx"
+                                "},",
+                        (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts ||
+                         tanabata->sappyou_mod != tanabata->sappyou.modified_ts ||
+                         tanabata->shoppyou_mod != tanabata->shoppyou.modified_ts) ? "true" : "false",
+                        tanabata->sasahyou.created_ts, tanabata->sasahyou.modified_ts, tanabata->sasahyou.size,
+                        tanabata->sasahyou.hole_cnt,
+                        tanabata->sappyou.created_ts, tanabata->sappyou.modified_ts, tanabata->sappyou.size,
+                        tanabata->sappyou.hole_cnt,
+                        tanabata->shoppyou.created_ts, tanabata->shoppyou.modified_ts, tanabata->shoppyou.size,
+                        tanabata->shoppyou.hole_cnt);
+            }
+            if (strlen(*response) + strlen(buffer) >= resp_size) {
+                resp_size += BUFSIZ;
+                *response = realloc(*response, resp_size);
+            }
+            strcat(*response, buffer);
+        }
+        sprintf(buffer, "]}");
+        if (strlen(*response) + 3 >= resp_size) {
+            *response = realloc(*response, resp_size + 3);
+        }
+        strcat(*response, buffer);
+        free(buffer);
         return 0;
     }
     if (request_code == trc_db_init) {
