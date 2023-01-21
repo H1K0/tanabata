@@ -507,7 +507,8 @@ int execute(char *request, char **response) {
         }
         Sasa *list = tanabata_sasa_get_by_tanzaku(tanabata, tanzaku_id);
         if (list == NULL) {
-            return 1;
+            sprintf(*response, "{\"status\":true,\"sasa_list\":[]}");
+            return 0;
         }
         size_t resp_size = BUFSIZ;
         buffer = malloc(BUFSIZ);
@@ -632,7 +633,8 @@ int execute(char *request, char **response) {
         }
         Tanzaku *list = tanabata_tanzaku_get_by_sasa(tanabata, sasa_id);
         if (list == NULL) {
-            return 1;
+            sprintf(*response, "{\"status\":true,\"tanzaku_list\":[]}");
+            return 0;
         }
         size_t resp_size = BUFSIZ;
         buffer = malloc(BUFSIZ);
