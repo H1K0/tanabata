@@ -4,8 +4,10 @@
 #include <sys/stat.h>
 #include <time.h>
 
-#include "../../include/constants.h"
 #include "../../include/tanabata.h"
+
+// TFM configuration directory
+#define TFM_CONFIG_DIR "/etc/tfm/"
 
 // Stylization macros
 #define TABLE_HEADER(s) "[7;36m"s"[0m"
@@ -49,7 +51,7 @@ int menu_view_sasa(const char *arg) {
     char *endptr;
     uint64_t sasa_id = strtoull(arg, &endptr, 16);
     if (*endptr == 0) {
-        Sasa current_sasa = tanabata_sasa_get_by_id(&tanabata, sasa_id);
+        Sasa current_sasa = tanabata_sasa_get(&tanabata, sasa_id);
         if (current_sasa.id != HOLE_ID) {
             char datetime[20];
             strftime(datetime, 20, DT_FORMAT,
@@ -91,7 +93,7 @@ int menu_view_tanzaku(const char *arg) {
     char *endptr;
     uint64_t tanzaku_id = strtoull(arg, &endptr, 16);
     if (*endptr == 0) {
-        Tanzaku current_tanzaku = tanabata_tanzaku_get_by_id(&tanabata, tanzaku_id);
+        Tanzaku current_tanzaku = tanabata_tanzaku_get(&tanabata, tanzaku_id);
         if (current_tanzaku.id != HOLE_ID) {
             char datetime[20];
             strftime(datetime, 20, DT_FORMAT,
@@ -221,7 +223,7 @@ int menu_rem_sasa(const char *arg) {
     char *endptr;
     uint64_t sasa_id = strtoull(arg, &endptr, 16);
     if (*endptr == 0) {
-        if (tanabata_sasa_rem_by_id(&tanabata, sasa_id) == 0 &&
+        if (tanabata_sasa_rem(&tanabata, sasa_id) == 0 &&
             tanabata_save(&tanabata) == 0) {
             printf(SUCCESS("Successfully removed sasa")"\n");
             return 0;
@@ -241,7 +243,7 @@ int menu_rem_tanzaku(const char *arg) {
     char *endptr;
     uint64_t tanzaku_id = strtoull(arg, &endptr, 16);
     if (*endptr == 0) {
-        if (tanabata_tanzaku_rem_by_id(&tanabata, tanzaku_id) == 0 &&
+        if (tanabata_tanzaku_rem(&tanabata, tanzaku_id) == 0 &&
             tanabata_save(&tanabata) == 0) {
             printf(SUCCESS("Successfully removed tanzaku")"\n");
             return 0;
@@ -361,18 +363,18 @@ int main(int argc, char **argv) {
         return 1;
     }
     char *tanabata_path;
-    FILE *config = fopen(CONFIG_DIR"/config", "r");
+    FILE *config = fopen(TFM_CONFIG_DIR"/config", "r");
     if (config == NULL) {
         tanabata_path = NULL;
         struct stat st;
-        if (stat(CONFIG_DIR, &st) == -1) {
-            if (mkdir(CONFIG_DIR, 0755) != 0) {
+        if (stat(TFM_CONFIG_DIR, &st) == -1) {
+            if (mkdir(TFM_CONFIG_DIR, 0755) != 0) {
                 fprintf(stderr, ERROR("Failed to create %s directory. "
-                                      "Try again with 'sudo' or check your permissions")"\n", CONFIG_DIR);
+                                      "Try again with 'sudo' or check your permissions")"\n", TFM_CONFIG_DIR);
                 return 1;
             }
         }
-        config = fopen(CONFIG_DIR"/config", "w");
+        config = fopen(TFM_CONFIG_DIR"/config", "w");
         if (config == NULL) {
             fprintf(stderr, ERROR("Failed to create config file. "
                                   "Try again with 'sudo' or check your permissions")"\n");
