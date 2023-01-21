@@ -253,20 +253,22 @@ int execute(char *request, char **response) {
     Tanabata *tanabata;
     for (tdb = db_list + db_count - 1; tdb >= db_list; tdb--) {
         if (strcmp(tdb->name, request_db_name) == 0) {
-            if (tdb->database == NULL) {
-                tdb->database = malloc(sizeof(Tanabata));
-                tanabata_init(tdb->database);
-                if (request_code != trc_db_edit && tanabata_open(tdb->database, tdb->path) != 0) {
-                    return 1;
-                }
-            }
-            tanabata = tdb->database;
             break;
         }
     }
     if (tdb < db_list) {
         tdb = NULL;
         tanabata = NULL;
+    } else {
+        if (tdb->database == NULL &&
+            request_code != trc_db_init && request_code != trc_db_edit && request_code != trc_db_remove_soft) {
+            tdb->database = malloc(sizeof(Tanabata));
+            tanabata_init(tdb->database);
+            if (tanabata_open(tdb->database, tdb->path) != 0) {
+                return 1;
+            }
+        }
+        tanabata = tdb->database;
     }
     char *buffer;
     if (request_code == trc_db_stats) {
