@@ -349,27 +349,12 @@ int execute(char *request, char **response) {
         return 0;
     }
     if (request_code == trc_db_load) {
-        if (tdb == NULL) {
+        if (tanabata == NULL) {
             return 1;
         }
-        if (tanabata_load(tanabata) == 0) {
-            return 0;
-        }
-        if (tanabata != NULL) {
-            return tanabata_open(tanabata, tdb->path);
-        }
-        Tanabata temp;
-        if (tanabata_open(&temp, tdb->path) != 0) {
-            return 1;
-        }
-        tdb->database = malloc(sizeof(Tanabata));
-        *tdb->database = temp;
-        return 0;
+        return tanabata_open(tanabata, tdb->path);
     }
     if (request_code == trc_db_save) {
-        if (*request_db_name == 0) {
-            return dblist_save();
-        }
         if (tanabata == NULL) {
             return 1;
         }
