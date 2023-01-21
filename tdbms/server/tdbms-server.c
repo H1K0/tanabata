@@ -557,6 +557,129 @@ int execute(char *request, char **response) {
         }
         return tanabata_sasa_rem(tanabata, sasa_id);
     }
+    if (request_code == trc_tanzaku_get) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        if (*request_body != 0) {
+            char *endptr;
+            uint64_t tanzaku_id = strtoull(request_body, &endptr, 0);
+            if (*endptr != 0) {
+                return 1;
+            }
+            Tanzaku temp = tanabata_tanzaku_get(tanabata, tanzaku_id);
+            if (temp.id == HOLE_ID) {
+                return 1;
+            }
+            sprintf(*response, "{\"status\":true,\"tanzaku_id\":0x%lx,\"tanzaku_cts\":0x%lx,\"tanzaku_mts\":0x%lx,"
+                               "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"}",
+                    temp.id, temp.created_ts, temp.modified_ts, temp.name, temp.description);
+            return 0;
+        }
+        size_t resp_size = BUFSIZ;
+        buffer = malloc(BUFSIZ);
+        sprintf(*response, "{\"status\":true,\"tanzaku_list\":[");
+        Tanzaku *temp = tanabata->sappyou.database;
+        for (uint64_t i = 0; i < tanabata->sappyou.size; i++, temp++) {
+            if (temp->id == HOLE_ID) {
+                continue;
+            }
+            sprintf(buffer, "{\"tanzaku_id\":0x%lx,\"tanzaku_cts\":0x%lx,\"tanzaku_mts\":0x%lx,"
+                            "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"},",
+                    temp->id, temp->created_ts, temp->modified_ts, temp->name, temp->description);
+            if (strlen(*response) + strlen(buffer) >= resp_size) {
+                resp_size += BUFSIZ;
+                *response = realloc(*response, resp_size);
+            }
+            strcat(*response, buffer);
+        }
+        sprintf(buffer, "]}");
+        if (strlen(*response) + 3 >= resp_size) {
+            *response = realloc(*response, resp_size + 3);
+        }
+        strcat(*response, buffer);
+        free(buffer);
+        return 0;
+    }
+    if (request_code == trc_tanzaku_get_by_sasa) {
+        if (tanabata == NULL || *request_body == 0) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t sasa_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != 0) {
+            return 1;
+        }
+        Tanzaku *list = tanabata_tanzaku_get_by_sasa(tanabata, sasa_id);
+        if (list == NULL) {
+            return 1;
+        }
+        size_t resp_size = BUFSIZ;
+        buffer = malloc(BUFSIZ);
+        sprintf(*response, "{\"status\":true,\"tanzaku_list\":[");
+        for (Tanzaku *temp = list; temp->id != HOLE_ID; temp++) {
+            if (temp->id == HOLE_ID) {
+                continue;
+            }
+            sprintf(buffer, "{\"tanzaku_id\":0x%lx,\"tanzaku_cts\":0x%lx,\"tanzaku_mts\":0x%lx,"
+                            "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"},",
+                    temp->id, temp->created_ts, temp->modified_ts, temp->name, temp->description);
+            if (strlen(*response) + strlen(buffer) >= resp_size) {
+                resp_size += BUFSIZ;
+                *response = realloc(*response, resp_size);
+            }
+            strcat(*response, buffer);
+        }
+        sprintf(buffer, "]}");
+        if (strlen(*response) + 3 >= resp_size) {
+            *response = realloc(*response, resp_size + 3);
+        }
+        strcat(*response, buffer);
+        free(buffer);
+        return 0;
+    }
+    if (request_code == trc_tanzaku_add) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *name = request_body;
+        for (; *request_body != '\n' && *request_body != 0; request_body++);
+        if (*request_body == 0) {
+            return 1;
+        }
+        *request_body = 0;
+        char *description = request_body + 1;
+        return tanabata_tanzaku_add(tanabata, name, description);
+    }
+    if (request_code == trc_tanzaku_update) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t tanzaku_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != ' ') {
+            return 1;
+        }
+        char *name = endptr + 1;
+        for (endptr++; *endptr != '\n' && *endptr != 0; endptr++);
+        if (*endptr == 0) {
+            return 1;
+        }
+        *endptr = 0;
+        char *description = endptr + 1;
+        return tanabata_tanzaku_upd(tanabata, tanzaku_id, name, description);
+    }
+    if (request_code == trc_tanzaku_remove) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t tanzaku_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != 0) {
+            return 1;
+        }
+        return tanabata_tanzaku_rem(tanabata, tanzaku_id);
+    }
     return 1;
 }
 
