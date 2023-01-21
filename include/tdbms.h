@@ -35,7 +35,6 @@ enum TRC {
     trc_kazari_add = 0b1010,
     trc_kazari_add_single_sasa_to_multiple_tanzaku = 0b11010,
     trc_kazari_add_single_tanzaku_to_multiple_sasa = 0b101010,
-    trc_kazari_update = 0b1100,
     trc_kazari_remove = 0b1001,
 };
 
