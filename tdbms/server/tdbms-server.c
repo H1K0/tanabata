@@ -171,7 +171,7 @@ void dblist_load() {
     }
     TDB newbie;
     char *name = NULL, *path = NULL;
-    size_t MAX_PATH_LEN = 0;
+    size_t MAX_PATH_LEN = SIZE_MAX;
     for (db_count = 0; db_count < UINT16_MAX;) {
         if (getdelim(&name, &MAX_PATH_LEN, ' ', fdblist) == -1 ||
             getdelim(&path, &MAX_PATH_LEN, '\n', fdblist) == -1) {
