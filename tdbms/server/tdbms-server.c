@@ -521,6 +521,7 @@ int execute(char *request, char **response) {
             }
             strcat(*response, buffer);
         }
+        free(list);
         sprintf(buffer, "]}");
         if (strlen(*response) + 3 >= resp_size) {
             *response = realloc(*response, resp_size + 3);
@@ -567,6 +568,9 @@ int execute(char *request, char **response) {
             return 1;
         }
         Sasa *list = tanabata_sasa_get_by_tanzaku(tanabata, tanzaku_id);
+        if (list == NULL) {
+            return 1;
+        }
         for (Sasa *temp = list; temp->id != HOLE_ID; temp++) {
             tanabata_sasa_rem(tanabata, temp->id);
         }
@@ -646,6 +650,7 @@ int execute(char *request, char **response) {
             }
             strcat(*response, buffer);
         }
+        free(list);
         sprintf(buffer, "]}");
         if (strlen(*response) + 3 >= resp_size) {
             *response = realloc(*response, resp_size + 3);
@@ -706,6 +711,9 @@ int execute(char *request, char **response) {
             return 1;
         }
         Tanzaku *list = tanabata_tanzaku_get_by_sasa(tanabata, sasa_id);
+        if (list == NULL) {
+            return 1;
+        }
         for (Tanzaku *temp = list; temp->id != HOLE_ID; temp++) {
             tanabata_tanzaku_rem(tanabata, temp->id);
         }
