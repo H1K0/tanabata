@@ -71,7 +71,7 @@ int tdb_query(int socket_fd, const char *db_name, char request_code, const char 
     for (off_t offset = 0; (nread = read(socket_fd, buffer, BUFSIZ)) > 0;) {
         if (offset + nread > resp_size) {
             resp_size += BUFSIZ;
-            *response = realloc(response, resp_size);
+            *response = realloc(*response, resp_size);
         }
         memcpy(*response + offset, buffer, nread);
         offset += nread;
