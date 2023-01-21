@@ -24,6 +24,7 @@ enum TRC {
     trc_sasa_add = 0b10010,
     trc_sasa_update = 0b10100,
     trc_sasa_remove = 0b10001,
+    trc_sasa_remove_by_tanzaku = 0b101001,
     trc_tanzaku_get = 0b100000,
     trc_tanzaku_get_by_sasa = 0b11000,
     trc_tanzaku_add = 0b100010,

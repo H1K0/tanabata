@@ -557,6 +557,22 @@ int execute(char *request, char **response) {
         }
         return tanabata_sasa_rem(tanabata, sasa_id);
     }
+    if (request_code == trc_sasa_remove_by_tanzaku) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t tanzaku_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != 0) {
+            return 1;
+        }
+        Sasa *list = tanabata_sasa_get_by_tanzaku(tanabata, tanzaku_id);
+        for (Sasa *temp = list; temp->id != HOLE_ID; temp++) {
+            tanabata_sasa_rem(tanabata, temp->id);
+        }
+        free(list);
+        return 0;
+    }
     if (request_code == trc_tanzaku_get) {
         if (tanabata == NULL) {
             return 1;
@@ -679,6 +695,22 @@ int execute(char *request, char **response) {
             return 1;
         }
         return tanabata_tanzaku_rem(tanabata, tanzaku_id);
+    }
+    if (request_code == trc_tanzaku_remove_by_sasa) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t sasa_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != 0) {
+            return 1;
+        }
+        Tanzaku *list = tanabata_tanzaku_get_by_sasa(tanabata, sasa_id);
+        for (Tanzaku *temp = list; temp->id != HOLE_ID; temp++) {
+            tanabata_tanzaku_rem(tanabata, temp->id);
+        }
+        free(list);
+        return 0;
     }
     return 1;
 }
