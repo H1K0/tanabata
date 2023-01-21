@@ -192,11 +192,11 @@ void dblist_load() {
 }
 
 // Save database list
-int dblist_save() {
+void dblist_save() {
     FILE *fdblist = fopen(TDBMS_VAR_DIR"/.dblist", "wb");
     if (fdblist == NULL) {
         logtf(LOG_CRITICAL, "failed to save database list file");
-        return 1;
+        return;
     }
     TDB *tdb = db_list;
     for (uint16_t i = 0; i < db_count; i++) {
@@ -204,7 +204,6 @@ int dblist_save() {
         tdb++;
     }
     fclose(fdblist);
-    return 0;
 }
 
 // Open TDBMS server socket
@@ -346,6 +345,7 @@ int execute(char *request, char **response) {
         tanabata_init(tdb->database);
         strcpy(tdb->name, request_db_name);
         strcpy(tdb->path, request_body);
+        dblist_save();
         return 0;
     }
     if (request_code == trc_db_load) {
@@ -404,6 +404,7 @@ int execute(char *request, char **response) {
                 return 1;
             }
         }
+        dblist_save();
         return 0;
     }
     if (request_code == trc_db_remove_soft) {
@@ -421,6 +422,7 @@ int execute(char *request, char **response) {
             db_list[i] = db_list[i + 1];
         }
         db_list = reallocarray(db_list, db_count, sizeof(TDB));
+        dblist_save();
         return 0;
     }
     if (request_code == trc_db_remove_hard) {
@@ -448,6 +450,7 @@ int execute(char *request, char **response) {
         strcpy(remove_path + pathlen, "/shoppyou");
         unlink(remove_path);
         free(remove_path);
+        dblist_save();
         return 0;
     }
     if (request_code == trc_db_weed) {
