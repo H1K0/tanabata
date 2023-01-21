@@ -720,6 +720,98 @@ int execute(char *request, char **response) {
         free(list);
         return 0;
     }
+    if (request_code == trc_kazari_get) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        size_t resp_size = BUFSIZ;
+        buffer = malloc(BUFSIZ);
+        sprintf(*response, "{\"status\":true,\"kazari_list\":[");
+        Kazari *temp = tanabata->shoppyou.database;
+        for (uint64_t i = 0; i < tanabata->shoppyou.size; i++, temp++) {
+            if (temp->sasa_id == HOLE_ID || temp->tanzaku_id == HOLE_ID) {
+                continue;
+            }
+            sprintf(buffer, "{\"kazari_cts\":0x%lx,\"sasa_id\":0x%lx,\"tanzaku_id\":0x%lx},",
+                    temp->created_ts, temp->sasa_id, temp->tanzaku_id);
+            if (strlen(*response) + strlen(buffer) >= resp_size) {
+                resp_size += BUFSIZ;
+                *response = realloc(*response, resp_size);
+            }
+            strcat(*response, buffer);
+        }
+        sprintf(buffer, "]}");
+        if (strlen(*response) + 3 >= resp_size) {
+            *response = realloc(*response, resp_size + 3);
+        }
+        strcat(*response, buffer);
+        free(buffer);
+        return 0;
+    }
+    if (request_code == trc_kazari_add) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t sasa_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != ' ') {
+            return 1;
+        }
+        uint64_t tanzaku_id = strtoull(endptr + 1, &endptr, 0);
+        if (*endptr != 0) {
+            return 1;
+        }
+        return tanabata_kazari_add(tanabata, sasa_id, tanzaku_id);
+    }
+    if (request_code == trc_kazari_add_single_sasa_to_multiple_tanzaku) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t sasa_id = strtoull(request_body, &endptr, 0), tanzaku_id;
+        if (*endptr != ' ') {
+            return 1;
+        }
+        for (endptr++; endptr != 0;) {
+            tanzaku_id = strtoull(endptr, &endptr, 0);
+            if (*endptr != ' ' && *endptr != 0 || tanabata_kazari_add(tanabata, sasa_id, tanzaku_id)) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+    if (request_code == trc_kazari_add_single_tanzaku_to_multiple_sasa) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t tanzaku_id = strtoull(request_body, &endptr, 0), sasa_id;
+        if (*endptr != ' ') {
+            return 1;
+        }
+        for (endptr++; endptr != 0;) {
+            sasa_id = strtoull(endptr, &endptr, 0);
+            if (*endptr != ' ' && *endptr != 0 || tanabata_kazari_add(tanabata, sasa_id, tanzaku_id)) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+    if (request_code == trc_kazari_remove) {
+        if (tanabata == NULL) {
+            return 1;
+        }
+        char *endptr;
+        uint64_t sasa_id = strtoull(request_body, &endptr, 0);
+        if (*endptr != ' ') {
+            return 1;
+        }
+        uint64_t tanzaku_id = strtoull(endptr + 1, &endptr, 0);
+        if (*endptr != 0) {
+            return 1;
+        }
+        return tanabata_kazari_rem(tanabata, sasa_id, tanzaku_id);
+    }
     return 1;
 }
 
