@@ -1,0 +1,14 @@
+[Unit]
+Description=Tanabata Database Management System service
+After=network.target
+AssertPathIsDirectory=/var/lib/tanabata/tdbms
+AssertPathIsDirectory=/var/log/tanabata
+
+[Service]
+Type=simple
+Restart=no
+User=tanabata
+ExecStart=/usr/bin/tdbms
+
+[Install]
+WantedBy=multi-user.target
