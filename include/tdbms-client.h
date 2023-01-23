@@ -18,7 +18,7 @@ int tdbms_connect(const char *domain, const char *addr);
 int tdbms_close(int socket_fd);
 
 // Execute a TDB request
-int tdb_query(int socket_fd, const char *db_name, char request_code, const char *request_body, char **response);
+char *tdb_query(int socket_fd, const char *db_name, char request_code, const char *request_body);
 
 #ifdef __cplusplus
 }

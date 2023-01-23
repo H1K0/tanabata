@@ -40,9 +40,9 @@ int tdbms_close(int socket_fd) {
     return close(socket_fd);
 }
 
-int tdb_query(int socket_fd, const char *db_name, char request_code, const char *request_body, char **response) {
+char *tdb_query(int socket_fd, const char *db_name, char request_code, const char *request_body) {
     if (socket_fd < 0 || db_name == NULL || request_body == NULL) {
-        return 1;
+        return NULL;
     }
     size_t req_size = 1 + strlen(db_name) + 1 + strlen(request_body) + 1, resp_size;
     ssize_t nread, nwrite;
@@ -63,26 +63,27 @@ int tdb_query(int socket_fd, const char *db_name, char request_code, const char 
     free(request);
     if (nwrite <= 0) {
         fprintf(stderr, "ERROR: failed to send request to server\n");
-        return -1;
+        return NULL;
     }
-    *response = malloc(BUFSIZ);
+    char *response = malloc(BUFSIZ);
     resp_size = BUFSIZ;
     buffer = malloc(BUFSIZ);
     for (off_t offset = 0; (nread = read(socket_fd, buffer, BUFSIZ)) > 0;) {
         if (offset + nread > resp_size) {
             resp_size += BUFSIZ;
-            *response = realloc(*response, resp_size);
+            response = realloc(response, resp_size);
         }
-        memcpy(*response + offset, buffer, nread);
+        memcpy(response + offset, buffer, nread);
         offset += nread;
-        if ((*response)[offset - 1] == 0) {
+        if (response[offset - 1] == 0) {
             break;
         }
     }
     free(buffer);
     if (nread < 0) {
         fprintf(stderr, "ERROR: failed to get server response\n");
-        return -1;
+        free(response);
+        return NULL;
     }
-    return 0;
+    return response;
 }
