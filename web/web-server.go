@@ -27,8 +27,8 @@ var TOKEN = ""
 func TokenGenerate(seed []byte) {
 	SID = time.Now().Unix()
 	value := SID
-	for _, char := range seed {
-		value += int64(char)
+	for i, char := range seed {
+		value += int64(char) << (i * 8)
 	}
 	TOKEN = fmt.Sprintf("%x", sha256.Sum256([]byte(strconv.FormatInt(value, 16))))
 }
