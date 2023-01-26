@@ -47,7 +47,7 @@ func HandlerAuth(w http.ResponseWriter, r *http.Request) {
 	var hash [sha256.Size]byte
 	var passlen = sha256.Size
 	var err error
-	passfile, err := os.Open("/etc/tfm/password")
+	passfile, err := os.Open("/etc/tanabata/.htpasswd")
 	if err != nil {
 		log.Fatalf("Failed to open password file: %s\n", err)
 	}
@@ -124,7 +124,7 @@ func main() {
 	server := &http.Server{
 		Addr: ":42776",
 	}
-	public_fs := http.FileServer(http.Dir("/var/www/tfm"))
+	public_fs := http.FileServer(http.Dir("/srv/www/tanabata"))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" && path.Ext(r.URL.Path) == "" {
 			r.URL.Path += ".html"
@@ -136,7 +136,7 @@ func main() {
 	tfm_fs := http.FileServer(http.Dir("/srv/data/tfm"))
 	http.Handle("/static", tfm_fs)
 	log.Println("Running...")
-	err := server.ListenAndServeTLS("/etc/ssl/certs/tfm.crt", "/etc/ssl/private/tfm.key")
+	err = server.ListenAndServeTLS("/etc/ssl/certs/web-global.crt", "/etc/ssl/private/web-global.key")
 	if errors.Is(err, http.ErrServerClosed) {
 		log.Fatalln("Server closed")
 	} else if err != nil {
