@@ -836,7 +836,7 @@ void *client_thread(void *arg) {
                 }
                 memcpy(request + offset, buffer, nread);
                 offset += nread;
-                if (request[offset - 1] == 0) {
+                if (request[offset - 1] == EOT) {
                     break;
                 }
             }
@@ -860,6 +860,7 @@ void *client_thread(void *arg) {
                     buf += nwrite;
                     resp_size -= nwrite;
                     if (resp_size == 0) {
+                        nwrite = write(client_fd, "\4", 1);
                         break;
                     }
                 }

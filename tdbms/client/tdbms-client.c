@@ -57,6 +57,7 @@ char *tdb_query(int socket_fd, const char *db_name, char request_code, const cha
         buffer += nwrite;
         req_size -= nwrite;
         if (req_size == 0) {
+            nwrite = write(socket_fd, "\4", 1);
             break;
         }
     }
@@ -75,7 +76,7 @@ char *tdb_query(int socket_fd, const char *db_name, char request_code, const cha
         }
         memcpy(response + offset, buffer, nread);
         offset += nread;
-        if (response[offset - 1] == 0) {
+        if (response[offset - 1] == EOT) {
             break;
         }
     }

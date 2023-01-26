@@ -9,6 +9,9 @@
 extern "C" {
 #endif
 
+// ASCII End Of Transmission code
+#define EOT 4
+
 // TDBMS request codes
 enum TRC {
     trc_db_stats = 0b0,
