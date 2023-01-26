@@ -12,6 +12,16 @@ extern "C" {
 // ASCII End Of Transmission code
 #define EOT 4
 
+// TDBMS request code bits
+enum TRC_BITS {
+    trc_bit_remove = 0b1,
+    trc_bit_add = 0b10,
+    trc_bit_update = 0b100,
+    trc_bit_kazari = 0b1000,
+    trc_bit_sasa = 0b10000,
+    trc_bit_tanzaku = 0b100000,
+};
+
 // TDBMS request codes
 enum TRC {
     trc_db_stats = 0b0,
