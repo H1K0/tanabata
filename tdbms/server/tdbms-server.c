@@ -241,6 +241,50 @@ int socket_open() {
     return socket_fd;
 }
 
+// Create an escaped string for JSON
+char *escape(const char *plain) {
+    char *escaped = malloc(BUFSIZ);
+    size_t size = BUFSIZ;
+    const char *input;
+    char *output;
+    for (input = plain, output = escaped; *input != 0; input++, output++) {
+        if (output - escaped + 3 >= size) {
+            off_t offset = output - escaped;
+            size += BUFSIZ;
+            escaped = realloc(escaped, size);
+            output = escaped + offset;
+        }
+        switch (*input) {
+            case '\\':
+            case '"':
+                *output = '\\';
+                output++;
+                *output = *input;
+                break;
+            case '\b':
+                strcpy(output, "\\b");
+                output++;
+                break;
+            case '\t':
+                strcpy(output, "\\t");
+                output++;
+                break;
+            case '\n':
+                strcpy(output, "\\n");
+                output++;
+                break;
+            case '\f':
+                strcpy(output, "\\f");
+                output++;
+                break;
+            default:
+                *output = *input;
+        }
+    }
+    *output = 0;
+    return escaped;
+}
+
 // Execute request
 int execute(char *request, char **response) {
     char request_code = *request;
@@ -582,9 +626,13 @@ int execute(char *request, char **response) {
             if (temp.id == HOLE_ID) {
                 return 1;
             }
+            char *escaped_name = escape(temp.name),
+                    *escaped_description = escape(temp.description);
             sprintf(*response, "{\"status\":true,\"tanzaku_id\":%lu,\"tanzaku_cts\":%lu,\"tanzaku_mts\":%lu,"
                                "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"}",
-                    temp.id, temp.created_ts, temp.modified_ts, temp.name, temp.description);
+                    temp.id, temp.created_ts, temp.modified_ts, escaped_name, escaped_description);
+            free(escaped_name);
+            free(escaped_description);
             return 0;
         }
         size_t resp_size = BUFSIZ;
@@ -595,9 +643,13 @@ int execute(char *request, char **response) {
             if (temp->id == HOLE_ID) {
                 continue;
             }
+            char *escaped_name = escape(temp->name),
+                    *escaped_description = escape(temp->description);
             sprintf(buffer, "{\"tanzaku_id\":%lu,\"tanzaku_cts\":%lu,\"tanzaku_mts\":%lu,"
                             "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"},",
-                    temp->id, temp->created_ts, temp->modified_ts, temp->name, temp->description);
+                    temp->id, temp->created_ts, temp->modified_ts, escaped_name, escaped_description);
+            free(escaped_name);
+            free(escaped_description);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
                 resp_size += BUFSIZ;
                 *response = realloc(*response, resp_size);
@@ -633,9 +685,13 @@ int execute(char *request, char **response) {
             if (temp->id == HOLE_ID) {
                 continue;
             }
+            char *escaped_name = escape(temp->name),
+                    *escaped_description = escape(temp->description);
             sprintf(buffer, "{\"tanzaku_id\":%lu,\"tanzaku_cts\":%lu,\"tanzaku_mts\":%lu,"
                             "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"},",
-                    temp->id, temp->created_ts, temp->modified_ts, temp->name, temp->description);
+                    temp->id, temp->created_ts, temp->modified_ts, escaped_name, escaped_description);
+            free(escaped_name);
+            free(escaped_description);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
                 resp_size += BUFSIZ;
                 *response = realloc(*response, resp_size);
