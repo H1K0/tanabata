@@ -278,9 +278,9 @@ int execute(char *request, char **response) {
             }
             sprintf(*response, "{"
                                "\"status\":true,\"loaded\":true,\"unsaved\":%s,"
-                               "\"sasahyou_cts\":0x%lx,\"sasahyou_mts\":0x%lx,\"sasahyou_size\":0x%lx,\"sasahyou_holes\":0x%lx,"
-                               "\"sappyou_cts\":0x%lx,\"sappyou_mts\":0x%lx,\"sappyou_size\":0x%lx,\"sappyou_holes\":0x%lx,"
-                               "\"shoppyou_cts\":0x%lx,\"shoppyou_mts\":0x%lx,\"shoppyou_size\":0x%lx,\"shoppyou_holes\":0x%lx"
+                               "\"sasahyou_cts\":%lu,\"sasahyou_mts\":%lu,\"sasahyou_size\":%lu,\"sasahyou_holes\":%lu,"
+                               "\"sappyou_cts\":%lu,\"sappyou_mts\":%lu,\"sappyou_size\":%lu,\"sappyou_holes\":%lu,"
+                               "\"shoppyou_cts\":%lu,\"shoppyou_mts\":%lu,\"shoppyou_size\":%lu,\"shoppyou_holes\":%lu"
                                "}",
                     (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts ||
                      tanabata->sappyou_mod != tanabata->sappyou.modified_ts ||
@@ -304,9 +304,9 @@ int execute(char *request, char **response) {
                 tanabata = temp->database;
                 sprintf(buffer, "{"
                                 "\"loaded\":true,\"unsaved\":%s,"
-                                "\"sasahyou_cts\":0x%lx,\"sasahyou_mts\":0x%lx,\"sasahyou_size\":0x%lx,\"sasahyou_holes\":0x%lx,"
-                                "\"sappyou_cts\":0x%lx,\"sappyou_mts\":0x%lx,\"sappyou_size\":0x%lx,\"sappyou_holes\":0x%lx,"
-                                "\"shoppyou_cts\":0x%lx,\"shoppyou_mts\":0x%lx,\"shoppyou_size\":0x%lx,\"shoppyou_holes\":0x%lx"
+                                "\"sasahyou_cts\":%lu,\"sasahyou_mts\":%lu,\"sasahyou_size\":%lu,\"sasahyou_holes\":%lu,"
+                                "\"sappyou_cts\":%lu,\"sappyou_mts\":%lu,\"sappyou_size\":%lu,\"sappyou_holes\":%lu,"
+                                "\"shoppyou_cts\":%lu,\"shoppyou_mts\":%lu,\"shoppyou_size\":%lu,\"shoppyou_holes\":%lu"
                                 "},",
                         (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts ||
                          tanabata->sappyou_mod != tanabata->sappyou.modified_ts ||
@@ -458,7 +458,7 @@ int execute(char *request, char **response) {
             if (temp.id == HOLE_ID) {
                 return 1;
             }
-            sprintf(*response, "{\"status\":true,\"sasa_id\":0x%lx,\"sasa_cts\":0x%lx,\"sasa_path\":\"%s\"}",
+            sprintf(*response, "{\"status\":true,\"sasa_id\":%lu,\"sasa_cts\":%lu,\"sasa_path\":\"%s\"}",
                     temp.id, temp.created_ts, temp.path);
             return 0;
         }
@@ -470,7 +470,7 @@ int execute(char *request, char **response) {
             if (temp->id == HOLE_ID) {
                 continue;
             }
-            sprintf(buffer, "{\"sasa_id\":0x%lx,\"sasa_cts\":0x%lx,\"sasa_path\":\"%s\"},",
+            sprintf(buffer, "{\"sasa_id\":%lu,\"sasa_cts\":%lu,\"sasa_path\":\"%s\"},",
                     temp->id, temp->created_ts, temp->path);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
                 resp_size += BUFSIZ;
@@ -504,7 +504,7 @@ int execute(char *request, char **response) {
         buffer = malloc(BUFSIZ);
         sprintf(*response, "{\"status\":true,\"sasa_list\":[");
         for (Sasa *temp = list; temp->id != HOLE_ID; temp++) {
-            sprintf(buffer, "{\"sasa_id\":0x%lx,\"sasa_cts\":0x%lx,\"sasa_path\":\"%s\"},",
+            sprintf(buffer, "{\"sasa_id\":%lu,\"sasa_cts\":%lu,\"sasa_path\":\"%s\"},",
                     temp->id, temp->created_ts, temp->path);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
                 resp_size += BUFSIZ;
@@ -582,7 +582,7 @@ int execute(char *request, char **response) {
             if (temp.id == HOLE_ID) {
                 return 1;
             }
-            sprintf(*response, "{\"status\":true,\"tanzaku_id\":0x%lx,\"tanzaku_cts\":0x%lx,\"tanzaku_mts\":0x%lx,"
+            sprintf(*response, "{\"status\":true,\"tanzaku_id\":%lu,\"tanzaku_cts\":%lu,\"tanzaku_mts\":%lu,"
                                "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"}",
                     temp.id, temp.created_ts, temp.modified_ts, temp.name, temp.description);
             return 0;
@@ -595,7 +595,7 @@ int execute(char *request, char **response) {
             if (temp->id == HOLE_ID) {
                 continue;
             }
-            sprintf(buffer, "{\"tanzaku_id\":0x%lx,\"tanzaku_cts\":0x%lx,\"tanzaku_mts\":0x%lx,"
+            sprintf(buffer, "{\"tanzaku_id\":%lu,\"tanzaku_cts\":%lu,\"tanzaku_mts\":%lu,"
                             "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"},",
                     temp->id, temp->created_ts, temp->modified_ts, temp->name, temp->description);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
@@ -633,7 +633,7 @@ int execute(char *request, char **response) {
             if (temp->id == HOLE_ID) {
                 continue;
             }
-            sprintf(buffer, "{\"tanzaku_id\":0x%lx,\"tanzaku_cts\":0x%lx,\"tanzaku_mts\":0x%lx,"
+            sprintf(buffer, "{\"tanzaku_id\":%lu,\"tanzaku_cts\":%lu,\"tanzaku_mts\":%lu,"
                             "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"},",
                     temp->id, temp->created_ts, temp->modified_ts, temp->name, temp->description);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
@@ -724,7 +724,7 @@ int execute(char *request, char **response) {
             if (temp->sasa_id == HOLE_ID || temp->tanzaku_id == HOLE_ID) {
                 continue;
             }
-            sprintf(buffer, "{\"kazari_cts\":0x%lx,\"sasa_id\":0x%lx,\"tanzaku_id\":0x%lx},",
+            sprintf(buffer, "{\"kazari_cts\":%lu,\"sasa_id\":%lu,\"tanzaku_id\":%lu},",
                     temp->created_ts, temp->sasa_id, temp->tanzaku_id);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
                 resp_size += BUFSIZ;
