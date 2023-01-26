@@ -95,6 +95,29 @@ func HandlerAuth(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func HandlerToken(w http.ResponseWriter, r *http.Request) {
+	var request JSON
+	var response = JSON{Status: false}
+	var err error
+	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+	json_decoder := json.NewDecoder(r.Body)
+	json_decoder.DisallowUnknownFields()
+	err = json_decoder.Decode(&request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if TokenValidate(request.Token) {
+		response.Status = true
+	}
+	jsonData, err := json.Marshal(response)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_, err = w.Write(jsonData)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
 func HandlerTDBMS(w http.ResponseWriter, r *http.Request) {
 	var request JSON
 	var response []byte
@@ -148,6 +171,7 @@ func main() {
 		public_fs.ServeHTTP(w, r)
 	})
 	http.HandleFunc("/AUTH", HandlerAuth)
+	http.HandleFunc("/token", HandlerToken)
 	http.HandleFunc("/TDBMS", HandlerTDBMS)
 	tfm_fs := http.FileServer(http.Dir("/srv/data/tfm"))
 	http.Handle("/tfm/", http.StripPrefix("/tfm", tfm_fs))
