@@ -88,7 +88,7 @@ void logtf(int level, const char *fmt, ...) {
     }
     size_t level_len = strlen(slevel);
     char *fmt_log = malloc(33 + level_len + strlen(fmt));
-    strftime(fmt_log, 20, "%FT%T", localtime(&now.tv_sec));
+    strftime(fmt_log, 20, "%F %T", localtime(&now.tv_sec));
     sprintf(fmt_log, "%s.%06li | %s | %s\n", fmt_log, now.tv_usec, slevel, fmt);
     pthread_mutex_lock(&mutex_log);
     if (logfile != NULL) {
