@@ -321,7 +321,7 @@ int execute(char *request, char **response) {
                 return 0;
             }
             sprintf(*response, "{"
-                               "\"status\":true,\"loaded\":true,\"unsaved\":%s,"
+                               "\"status\":true,\"loaded\":true,\"changed\":%s,"
                                "\"sasahyou_cts\":%lu,\"sasahyou_mts\":%lu,\"sasahyou_size\":%lu,\"sasahyou_holes\":%lu,"
                                "\"sappyou_cts\":%lu,\"sappyou_mts\":%lu,\"sappyou_size\":%lu,\"sappyou_holes\":%lu,"
                                "\"shoppyou_cts\":%lu,\"shoppyou_mts\":%lu,\"shoppyou_size\":%lu,\"shoppyou_holes\":%lu"
