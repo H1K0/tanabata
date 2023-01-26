@@ -17,7 +17,12 @@ import (
 type JSON struct {
 	Status bool   `json:"status,omitempty"`
 	Token  string `json:"token,omitempty"`
+	TRC    uint8  `json:"trc,omitempty"`
+	TRDB   string `json:"trdb,omitempty"`
+	TRB    string `json:"trb,omitempty"`
 }
+
+var tdbms TDBMSConnection
 
 const TOKEN_VALIDTIME = 604800
 
@@ -90,9 +95,9 @@ func HandlerAuth(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandlerTFM(w http.ResponseWriter, r *http.Request) {
+func HandlerTDBMS(w http.ResponseWriter, r *http.Request) {
 	var request JSON
-	var response = JSON{Status: false}
+	var response []byte
 	var err error
 	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 	json_decoder := json.NewDecoder(r.Body)
@@ -102,24 +107,35 @@ func HandlerTFM(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if TokenValidate(request.Token) {
-		response.Status = true
-	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	jsonData, err := json.Marshal(response)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	_, err = w.Write(jsonData)
-	if err != nil {
+	if !TokenValidate(request.Token) {
+		http.Error(w, "Invalid token", http.StatusBadRequest)
 		return
 	}
+	response = tdbms.Query(request.TRDB, request.TRC, request.TRB)
+	if response == nil {
+		http.Error(w, "Failed to execute request", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_, err = w.Write(response)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 	}
 }
 
 func main() {
+	var err error
+	log.Println("Connecting to TDBMS server...")
+	err = tdbms.Connect("unix", "/tmp/tdbms.sock")
+	if err != nil {
+		log.Fatalln("Failed to connect to TDBMS server")
+	}
+	defer func(tdbms TDBMSConnection) {
+		err := tdbms.Close()
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}(tdbms)
 	log.Println("Initializing...")
 	server := &http.Server{
 		Addr: ":42776",
@@ -132,9 +148,9 @@ func main() {
 		public_fs.ServeHTTP(w, r)
 	})
 	http.HandleFunc("/AUTH", HandlerAuth)
-	http.HandleFunc("/TFM", HandlerTFM)
+	http.HandleFunc("/TDBMS", HandlerTDBMS)
 	tfm_fs := http.FileServer(http.Dir("/srv/data/tfm"))
-	http.Handle("/static", tfm_fs)
+	http.Handle("/tfm/", http.StripPrefix("/tfm", tfm_fs))
 	log.Println("Running...")
 	err = server.ListenAndServeTLS("/etc/ssl/certs/web-global.crt", "/etc/ssl/private/web-global.key")
 	if errors.Is(err, http.ErrServerClosed) {
