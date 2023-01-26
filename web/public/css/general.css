@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Epilogue&family=Secular+One&display=swap');
+
+html,
+body {
+	width: 100%;
+	min-height: 100vh;
+	margin: 0;
+	padding: 10px;
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	background-image: url(/images/bg-1920x1440.webp);
+	background-size: cover;
+}
+
+header {
+	margin: 0;
+	margin-top: 2vw;
+	padding: 0;
+	text-align: center;
+}
+
+h1 {
+	margin: 0;
+	padding: 0;
+	color: white;
+	font-family: Epilogue, sans-serif;
+	font-size: 48pt;
+	text-shadow: 0 0 8px black;
+	text-align: center;
+	cursor: default;
+}
+
+main {
+	margin-top: 50px;
+	background-color: #fff8;
+	box-shadow: 0 0 0.5vw black;
+	border-radius: 1.5vw;
+	width: 80vw;
+	max-width: 700px;
+	transition: 0.3s;
+	overflow: hidden;
+}
+
+main:hover {
+	background-color: #fff;
+	box-shadow: 0 0 1vw black;
+}
+
+h2 {
+	margin: 0;
+	padding: 0 2vw;
+	height: 9vw;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	background-color: hsla(270, 80%, 80%, 0.6);
+	border-bottom: 0;
+	font-family: Secular One, sans-serif;
+	font-size: 3vw;
+	text-shadow: 2.5px 2px 0.5px white;
+	cursor: pointer;
+}
+
+h3 {
+	margin: 0;
+	margin-top: 0.5vw;
+	font-family: Secular One, sans-serif;
+	font-size: 3vw;
+}
