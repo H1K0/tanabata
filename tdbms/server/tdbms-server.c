@@ -479,10 +479,10 @@ int execute(char *request, char **response) {
             strcat(*response, buffer);
         }
         sprintf(buffer, "]}");
-        if (strlen(*response) + 3 >= resp_size) {
-            *response = realloc(*response, resp_size + 3);
+        if (strlen(*response) + 2 >= resp_size) {
+            *response = realloc(*response, resp_size + 2);
         }
-        strcat(*response, buffer);
+        strcpy(*response + strlen(*response) - 1, buffer);
         free(buffer);
         return 0;
     }
@@ -514,10 +514,10 @@ int execute(char *request, char **response) {
         }
         free(list);
         sprintf(buffer, "]}");
-        if (strlen(*response) + 3 >= resp_size) {
-            *response = realloc(*response, resp_size + 3);
+        if (strlen(*response) + 2 >= resp_size) {
+            *response = realloc(*response, resp_size + 2);
         }
-        strcat(*response, buffer);
+        strcpy(*response + strlen(*response) - 1, buffer);
         free(buffer);
         return 0;
     }
@@ -605,10 +605,10 @@ int execute(char *request, char **response) {
             strcat(*response, buffer);
         }
         sprintf(buffer, "]}");
-        if (strlen(*response) + 3 >= resp_size) {
-            *response = realloc(*response, resp_size + 3);
+        if (strlen(*response) + 2 >= resp_size) {
+            *response = realloc(*response, resp_size + 2);
         }
-        strcat(*response, buffer);
+        strcpy(*response + strlen(*response) - 1, buffer);
         free(buffer);
         return 0;
     }
@@ -644,10 +644,10 @@ int execute(char *request, char **response) {
         }
         free(list);
         sprintf(buffer, "]}");
-        if (strlen(*response) + 3 >= resp_size) {
-            *response = realloc(*response, resp_size + 3);
+        if (strlen(*response) + 2 >= resp_size) {
+            *response = realloc(*response, resp_size + 2);
         }
-        strcat(*response, buffer);
+        strcpy(*response + strlen(*response) - 1, buffer);
         free(buffer);
         return 0;
     }
@@ -733,10 +733,10 @@ int execute(char *request, char **response) {
             strcat(*response, buffer);
         }
         sprintf(buffer, "]}");
-        if (strlen(*response) + 3 >= resp_size) {
-            *response = realloc(*response, resp_size + 3);
+        if (strlen(*response) + 2 >= resp_size) {
+            *response = realloc(*response, resp_size + 2);
         }
-        strcat(*response, buffer);
+        strcpy(*response + strlen(*response) - 1, buffer);
         free(buffer);
         return 0;
     }
