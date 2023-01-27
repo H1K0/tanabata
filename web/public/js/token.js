@@ -2,6 +2,7 @@ $(window).on("load", function () {
 	let authorized = true;
 	if ($.cookie("token") == null) {
 		authorized = false;
+	} else {
 		$.ajax({
 			url: "/token",
 			type: "POST",
@@ -9,9 +10,7 @@ $(window).on("load", function () {
 			data: `{"token":"${$.cookie("token")}"}`,
 			dataType: "json",
 			success: function (resp) {
-				if (resp.status) {
-					authorized = true;
-				}
+				authorized = resp.status;
 			},
 			failure: function (err) {
 				alert(err);
