@@ -54,6 +54,16 @@ main:hover {
 	box-shadow: 0 0 1vw black;
 }
 
+.contents-wrapper {
+	margin: 0;
+	padding: 2vw 2vw;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: row;
+	align-content: center;
+	justify-content: space-around;
+}
+
 h2 {
 	margin: 0;
 	padding: 14px 0;
