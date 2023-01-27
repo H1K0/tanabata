@@ -16,7 +16,8 @@ body {
 	justify-content: center;
 	align-items: center;
 	background-image: url(/images/bg-1920x1440.webp);
-	background-size: cover;
+	background-size: 100% auto;
+	background-repeat: no-repeat;
 }
 
 header {
@@ -55,8 +56,7 @@ main:hover {
 
 h2 {
 	margin: 0;
-	padding: 0 2vw;
-	height: 9vw;
+	padding: 14px 0;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
@@ -64,9 +64,10 @@ h2 {
 	background-color: hsla(270, 80%, 80%, 0.6);
 	border-bottom: 0;
 	font-family: Secular One, sans-serif;
-	font-size: 3vw;
+	font-size: 24pt;
 	text-shadow: 2.5px 2px 0.5px white;
-	cursor: pointer;
+	text-align: center;
+	cursor: default;
 }
 
 h3 {
