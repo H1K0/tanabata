@@ -1,4 +1,4 @@
-$(window).on("load", function () {
+function validate(onsuccess, onfailure) {
 	let authorized = true;
 	if ($.cookie("token") == null) {
 		authorized = false;
@@ -17,7 +17,8 @@ $(window).on("load", function () {
 			}
 		});
 	}
-	if (!authorized) {
-		$(location).attr("href", "/auth");
+	if (authorized) {
+		return onsuccess;
 	}
-});
+	return onfailure;
+}
