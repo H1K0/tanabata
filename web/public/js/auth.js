@@ -1,3 +1,5 @@
+$(window).on("load", validate(() => $(".btn-secondary").css("display", "block"), () => {}));
+
 $("#auth").on("submit", function submit(e) {
 	e.preventDefault();
 	var input_password = $("#password");
