@@ -11,15 +11,17 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type JSON struct {
-	Status bool   `json:"status,omitempty"`
-	Token  string `json:"token,omitempty"`
-	TRC    uint8  `json:"trc,omitempty"`
-	TRDB   string `json:"trdb,omitempty"`
-	TRB    string `json:"trb,omitempty"`
+	Status bool                     `json:"status"`
+	Token  string                   `json:"token,omitempty"`
+	TRC    uint8                    `json:"trc,omitempty"`
+	TRDB   string                   `json:"trdb,omitempty"`
+	TRB    string                   `json:"trb,omitempty"`
+	Data   []map[string]interface{} `json:"data,omitempty"`
 }
 
 var tdbms TDBMSConnection
@@ -127,6 +129,19 @@ func HandlerTDBMS(w http.ResponseWriter, r *http.Request) {
 	if response == nil {
 		http.Error(w, "Failed to execute request", http.StatusInternalServerError)
 		return
+	}
+	if request.TRDB == "$TFM" && (request.TRC == 0b10000 || request.TRC == 0b101000) {
+		var json_response JSON
+		err = json.Unmarshal(response, &json_response)
+		if err != nil {
+			http.Error(w, "TDBMS error", http.StatusInternalServerError)
+			return
+		}
+		for index, element := range json_response.Data {
+			json_response.Data[index]["path"] =
+				strings.ReplaceAll(element["path"].(string), "/srv/data/tfm/", "")
+		}
+		response, err = json.Marshal(json_response)
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	_, err = w.Write(response)
