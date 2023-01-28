@@ -261,6 +261,10 @@ char *escape(const char *plain) {
                 output++;
                 *output = *input;
                 break;
+            case '/':
+                strcpy(output, "\\/");
+                output++;
+                break;
             case '\b':
                 strcpy(output, "\\b");
                 output++;
