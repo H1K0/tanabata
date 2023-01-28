@@ -60,7 +60,6 @@ main:hover {
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: row;
-	align-content: center;
 	justify-content: space-around;
 }
 

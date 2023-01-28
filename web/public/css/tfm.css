@@ -1,0 +1,53 @@
+main {
+	position: relative;
+	height: 70vh;
+	max-width: 100%;
+}
+
+.contents-wrapper {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	justify-content: flex-start;
+	align-items: flex-start;
+	flex-wrap: wrap;
+	overflow-y: scroll;
+	overflow-x: hidden;
+}
+
+.item {
+	position: relative;
+	margin: 16px;
+	padding: 0;
+	width: 160px;
+	height: 160px;
+	border-radius: 20px;
+	background-image: url(/images/loader.gif);
+	background-size: cover;
+	background-position: center;
+	overflow: hidden;
+}
+
+.item .overlay {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background-color: #0000;
+}
+
+.item:hover .overlay {
+	background-color: #0002;
+}
+
+.item.selected .overlay {
+	background-color: #0004;
+}
+
+.thumb {
+	min-width: 100%;
+	min-height: 100%;
+}
