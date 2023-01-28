@@ -317,19 +317,20 @@ int execute(char *request, char **response) {
         }
         tanabata = tdb->database;
     }
-    char *buffer;
+    sprintf(*response, "{\"status\":true,\"data\":[");
+    char *buffer = *response + strlen(*response);
     if (request_code == trc_db_stats) {
         if (*request_db_name != 0) {
             if (tanabata == NULL) {
-                sprintf(*response, "{\"status\":true,\"loaded\":false}");
+                sprintf(buffer, "{\"loaded\":false}]}");
                 return 0;
             }
-            sprintf(*response, "{"
-                               "\"status\":true,\"loaded\":true,\"changed\":%s,"
-                               "\"sasahyou_cts\":%lu,\"sasahyou_mts\":%lu,\"sasahyou_size\":%lu,\"sasahyou_holes\":%lu,"
-                               "\"sappyou_cts\":%lu,\"sappyou_mts\":%lu,\"sappyou_size\":%lu,\"sappyou_holes\":%lu,"
-                               "\"shoppyou_cts\":%lu,\"shoppyou_mts\":%lu,\"shoppyou_size\":%lu,\"shoppyou_holes\":%lu"
-                               "}",
+            sprintf(buffer, "{"
+                            "\"loaded\":true,\"changed\":%s,"
+                            "\"sasahyou\":{\"cts\":%lu,\"mts\":%lu,\"size\":%lu,\"holes\":%lu},"
+                            "\"sappyou\":{\"cts\":%lu,\"mts\":%lu,\"size\":%lu,\"holes\":%lu},"
+                            "\"shoppyou\":{\"cts\":%lu,\"mts\":%lu,\"size\":%lu,\"holes\":%lu}"
+                            "}]}",
                     (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts ||
                      tanabata->sappyou_mod != tanabata->sappyou.modified_ts ||
                      tanabata->shoppyou_mod != tanabata->shoppyou.modified_ts) ? "true" : "false",
@@ -341,13 +342,16 @@ int execute(char *request, char **response) {
                     tanabata->shoppyou.hole_cnt);
             return 0;
         }
-        sprintf(*response, "{\"status\":true,\"tdb_list\":[");
+        if (db_count == 0) {
+            **response = 0;
+            return 0;
+        }
         size_t resp_size = BUFSIZ;
         buffer = malloc(BUFSIZ);
         TDB *temp = db_list;
         for (uint16_t i = 0; i < db_count; i++, temp++) {
             if (temp->database == NULL) {
-                sprintf(buffer, "{\"tdb_name\":\"%s\",\"loaded\":false},", temp->name);
+                sprintf(buffer, "{\"name\":\"%s\",\"loaded\":false},", temp->name);
             } else {
                 tanabata = temp->database;
                 sprintf(buffer, "{"
@@ -373,10 +377,10 @@ int execute(char *request, char **response) {
             strcat(*response, buffer);
         }
         sprintf(buffer, "]}");
-        if (strlen(*response) + 3 >= resp_size) {
-            *response = realloc(*response, resp_size + 3);
+        if (strlen(*response) + 2 >= resp_size) {
+            *response = realloc(*response, resp_size + 2);
         }
-        strcat(*response, buffer);
+        strcpy(*response + strlen(*response) - 1, buffer);
         free(buffer);
         return 0;
     }
@@ -506,19 +510,22 @@ int execute(char *request, char **response) {
             if (temp.id == HOLE_ID) {
                 return 1;
             }
-            sprintf(*response, "{\"status\":true,\"sasa_id\":%lu,\"sasa_cts\":%lu,\"sasa_path\":\"%s\"}",
+            sprintf(buffer, "{\"id\":%lu,\"cts\":%lu,\"path\":\"%s\"}]}",
                     temp.id, temp.created_ts, temp.path);
+            return 0;
+        }
+        if (tanabata->sasahyou.size - tanabata->sasahyou.hole_cnt == 0) {
+            strcat(*response, "]}");
             return 0;
         }
         size_t resp_size = BUFSIZ;
         buffer = malloc(BUFSIZ);
-        sprintf(*response, "{\"status\":true,\"sasa_list\":[");
         Sasa *temp = tanabata->sasahyou.database;
         for (uint64_t i = 0; i < tanabata->sasahyou.size; i++, temp++) {
             if (temp->id == HOLE_ID) {
                 continue;
             }
-            sprintf(buffer, "{\"sasa_id\":%lu,\"sasa_cts\":%lu,\"sasa_path\":\"%s\"},",
+            sprintf(buffer, "{\"id\":%lu,\"cts\":%lu,\"path\":\"%s\"},",
                     temp->id, temp->created_ts, temp->path);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
                 resp_size += BUFSIZ;
@@ -545,14 +552,16 @@ int execute(char *request, char **response) {
         }
         Sasa *list = tanabata_sasa_get_by_tanzaku(tanabata, tanzaku_id);
         if (list == NULL) {
-            sprintf(*response, "{\"status\":true,\"sasa_list\":[]}");
+            return 1;
+        }
+        if (list->id == HOLE_ID) {
+            **response = 0;
             return 0;
         }
         size_t resp_size = BUFSIZ;
         buffer = malloc(BUFSIZ);
-        sprintf(*response, "{\"status\":true,\"sasa_list\":[");
         for (Sasa *temp = list; temp->id != HOLE_ID; temp++) {
-            sprintf(buffer, "{\"sasa_id\":%lu,\"sasa_cts\":%lu,\"sasa_path\":\"%s\"},",
+            sprintf(buffer, "{\"id\":%lu,\"cts\":%lu,\"path\":\"%s\"},",
                     temp->id, temp->created_ts, temp->path);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
                 resp_size += BUFSIZ;
@@ -632,16 +641,18 @@ int execute(char *request, char **response) {
             }
             char *escaped_name = escape(temp.name),
                     *escaped_description = escape(temp.description);
-            sprintf(*response, "{\"status\":true,\"tanzaku_id\":%lu,\"tanzaku_cts\":%lu,\"tanzaku_mts\":%lu,"
-                               "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"}",
+            sprintf(buffer, "{\"id\":%lu,\"cts\":%lu,\"mts\":%lu,\"name\":\"%s\",\"desc\":\"%s\"}]}",
                     temp.id, temp.created_ts, temp.modified_ts, escaped_name, escaped_description);
             free(escaped_name);
             free(escaped_description);
             return 0;
         }
+        if (tanabata->sappyou.size - tanabata->sappyou.hole_cnt == 0) {
+            strcat(*response, "]}");
+            return 0;
+        }
         size_t resp_size = BUFSIZ;
         buffer = malloc(BUFSIZ);
-        sprintf(*response, "{\"status\":true,\"tanzaku_list\":[");
         Tanzaku *temp = tanabata->sappyou.database;
         for (uint64_t i = 0; i < tanabata->sappyou.size; i++, temp++) {
             if (temp->id == HOLE_ID) {
@@ -649,8 +660,7 @@ int execute(char *request, char **response) {
             }
             char *escaped_name = escape(temp->name),
                     *escaped_description = escape(temp->description);
-            sprintf(buffer, "{\"tanzaku_id\":%lu,\"tanzaku_cts\":%lu,\"tanzaku_mts\":%lu,"
-                            "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"},",
+            sprintf(buffer, "{\"id\":%lu,\"cts\":%lu,\"mts\":%lu,\"name\":\"%s\",\"desc\":\"%s\"},",
                     temp->id, temp->created_ts, temp->modified_ts, escaped_name, escaped_description);
             free(escaped_name);
             free(escaped_description);
@@ -679,20 +689,21 @@ int execute(char *request, char **response) {
         }
         Tanzaku *list = tanabata_tanzaku_get_by_sasa(tanabata, sasa_id);
         if (list == NULL) {
-            sprintf(*response, "{\"status\":true,\"tanzaku_list\":[]}");
+            return 1;
+        }
+        if (list->id == HOLE_ID) {
+            **response = 0;
             return 0;
         }
         size_t resp_size = BUFSIZ;
         buffer = malloc(BUFSIZ);
-        sprintf(*response, "{\"status\":true,\"tanzaku_list\":[");
         for (Tanzaku *temp = list; temp->id != HOLE_ID; temp++) {
             if (temp->id == HOLE_ID) {
                 continue;
             }
             char *escaped_name = escape(temp->name),
                     *escaped_description = escape(temp->description);
-            sprintf(buffer, "{\"tanzaku_id\":%lu,\"tanzaku_cts\":%lu,\"tanzaku_mts\":%lu,"
-                            "\"tanzaku_name\":\"%s\",\"tanzaku_desc\":\"%s\"},",
+            sprintf(buffer, "{\"id\":%lu,\"cts\":%lu,\"mts\":%lu,\"name\":\"%s\",\"desc\":\"%s\"},",
                     temp->id, temp->created_ts, temp->modified_ts, escaped_name, escaped_description);
             free(escaped_name);
             free(escaped_description);
@@ -776,15 +787,19 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        if (tanabata->shoppyou.size - tanabata->shoppyou.hole_cnt == 0) {
+            sprintf(*response, "{\"status\":true,\"data\":[]}");
+            return 0;
+        }
         size_t resp_size = BUFSIZ;
         buffer = malloc(BUFSIZ);
-        sprintf(*response, "{\"status\":true,\"kazari_list\":[");
+        sprintf(*response, "{\"status\":true,\"data\":[");
         Kazari *temp = tanabata->shoppyou.database;
         for (uint64_t i = 0; i < tanabata->shoppyou.size; i++, temp++) {
             if (temp->sasa_id == HOLE_ID || temp->tanzaku_id == HOLE_ID) {
                 continue;
             }
-            sprintf(buffer, "{\"kazari_cts\":%lu,\"sasa_id\":%lu,\"tanzaku_id\":%lu},",
+            sprintf(buffer, "{\"cts\":%lu,\"sasa_id\":%lu,\"tanzaku_id\":%lu},",
                     temp->created_ts, temp->sasa_id, temp->tanzaku_id);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
                 resp_size += BUFSIZ;
@@ -907,11 +922,11 @@ void *client_thread(void *arg) {
                 pthread_mutex_lock(&mutex_request);
                 if (execute(request, &response) != 0) {
                     logtf(LOG_INFO, "thread %i: request executed, status 'false'", thread_id);
-                    strcpy(response, "{\"status\":false}");
+                    strcpy(response, "{\"status\":false,\"data\":[]}");
                 } else {
                     logtf(LOG_INFO, "thread %i: request executed, status 'true'", thread_id);
                     if (*response == 0) {
-                        strcpy(response, "{\"status\":true}");
+                        strcpy(response, "{\"status\":true,\"data\":[]}");
                     }
                 }
                 pthread_mutex_unlock(&mutex_request);
