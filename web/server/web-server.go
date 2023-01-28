@@ -38,11 +38,22 @@ func TokenGenerate(seed []byte) {
 	TOKEN = fmt.Sprintf("%x", sha256.Sum256([]byte(strconv.FormatInt(value, 16))))
 }
 
-func TokenValidate(token string) bool {
-	if time.Now().Unix()-SID >= TOKEN_VALIDTIME || token != TOKEN {
-		return false
-	}
-	return true
+func Auth(handler http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorized := false
+		defer func() {
+			if authorized {
+				handler.ServeHTTP(w, r)
+			} else {
+				http.Redirect(w, r, "/auth", http.StatusSeeOther)
+			}
+		}()
+		token, err := r.Cookie("token")
+		if err == nil && time.Now().Unix()-SID < TOKEN_VALIDTIME && token.Value == TOKEN {
+			authorized = true
+			return
+		}
+	})
 }
 
 func HandlerAuth(w http.ResponseWriter, r *http.Request) {
@@ -84,6 +95,11 @@ func HandlerAuth(w http.ResponseWriter, r *http.Request) {
 		response.Status = true
 		response.Token = TOKEN
 	}
+	http.SetCookie(w, &http.Cookie{
+		Name:    "token",
+		Value:   TOKEN,
+		Expires: time.Now().Add(TOKEN_VALIDTIME * time.Second),
+	})
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.Marshal(response)
 	if err != nil {
@@ -92,29 +108,6 @@ func HandlerAuth(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(jsonData)
 	if err != nil {
 		log.Fatalln(err)
-	}
-}
-
-func HandlerToken(w http.ResponseWriter, r *http.Request) {
-	var request JSON
-	var response = JSON{Status: false}
-	var err error
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
-	json_decoder := json.NewDecoder(r.Body)
-	json_decoder.DisallowUnknownFields()
-	err = json_decoder.Decode(&request)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if TokenValidate(request.Token) {
-		response.Status = true
-	}
-	jsonData, err := json.Marshal(response)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	_, err = w.Write(jsonData)
-	if err != nil {
-		log.Println(err)
 	}
 }
 
@@ -128,10 +121,6 @@ func HandlerTDBMS(w http.ResponseWriter, r *http.Request) {
 	err = json_decoder.Decode(&request)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if !TokenValidate(request.Token) {
-		http.Error(w, "Invalid token", http.StatusBadRequest)
 		return
 	}
 	response = tdbms.Query(request.TRDB, request.TRC, request.TRB)
@@ -171,10 +160,11 @@ func main() {
 		public_fs.ServeHTTP(w, r)
 	})
 	http.HandleFunc("/AUTH", HandlerAuth)
-	http.HandleFunc("/token", HandlerToken)
-	http.HandleFunc("/TDBMS", HandlerTDBMS)
-	tfm_fs := http.FileServer(http.Dir("/srv/data/tfm"))
-	http.Handle("/tfm/", http.StripPrefix("/tfm", tfm_fs))
+	http.HandleFunc("/TDBMS", Auth(HandlerTDBMS))
+	tfm_fs := http.StripPrefix("/files", http.FileServer(http.Dir("/srv/data/tfm")))
+	http.Handle("/files/", Auth(func(w http.ResponseWriter, r *http.Request) {
+		tfm_fs.ServeHTTP(w, r)
+	}))
 	log.Println("Running...")
 	err = server.ListenAndServeTLS("/etc/ssl/certs/web-global.crt", "/etc/ssl/private/web-global.key")
 	if errors.Is(err, http.ErrServerClosed) {
