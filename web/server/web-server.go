@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strconv"
@@ -138,8 +139,13 @@ func HandlerTDBMS(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for index, element := range json_response.Data {
-			json_response.Data[index]["path"] =
-				strings.ReplaceAll(element["path"].(string), "/srv/data/tfm/", "")
+			path := strings.ReplaceAll(element["path"].(string), "/srv/data/tfm/", "")
+			splitpath := strings.Split(path, "/")
+			for pindex, pelement := range splitpath {
+				splitpath[pindex] = url.PathEscape(pelement)
+			}
+			path = strings.Join(splitpath, "/")
+			json_response.Data[index]["path"] = path
 		}
 		response, err = json.Marshal(json_response)
 	}
