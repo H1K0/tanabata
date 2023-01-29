@@ -26,6 +26,7 @@
 	<link rel="stylesheet" href="/css/tfm.css">
 	<script src="/js/jquery-3.6.0.min.js"></script>
 	<script src="/js/tdbms.js"></script>
+	<script src="/js/tfm.js"></script>
 </head>
 <body>
 <h1>TFM Files</h1>
@@ -33,31 +34,31 @@
 	<div class="contents-wrapper">
 	</div>
 </main>
-<div class="menu-wrapper" id="sasa-menu">
+<div class="menu-wrapper">
 	<div class="menu">
 		<h2>Sasa menu</h2>
-		<form id="sasa-form">
+		<form>
 			<div class="form-group row">
-				<label class="col-sm-2 col-form-label" for="sasa-name">File name</label>
+				<label class="col-sm-2 col-form-label" for="name">File name</label>
 				<div class="col-sm-10">
-					<input type="text" name="sasa-name" class="form-control" id="sasa-name">
+					<input type="text" name="name" class="form-control" id="name">
 				</div>
 			</div>
 			<div class="form-group row">
-				<label class="col-sm-3 col-form-label" for="tanzaku-filter">Tanzaku filter</label>
+				<label class="col-sm-3 col-form-label" for="filter">Tag filter</label>
 				<div class="col-sm-9">
-					<input type="text" name="tanzaku-filter" class="form-control" id="tanzaku-filter">
+					<input type="text" name="filter" class="form-control" id="filter">
 				</div>
 			</div>
-			<div class="form-group" id="tanzaku-list"></div>
+			<div class="form-group list"></div>
 			<div class="form-group button-flex">
-				<button class="btn btn-primary" id="btn-sasa-confirm">Confirm</button>
-				<a href="" target="_blank" class="btn btn-outline-info" id="btn-full">View full</a>
+				<button class="btn btn-primary" id="btn-confirm">Confirm</button>
+				<a target="_blank" class="btn btn-outline-info" id="btn-full">View full</a>
 				<button class="btn btn-outline-danger" id="btn-close">Close</button>
 			</div>
 		</form>
 	</div>
 </div>
-<script src="/js/tfm.js"></script>
+<script src="/js/tfm-files.js"></script>
 </body>
 </html>

@@ -24,42 +24,6 @@ main {
 	overflow-x: hidden;
 }
 
-.sasa {
-	position: relative;
-	margin: 16px;
-	padding: 0;
-	width: 160px;
-	height: 160px;
-	border-radius: 20px;
-	background-image: url(/images/loader.gif);
-	background-size: cover;
-	background-position: center;
-	overflow: hidden;
-	cursor: pointer;
-}
-
-.sasa .overlay {
-	position: absolute;
-	top: 0;
-	right: 0;
-	bottom: 0;
-	left: 0;
-	background-color: #0000;
-}
-
-.sasa:hover .overlay {
-	background-color: #0002;
-}
-
-.sasa.selected .overlay {
-	background-color: #0004;
-}
-
-.thumb {
-	min-width: 100%;
-	min-height: 100%;
-}
-
 .menu-wrapper {
 	display: none;
 	flex-direction: column;
@@ -84,11 +48,11 @@ main {
 	overflow: hidden;
 }
 
-#sasa-form {
+form {
 	padding: 2vw 2vw;
 }
 
-#tanzaku-list {
+.list {
 	display: flex;
 	flex-direction: row;
 	justify-content: flex-start;
@@ -99,6 +63,36 @@ main {
 	box-shadow: inset -5px 5px 5px #1111, inset -5px -5px 5px #1111;
 	overflow-y: scroll;
 	overflow-x: hidden;
+}
+
+.sasa {
+	position: relative;
+	margin: 16px;
+	padding: 0;
+	width: 160px;
+	height: 160px;
+	border-radius: 20px;
+	background-size: cover;
+	background-position: center;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+.sasa .overlay {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background-color: #0000;
+}
+
+.sasa:hover .overlay {
+	background-color: #0002;
+}
+
+.sasa.selected .overlay {
+	background-color: #0004;
 }
 
 .tanzaku {
