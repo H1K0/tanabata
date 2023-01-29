@@ -1,9 +1,9 @@
 $(window).on("load", function () {
-	sasa_load();
+	sasahyou_load();
 	sasahyou.forEach((sasa) => {
 		$(".contents-wrapper").append(`<div class="item sasa" id="s${sasa.id}" title="${sasa.path.split('/').slice(-1)}" style="background-image: url(${"/thumbs/" + sasa.path})"><div class="overlay"></div></div>`);
 	});
-	tanzaku_load();
+	sappyou_load();
 	sappyou.forEach((tanzaku) => {
 		$(".list").append(`<div class="list-item tanzaku" id="t${tanzaku.id}">${tanzaku.name}</div>`);
 	});

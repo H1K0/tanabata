@@ -2,7 +2,7 @@ var sasahyou = null, sappyou = null, shoppyou = null;
 var current_sasa = null, current_tanzaku = null;
 var sasa_modified = false, tanzaku_modified = false;
 
-function sasa_load() {
+function sasahyou_load() {
 	resp = tdb_query("$TFM", 16, "");
 	if (resp == null) {
 		$(location).attr("href", "/auth");
@@ -15,7 +15,7 @@ function sasa_load() {
 	sasahyou = resp.data;
 }
 
-function tanzaku_load() {
+function sappyou_load() {
 	resp = tdb_query("$TFM", 32, "");
 	if (resp == null) {
 		$(location).attr("href", "/auth");
@@ -28,7 +28,7 @@ function tanzaku_load() {
 	sappyou = resp.data;
 }
 
-function kazari_load() {
+function shoppyou_load() {
 	resp = tdb_query("$TFM", 8, "");
 	if (resp == null) {
 		$(location).attr("href", "/auth");
