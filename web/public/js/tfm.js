@@ -1,4 +1,6 @@
-var sasahyou, sappyou, shoppyou;
+var sasahyou = null, sappyou = null, shoppyou = null;
+var current_sasa = null, current_tanzaku = null;
+var sasa_modified = false, tanzaku_modified = false;
 
 function sasa_load(id) {
 	resp = tdb_query("$TFM", 16, id < 0 ? "" : `${id}`);
@@ -76,17 +78,17 @@ $(document).on("click", ".sasa", function (e) {
 
 $(document).on("dblclick", ".sasa", function (e) {
 	let id = parseInt($(this).attr("id").slice(1));
-	let sasa;
-	sasahyou.every(current_sasa => {
-		if (current_sasa.id === id) {
-			sasa = current_sasa;
+	sasahyou.every(sasa => {
+		if (sasa.id === id) {
+			current_sasa = sasa;
 			return false;
 		}
 		return true;
 	});
+	$(".sasa.selected").removeClass("selected");
 	$(".menu-wrapper").css("display", "flex");
-	$("#sasa-name").val(decodeURI(sasa.path));
-	$("#btn-full").attr("href", "/files/" + sasa.path);
+	$("#sasa-name").val(decodeURI(current_sasa.path));
+	$("#btn-full").attr("href", "/files/" + current_sasa.path);
 	let resp = tdb_query("$TFM", 24, '' + id);
 	if (!resp.status) {
 		alert("Something went wrong!");
@@ -106,6 +108,7 @@ $(document).on("click", "#btn-close", function (e) {
 });
 
 $(document).on("click", ".tanzaku", function (e) {
+	sasa_modified = true;
 	if ($(this).hasClass("selected")) {
 		$(this).removeClass("selected");
 	} else {
@@ -127,3 +130,31 @@ $(document).on("input", "#tanzaku-filter", function (e) {
 		}
 	});
 });
+
+$(document).on("click", "#btn-sasa-confirm", function (e) {
+	e.preventDefault();
+	let resp = tdb_query("$TFM", 24, '' + current_sasa.id);
+	if (!resp.status) {
+		alert("Something went wrong!");
+		return;
+	}
+	$("#sasa-menu").css("display", "none");
+	resp.data.forEach(tanzaku => {
+		let current = $(`#t${tanzaku.id}`)
+		if (current.hasClass("selected")) {
+			current.removeClass("selected");
+		} else {
+			if (!tdb_query("$TFM", 0b1001, '' + current_sasa.id + ' ' + tanzaku.id).status) {
+				console.log("ERROR: failed to remove kazari: " + current_sasa.id + '-' + tanzaku.id);
+			}
+		}
+	});
+	$(".tanzaku.selected").each(function (index, element) {
+		if (!tdb_query("$TFM", 0b1010, '' + current_sasa.id + ' ' + $(element).attr("id").slice(1))) {
+			console.log("ERROR: failed to add kazari: " + current_sasa.id + '-' + tanzaku.id);
+		}
+	});
+	sappyou.forEach(tanzaku => {
+		$(`#t${tanzaku.id}`).removeClass("selected");
+	});
+})
