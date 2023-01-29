@@ -3,8 +3,8 @@ var sasahyou, sappyou, shoppyou;
 function sasa_load(id) {
 	resp = tdb_query("$TFM", 16, id < 0 ? "" : `${id}`);
 	if (resp == null) {
-		alert("Unauthorized, go to /auth and authorize");
-		return;
+		$(location).attr("href", "/auth");
+		throw new Error("Unauthorized");
 	}
 	if (!resp.status) {
 		alert("Something went wrong");
@@ -21,8 +21,8 @@ function sasa_load(id) {
 function tanzaku_load(id) {
 	resp = tdb_query("$TFM", 32, id < 0 ? "" : `${id}`);
 	if (resp == null) {
-		alert("Unauthorized, go to /auth and authorize");
-		return;
+		$(location).attr("href", "/auth");
+		throw new Error("Unauthorized");
 	}
 	if (!resp.status) {
 		alert("Something went wrong");
@@ -39,8 +39,8 @@ function tanzaku_load(id) {
 function kazari_load() {
 	resp = tdb_query("$TFM", 8, "");
 	if (resp == null) {
-		alert("Unauthorized, go to /auth and authorize");
-		return;
+		$(location).attr("href", "/auth");
+		throw new Error("Unauthorized");
 	}
 	if (!resp.status) {
 		alert("Something went wrong");
