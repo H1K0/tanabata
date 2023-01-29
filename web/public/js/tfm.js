@@ -82,5 +82,5 @@ $(document).on("click", "#selected", function (e) {
 $(document).on("click", "#btn-close", function (e) {
 	e.preventDefault();
 	$(".menu-wrapper").css("display", "none");
-	$(".list-item").removeClass("selected");
+	$(".list-item").removeClass("selected").css("display", "block");
 });

@@ -76,5 +76,5 @@ $(document).on("click", "#btn-confirm", function (e) {
 			console.log("ERROR: failed to add kazari: " + current_sasa.id + '-' + $(element).attr("id").slice(1));
 		}
 	});
-	$(".list-item").removeClass("selected");
+	$(".list-item").removeClass("selected").css("display", "block");
 });

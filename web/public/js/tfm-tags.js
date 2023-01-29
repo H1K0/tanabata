@@ -60,5 +60,5 @@ $(document).on("click", "#btn-confirm", function (e) {
 			console.log("ERROR: failed to add kazari: " + $(element).attr("id").slice(1) + '-' + current_tanzaku.id);
 		}
 	});
-	$(".list-item").removeClass("selected");
+	$(".list-item").removeClass("selected").css("display", "block");
 });
