@@ -388,6 +388,7 @@ int execute(char *request, char **response) {
         if (db_count == UINT16_MAX || tdb != NULL) {
             return 1;
         }
+        **response = 0;
         db_count++;
         db_list = reallocarray(db_list, db_count, sizeof(TDB));
         tdb = db_list + db_count - 1;
@@ -404,12 +405,14 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         return tanabata_open(tanabata, tdb->path);
     }
     if (request_code == trc_db_save) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         if (strlen(request_body) > 0) {
             return tanabata_dump(tanabata, request_body);
         }
@@ -419,6 +422,7 @@ int execute(char *request, char **response) {
         if (tdb == NULL) {
             return 1;
         }
+        **response = 0;
         buffer = request_body;
         off_t offset;
         while (*buffer != 0) {
@@ -448,6 +452,7 @@ int execute(char *request, char **response) {
         if (tdb == NULL) {
             return 1;
         }
+        **response = 0;
         free(tdb->name);
         free(tdb->path);
         if (tdb->database != NULL) {
@@ -466,6 +471,7 @@ int execute(char *request, char **response) {
         if (tdb == NULL) {
             return 1;
         }
+        **response = 0;
         size_t pathlen = strlen(tdb->path);
         char *remove_path = malloc(pathlen + 10);
         strcpy(remove_path, tdb->path);
@@ -494,6 +500,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         return tanabata_weed(tanabata);
     }
     if (request_code == trc_sasa_get) {
@@ -582,12 +589,14 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         return tanabata_sasa_add(tanabata, request_body);
     }
     if (request_code == trc_sasa_update) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t sasa_id = strtoull(request_body, &endptr, 0);
         if (*endptr != ' ') {
@@ -599,6 +608,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t sasa_id = strtoull(request_body, &endptr, 0);
         if (*endptr != 0) {
@@ -610,6 +620,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t tanzaku_id = strtoull(request_body, &endptr, 0);
         if (*endptr != 0) {
@@ -726,6 +737,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *name = request_body;
         for (; *request_body != '\n' && *request_body != 0; request_body++);
         if (*request_body == 0) {
@@ -739,6 +751,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t tanzaku_id = strtoull(request_body, &endptr, 0);
         if (*endptr != ' ') {
@@ -757,6 +770,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t tanzaku_id = strtoull(request_body, &endptr, 0);
         if (*endptr != 0) {
@@ -768,6 +782,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t sasa_id = strtoull(request_body, &endptr, 0);
         if (*endptr != 0) {
@@ -819,6 +834,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t sasa_id = strtoull(request_body, &endptr, 0);
         if (*endptr != ' ') {
@@ -834,6 +850,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t sasa_id = strtoull(request_body, &endptr, 0), tanzaku_id;
         if (*endptr != ' ') {
@@ -851,6 +868,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t tanzaku_id = strtoull(request_body, &endptr, 0), sasa_id;
         if (*endptr != ' ') {
@@ -868,6 +886,7 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
+        **response = 0;
         char *endptr;
         uint64_t sasa_id = strtoull(request_body, &endptr, 0);
         if (*endptr != ' ') {
