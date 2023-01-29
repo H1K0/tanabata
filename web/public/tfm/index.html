@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>File Manager | Tanabata</title>
+	<title>Tanabata File Manager</title>
 	<link rel="apple-touch-icon" sizes="57x57" href="/images/apple-icon-57x57.png">
 	<link rel="apple-touch-icon" sizes="60x60" href="/images/apple-icon-60x60.png">
 	<link rel="apple-touch-icon" sizes="72x72" href="/images/apple-icon-72x72.png">
@@ -23,41 +23,17 @@
 	<meta name="theme-color" content="#5c913b">
 	<link rel="stylesheet" href="/css/bootstrap.min.css">
 	<link rel="stylesheet" href="/css/general.css">
-	<link rel="stylesheet" href="/css/tfm.css">
 	<script src="/js/jquery-3.6.0.min.js"></script>
-	<script src="/js/tdbms.js"></script>
 </head>
 <body>
-<h1>Tanabata File Manager</h1>
+<h1>Welcome to Tanabata File Manager!</h1>
 <main>
+	<h2>Files or tags?</h2>
 	<div class="contents-wrapper">
+		<a href="/tfm/files" class="btn btn-primary">Files</a>
+		<a href="/tfm/tags" class="btn btn-primary">Tags</a>
+		<a href="/" class="btn btn-outline-secondary">Home</a>
 	</div>
 </main>
-<div class="menu-wrapper" id="sasa-menu">
-	<div class="menu">
-		<h2>Sasa menu</h2>
-		<form id="sasa-form">
-			<div class="form-group row">
-				<label class="col-sm-2 col-form-label" for="sasa-name">File name</label>
-				<div class="col-sm-10">
-					<input type="text" name="sasa-name" class="form-control" id="sasa-name">
-				</div>
-			</div>
-			<div class="form-group row">
-				<label class="col-sm-3 col-form-label" for="tanzaku-filter">Tanzaku filter</label>
-				<div class="col-sm-9">
-					<input type="text" name="tanzaku-filter" class="form-control" id="tanzaku-filter">
-				</div>
-			</div>
-			<div class="form-group" id="tanzaku-list"></div>
-			<div class="form-group button-flex">
-				<button class="btn btn-primary" id="btn-sasa-confirm">Confirm</button>
-				<a href="" target="_blank" class="btn btn-outline-info" id="btn-full">View full</a>
-				<button class="btn btn-outline-danger" id="btn-close">Close</button>
-			</div>
-		</form>
-	</div>
-</div>
-<script src="/js/tfm.js"></script>
 </body>
 </html>
