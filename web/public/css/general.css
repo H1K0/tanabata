@@ -29,6 +29,7 @@ header {
 
 h1 {
 	margin: 0;
+	margin-top: 36px;
 	padding: 0;
 	color: white;
 	font-family: Epilogue, sans-serif;
@@ -39,10 +40,10 @@ h1 {
 }
 
 main {
-	margin-top: 50px;
+	margin-top: 36px;
 	background-color: #fff8;
 	box-shadow: 0 0 0.5vw black;
-	border-radius: 1.5vw;
+	border-radius: 16px;
 	width: 80vw;
 	max-width: 700px;
 	transition: 0.3s;
