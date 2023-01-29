@@ -28,8 +28,7 @@ header {
 }
 
 h1 {
-	margin: 0;
-	margin-top: 36px;
+	margin: 12px 0;
 	padding: 0;
 	color: white;
 	font-family: Epilogue, sans-serif;
@@ -39,8 +38,18 @@ h1 {
 	cursor: default;
 }
 
+h1 a {
+	color: inherit;
+	text-decoration: inherit;
+}
+
+h1 a:hover {
+	color: inherit;
+	text-decoration: inherit;
+}
+
 main {
-	margin-top: 36px;
+	margin: 0;
 	background-color: #fff8;
 	box-shadow: 0 0 0.5vw black;
 	border-radius: 16px;
