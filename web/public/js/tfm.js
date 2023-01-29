@@ -112,3 +112,18 @@ $(document).on("click", ".tanzaku", function (e) {
 		$(this).addClass("selected");
 	}
 });
+
+$(document).on("input", "#tanzaku-filter", function (e) {
+	let filter = $(this).val().toLowerCase();
+	if (filter === "") {
+		$(".tanzaku").css("display", "block");
+		return;
+	}
+	sappyou.forEach((tanzaku) => {
+		if (tanzaku.name.toLowerCase().includes(filter)) {
+			$(`#t${tanzaku.id}`).css("display", "block");
+		} else {
+			$(`#t${tanzaku.id}`).css("display", "none");
+		}
+	});
+});
