@@ -1,17 +1,3 @@
-form {
-	margin: 0;
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-}
-
-.button-flex {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-}
-
 .btn-secondary {
 	display: none;
 }
