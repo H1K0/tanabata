@@ -7,7 +7,6 @@ $(window).on("load", function () {
 	sappyou.forEach((tanzaku) => {
 		$(".list").append(`<div class="list-item tanzaku" id="t${tanzaku.id}">${tanzaku.name}</div>`);
 	});
-	kazari_load();
 });
 
 $(document).on("dblclick", ".item", function (e) {
