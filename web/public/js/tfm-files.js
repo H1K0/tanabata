@@ -10,6 +10,7 @@ $(window).on("load", function () {
 });
 
 $(document).on("dblclick", ".item", function (e) {
+	e.preventDefault();
 	let id = parseInt($(this).attr("id").slice(1));
 	sasahyou.every(sasa => {
 		if (sasa.id === id) {
@@ -67,10 +68,8 @@ $(document).on("click", "#btn-confirm", function (e) {
 	});
 	$(".tanzaku.selected").each(function (index, element) {
 		if (!tdb_query("$TFM", 10, '' + current_sasa.id + ' ' + $(element).attr("id").slice(1))) {
-			console.log("ERROR: failed to add kazari: " + current_sasa.id + '-' + tanzaku.id);
+			console.log("ERROR: failed to add kazari: " + current_sasa.id + '-' + $(element).attr("id").slice(1));
 		}
 	});
-	sappyou.forEach(tanzaku => {
-		$(`#t${tanzaku.id}`).removeClass("selected");
-	});
-})
+	$(".list-item").removeClass("selected");
+});
