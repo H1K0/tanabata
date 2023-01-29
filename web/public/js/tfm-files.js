@@ -31,6 +31,11 @@ $(document).on("dblclick", ".item", function (e) {
 	resp.data.forEach(tanzaku => {
 		$(`#t${tanzaku.id}`).addClass("selected");
 	});
+	if ($("#selected")[0].checked) {
+		$(".list-item:not(.selected)").css("display", "none");
+	} else {
+		$(".list-item:not(.selected)").css("display", "block");
+	}
 });
 
 $(document).on("input", "#filter", function (e) {

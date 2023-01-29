@@ -71,6 +71,14 @@ $(document).on("click", ".list-item", function (e) {
 	}
 });
 
+$(document).on("click", "#selected", function (e) {
+	if (this.checked) {
+		$(".list-item:not(.selected)").css("display", "none");
+	} else {
+		$(".list-item:not(.selected)").css("display", "block");
+	}
+});
+
 $(document).on("click", "#btn-close", function (e) {
 	e.preventDefault();
 	$(".menu-wrapper").css("display", "none");
