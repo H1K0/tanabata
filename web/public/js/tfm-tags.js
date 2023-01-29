@@ -30,7 +30,7 @@ $(document).on("dblclick", ".item", function (e) {
 	resp.data.forEach(sasa => {
 		$(`#s${sasa.id}`).addClass("selected");
 	});
-	if ($("#selected")[0].checked) {
+	if ($("#selection-filter")[0].checked) {
 		$(".list-item:not(.selected)").css("display", "none");
 	} else {
 		$(".list-item:not(.selected)").css("display", "block");

@@ -71,7 +71,7 @@ $(document).on("click", ".list-item", function (e) {
 	}
 });
 
-$(document).on("click", "#selected", function (e) {
+$(document).on("click", "#selection-filter", function (e) {
 	if (this.checked) {
 		$(".list-item:not(.selected)").css("display", "none");
 	} else {
