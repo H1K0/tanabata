@@ -22,7 +22,7 @@ type JSON struct {
 	TRC    uint8                    `json:"trc,omitempty"`
 	TRDB   string                   `json:"trdb,omitempty"`
 	TRB    string                   `json:"trb,omitempty"`
-	Data   []map[string]interface{} `json:"data,omitempty"`
+	Data   []map[string]interface{} `json:"data"`
 }
 
 var tdbms TDBMSConnection
