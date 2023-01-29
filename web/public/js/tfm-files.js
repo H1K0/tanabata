@@ -40,15 +40,22 @@ $(document).on("dblclick", ".item", function (e) {
 
 $(document).on("input", "#filter", function (e) {
 	let filter = $(this).val().toLowerCase();
+	let unfiltered;
+	if ($("#selected")[0].checked) {
+		unfiltered = $(".list-item.selected");
+	} else {
+		unfiltered = $(".list-item");
+	}
 	if (filter === "") {
-		$(".tanzaku").css("display", "block");
+		unfiltered.css("display", "block");
 		return;
 	}
-	sappyou.forEach((tanzaku) => {
-		if (tanzaku.name.toLowerCase().includes(filter)) {
-			$(`#t${tanzaku.id}`).css("display", "block");
+	unfiltered.each((index, element) => {
+		let current = $(element);
+		if (current.text().toLowerCase().includes(filter)) {
+			current.css("display", "block");
 		} else {
-			$(`#t${tanzaku.id}`).css("display", "none");
+			current.css("display", "none");
 		}
 	});
 });
