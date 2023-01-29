@@ -808,7 +808,6 @@ int execute(char *request, char **response) {
         }
         size_t resp_size = BUFSIZ;
         buffer = malloc(BUFSIZ);
-        sprintf(*response, "{\"status\":true,\"data\":[");
         Kazari *temp = tanabata->shoppyou.database;
         for (uint64_t i = 0; i < tanabata->shoppyou.size; i++, temp++) {
             if (temp->sasa_id == HOLE_ID || temp->tanzaku_id == HOLE_ID) {
