@@ -47,6 +47,10 @@ $(document).keyup(function (e) {
 	}
 });
 
+$(document).on("selectstart", ".sasa,.tanzaku", function (e) {
+	e.preventDefault();
+});
+
 $(document).on("click", ".item", function (e) {
 	let wasSelected = $(this).hasClass("selected");
 	if (!e.ctrlKey) {
