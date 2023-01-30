@@ -1,6 +1,5 @@
 var sasahyou = null, sappyou = null, shoppyou = null;
 var current_sasa = null, current_tanzaku = null;
-var sasa_modified = false, tanzaku_modified = false;
 
 function sasahyou_load() {
 	resp = tdb_query("$TFM", 16, "");
