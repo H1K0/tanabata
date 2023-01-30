@@ -24,16 +24,22 @@
 	<link rel="stylesheet" href="/css/bootstrap.min.css">
 	<link rel="stylesheet" href="/css/general.css">
 	<script src="/js/jquery-3.6.0.min.js"></script>
+	<script src="/js/tdbms.js"></script>
 </head>
 <body>
 <h1>Welcome to Tanabata File Manager!</h1>
 <main>
-	<h2>Files or tags?</h2>
+	<h2>Come on, what to do?</h2>
 	<div class="contents-wrapper">
 		<a href="/tfm/files" class="btn btn-primary">Files</a>
 		<a href="/tfm/tags" class="btn btn-primary">Tags</a>
 		<a href="/" class="btn btn-outline-secondary">Home</a>
 	</div>
+	<div class="contents-wrapper">
+		<button class="btn btn-success" id="btn-save">Save changes</button>
+		<button class="btn btn-danger" id="btn-discard">Discard changes</button>
+	</div>
 </main>
+<script src="/js/tfm-database.js"></script>
 </body>
 </html>
