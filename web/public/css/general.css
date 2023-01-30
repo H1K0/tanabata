@@ -50,6 +50,8 @@ h1 a:hover {
 
 main {
 	margin: 0;
+	display: flex;
+	flex-direction: column;
 	background-color: #fff8;
 	box-shadow: 0 0 0.5vw black;
 	border-radius: 16px;
@@ -67,6 +69,7 @@ main:hover {
 .contents-wrapper {
 	margin: 0;
 	padding: 2vw 2vw;
+	flex: 1 1 auto;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: row;

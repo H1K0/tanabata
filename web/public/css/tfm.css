@@ -39,6 +39,9 @@ main {
 }
 
 .menu {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
 	background-color: #eee;
 	box-shadow: 0 0 0.5vw black;
 	border-radius: 16px;
@@ -49,13 +52,17 @@ main {
 }
 
 form {
+	flex: 1 1 auto;
 	padding: 2vw 2vw;
+	min-height: 0;
 }
 
 .list {
+	flex: 1 1 auto;
 	display: flex;
 	flex-direction: row;
 	justify-content: flex-start;
+	align-content: flex-start;
 	align-items: flex-start;
 	flex-wrap: wrap;
 	padding: 8px 0;
