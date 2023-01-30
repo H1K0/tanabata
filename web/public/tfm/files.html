@@ -32,10 +32,11 @@
 <h1><a href="/tfm" title="TFM: Home">TFM: Files</a></h1>
 <main>
 	<div class="contents-wrapper">
+		<button class="btn btn-outline-secondary sasa" id="btn-new"><b>NEW</b></button>
 	</div>
 </main>
 <div class="menu-wrapper">
-	<div class="menu">
+	<div class="menu" id="menu-view">
 		<h2>File menu</h2>
 		<form>
 			<div class="form-group row">
@@ -59,6 +60,21 @@
 				<button class="btn btn-primary" id="btn-confirm">Confirm</button>
 				<a target="_blank" class="btn btn-outline-info" id="btn-full">View full</a>
 				<button class="btn btn-outline-danger" id="btn-close">Close</button>
+			</div>
+		</form>
+	</div>
+	<div class="menu" id="menu-add">
+		<h2>Add new file</h2>
+		<form>
+			<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="new-name">File name</label>
+				<div class="col-sm-10">
+					<input type="text" name="new-name" class="form-control" id="new-name">
+				</div>
+			</div>
+			<div class="form-group button-flex">
+				<button class="btn btn-primary" id="btn-add">Add</button>
+				<button class="btn btn-outline-danger" id="btn-reset">Reset</button>
 			</div>
 		</form>
 	</div>

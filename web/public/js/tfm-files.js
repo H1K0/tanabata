@@ -21,6 +21,7 @@ $(document).on("dblclick", ".item", function (e) {
 	});
 	$(".item.selected").removeClass("selected");
 	$(".menu-wrapper").css("display", "flex");
+	$("#menu-view").css("display", "flex");
 	$("#name").val(decodeURI(current_sasa.path));
 	$("#btn-full").attr("href", "/files/" + current_sasa.path);
 	let resp = tdb_query("$TFM", 24, '' + id);
@@ -68,6 +69,7 @@ $(document).on("click", "#btn-confirm", function (e) {
 		return;
 	}
 	$(".menu-wrapper").css("display", "none");
+	$("#menu-view").css("display", "none");
 	resp.data.forEach(tanzaku => {
 		let current = $(`#t${tanzaku.id}`)
 		if (current.hasClass("selected")) {
@@ -84,4 +86,17 @@ $(document).on("click", "#btn-confirm", function (e) {
 		}
 	});
 	$(".list-item").removeClass("selected").css("display", "block");
+	$("#text-filter").val("");
+});
+
+$(document).on("click", "#btn-add", function (e) {
+	e.preventDefault();
+	let resp = tdb_query("$TFM", 18, $("#new-name").val());
+	if (!resp.status) {
+		alert("Something went wrong!");
+		return;
+	}
+	$(".menu-wrapper").css("display", "none");
+	$("#menu-add").css("display", "none");
+	location.reload(true);
 });

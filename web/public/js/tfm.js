@@ -63,6 +63,12 @@ $(document).on("click", ".item", function (e) {
 	}
 });
 
+$(document).on("click", "#btn-new", function (e) {
+	e.preventDefault();
+	$(".menu-wrapper").css("display", "flex");
+	$("#menu-add").css("display", "flex");
+});
+
 $(document).on("click", ".list-item", function (e) {
 	if ($(this).hasClass("selected")) {
 		$(this).removeClass("selected");
@@ -82,5 +88,16 @@ $(document).on("click", "#selection-filter", function (e) {
 $(document).on("click", "#btn-close", function (e) {
 	e.preventDefault();
 	$(".menu-wrapper").css("display", "none");
+	$("#menu-view").css("display", "none");
 	$(".list-item").removeClass("selected").css("display", "block");
+	$("#name").val("");
+	$(".menu #text-filter").val("");
+});
+
+$(document).on("click", "#btn-reset", function (e) {
+	e.preventDefault();
+	$(".menu-wrapper").css("display", "none");
+	$("#menu-add").css("display", "none");
+	$("#new-name").val("");
+	$("#new-description").val("");
 });
