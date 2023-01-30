@@ -4,7 +4,7 @@ function tdb_query(trdb, trc, trb) {
 		url: "/TDBMS",
 		type: "POST",
 		contentType: "application/json",
-		data: `{"trdb":"${trdb}","trc":${trc},"trb":"${trb}"}`,
+		data: `{"trdb":${JSON.stringify(trdb)},"trc":${trc},"trb":${JSON.stringify(trb)}}`,
 		dataType: "json",
 		async: false,
 		success: function (resp) {
