@@ -350,16 +350,18 @@ int execute(char *request, char **response) {
         buffer = malloc(BUFSIZ);
         TDB *temp = db_list;
         for (uint16_t i = 0; i < db_count; i++, temp++) {
+            char *escaped_name = escape(temp->name);
             if (temp->database == NULL) {
-                sprintf(buffer, "{\"name\":\"%s\",\"loaded\":false},", temp->name);
+                sprintf(buffer, "{\"name\":\"%s\",\"loaded\":false},", escaped_name);
             } else {
                 tanabata = temp->database;
                 sprintf(buffer, "{"
-                                "\"loaded\":true,\"unsaved\":%s,"
+                                "\"name\":\"%s\",\"loaded\":true,\"changed\":%s,"
                                 "\"sasahyou_cts\":%lu,\"sasahyou_mts\":%lu,\"sasahyou_size\":%lu,\"sasahyou_holes\":%lu,"
                                 "\"sappyou_cts\":%lu,\"sappyou_mts\":%lu,\"sappyou_size\":%lu,\"sappyou_holes\":%lu,"
                                 "\"shoppyou_cts\":%lu,\"shoppyou_mts\":%lu,\"shoppyou_size\":%lu,\"shoppyou_holes\":%lu"
                                 "},",
+                        escaped_name,
                         (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts ||
                          tanabata->sappyou_mod != tanabata->sappyou.modified_ts ||
                          tanabata->shoppyou_mod != tanabata->shoppyou.modified_ts) ? "true" : "false",
@@ -370,6 +372,7 @@ int execute(char *request, char **response) {
                         tanabata->shoppyou.created_ts, tanabata->shoppyou.modified_ts, tanabata->shoppyou.size,
                         tanabata->shoppyou.hole_cnt);
             }
+            free(escaped_name);
             if (strlen(*response) + strlen(buffer) >= resp_size) {
                 resp_size += BUFSIZ;
                 *response = realloc(*response, resp_size);
