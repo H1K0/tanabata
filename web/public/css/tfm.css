@@ -68,6 +68,7 @@ form {
 	padding: 8px 0;
 	box-shadow: inset -5px 5px 5px #1111, inset -5px -5px 5px #1111;
 	overflow-y: scroll;
+	-webkit-overflow-scrolling: touch;
 	overflow-x: hidden;
 }
 
