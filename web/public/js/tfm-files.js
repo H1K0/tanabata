@@ -61,7 +61,7 @@ $(document).on("input", "#text-filter", function (e) {
 	});
 });
 
-$(document).on("click", "#btn-confirm", function (e) {
+$(document).on("submit", "#menu-view form", function (e) {
 	e.preventDefault();
 	let resp = tdb_query("$TFM", 24, '' + current_sasa.id);
 	if (!resp.status) {
@@ -89,7 +89,7 @@ $(document).on("click", "#btn-confirm", function (e) {
 	$("#text-filter").val("");
 });
 
-$(document).on("click", "#btn-add", function (e) {
+$(document).on("submit", "#menu-add form", function (e) {
 	e.preventDefault();
 	let resp = tdb_query("$TFM", 18, $("#new-name").val());
 	if (!resp.status) {

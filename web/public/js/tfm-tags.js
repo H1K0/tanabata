@@ -55,7 +55,7 @@ $(document).on("dblclick", ".item", function (e) {
 	}
 });
 
-$(document).on("click", "#btn-confirm", function (e) {
+$(document).on("submit", "#menu-view form", function (e) {
 	e.preventDefault();
 	let resp = tdb_query("$TFM", 40, '' + current_tanzaku.id);
 	if (!resp.status) {
@@ -82,7 +82,7 @@ $(document).on("click", "#btn-confirm", function (e) {
 	$(".list-item").removeClass("selected").css("display", "block");
 });
 
-$(document).on("click", "#btn-add", function (e) {
+$(document).on("submit", "#menu-add form", function (e) {
 	e.preventDefault();
 	let resp = tdb_query("$TFM", 34, $("#new-name").val() + '\n' + $("#new-description").val());
 	if (!resp.status) {
