@@ -9,6 +9,23 @@ $(window).on("load", function () {
 	});
 });
 
+$(document).on("input", "#text-filter", function (e) {
+	let filter = $(this).val().toLowerCase();
+	let unfiltered = $(".item");
+	if (filter === "") {
+		unfiltered.css("display", "block");
+		return;
+	}
+	unfiltered.each((index, element) => {
+		let current = $(element);
+		if (current.text().toLowerCase().includes(filter)) {
+			current.css("display", "block");
+		} else {
+			current.css("display", "none");
+		}
+	});
+});
+
 $(document).on("dblclick", ".item", function (e) {
 	e.preventDefault();
 	let id = parseInt($(this).attr("id").slice(1));
