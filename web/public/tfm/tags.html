@@ -40,10 +40,11 @@
 		</div>
 	</form>
 	<div class="contents-wrapper">
+		<button class="btn btn-outline-secondary tanzaku" id="btn-new"><b>NEW</b></button>
 	</div>
 </main>
 <div class="menu-wrapper">
-	<div class="menu">
+	<div class="menu" id="menu-view">
 		<h2>Tag menu</h2>
 		<form>
 			<div class="form-group row">
@@ -52,7 +53,7 @@
 					<input type="text" name="name" class="form-control" id="name">
 				</div>
 			</div>
-			<div class="form-group form-check">
+			<div class="form-group form-check menu-view">
 				<input type="checkbox" name="selection-filter" class="form-check-input" id="selection-filter" checked>
 				<label class="form-check-label" for="selection-filter">Show only selected</label>
 			</div>
@@ -60,6 +61,25 @@
 			<div class="form-group button-flex">
 				<button class="btn btn-primary" id="btn-confirm">Confirm</button>
 				<button class="btn btn-outline-danger" id="btn-close">Close</button>
+			</div>
+		</form>
+	</div>
+	<div class="menu" id="menu-add">
+		<h2>New tag</h2>
+		<form>
+			<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="new-name">Tag name</label>
+				<div class="col-sm-10">
+					<input type="text" name="new-name" class="form-control" id="new-name">
+				</div>
+			</div>
+			<div class="form-group menu-add">
+				<label for="new-description">Tag description</label>
+				<textarea class="form-control" name="new-description" id="new-description" rows="10"></textarea>
+			</div>
+			<div class="form-group button-flex">
+				<button class="btn btn-primary" id="btn-add">Add</button>
+				<button class="btn btn-outline-danger" id="btn-reset">Reset</button>
 			</div>
 		</form>
 	</div>
