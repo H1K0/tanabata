@@ -1,7 +1,15 @@
 $(window).on("load", function () {
+	$(function () {
+		$(".thumb").Lazy({
+			scrollDirection: "vertical",
+			effect: "fadeIn",
+			visibleOnly: true,
+			appendScroll: $(".contents-wrapper")[0],
+		});
+	});
 	sasahyou_load();
 	sasahyou.forEach((sasa) => {
-		$(".contents-wrapper").append(`<div class="item sasa" id="s${sasa.id}" title="${sasa.path.split('/').slice(-1)}" style="background-image: url(${"/thumbs/" + sasa.path})"><div class="overlay"></div></div>`);
+		$(".contents-wrapper").append(`<div class="item sasa" id="s${sasa.id}" title="${sasa.path.split('/').slice(-1)}"><img class="thumb" data-src="${"/thumbs/" + sasa.path}"><div class="overlay"></div></div>`);
 	});
 	sappyou_load();
 	sappyou.forEach((tanzaku) => {
