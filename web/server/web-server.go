@@ -182,6 +182,7 @@ func main() {
 	}
 	defer flog.Close()
 	log.SetOutput(flog)
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	log.Println("Connecting to TDBMS server...")
 	err = tdbms.Connect("unix", "/tmp/tdbms.sock")
 	if err != nil {
