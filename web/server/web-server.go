@@ -27,6 +27,8 @@ type JSON struct {
 
 var tdbms TDBMSConnection
 
+const LOG_PATH = "/var/log/tanabata/tweb.log"
+
 const TOKEN_VALIDTIME = 604800
 
 var SID int64 = 0
@@ -158,6 +160,12 @@ func HandlerTDBMS(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	var err error
+	flog, err := os.OpenFile(LOG_PATH, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatalf("Failed to open log file: %s\n", err)
+	}
+	defer flog.Close()
+	log.SetOutput(flog)
 	log.Println("Connecting to TDBMS server...")
 	err = tdbms.Connect("unix", "/tmp/tdbms.sock")
 	if err != nil {
