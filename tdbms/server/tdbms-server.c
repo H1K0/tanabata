@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 
 #include "../../include/tdbms.h"
 #include "../../include/tanabata.h"
@@ -234,6 +235,7 @@ int socket_open() {
         logtf(LOG_FATAL, "failed to bind socket");
         exit(-1);
     }
+    chmod(sock_addr, 0775);
     if (listen(socket_fd, DEFAULT_CLIENTS_MAX) < 0) {
         logtf(LOG_FATAL, "failed to listen to socket");
         exit(-1);
