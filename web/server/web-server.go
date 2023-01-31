@@ -171,7 +171,10 @@ func main() {
 	}(tdbms)
 	log.Println("Initializing...")
 	server := &http.Server{
-		Addr: ":42776",
+		Addr:         ":42776",
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
 	}
 	public_fs := http.FileServer(http.Dir("/srv/www/tanabata"))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
