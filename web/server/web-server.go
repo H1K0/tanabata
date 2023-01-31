@@ -213,9 +213,12 @@ func main() {
 	})
 	http.HandleFunc("/AUTH", HandlerAuth)
 	http.HandleFunc("/TDBMS", Auth(HandlerTDBMS))
-	tfm_fs := http.StripPrefix("/files", http.FileServer(http.Dir("/srv/data/tfm")))
+	tfm_fs := http.FileServer(http.Dir("/srv/data/tfm"))
 	http.Handle("/files/", Auth(func(w http.ResponseWriter, r *http.Request) {
-		tfm_fs.ServeHTTP(w, r)
+		http.StripPrefix("/files", tfm_fs).ServeHTTP(w, r)
+	}))
+	http.Handle("/thumbs/", Auth(func(w http.ResponseWriter, r *http.Request) {
+		http.StripPrefix("/thumbs", tfm_fs).ServeHTTP(w, r)
 	}))
 	log.Println("Running...")
 	err = server.ListenAndServeTLS("/etc/ssl/certs/web-global.crt", "/etc/ssl/private/web-global.key")
