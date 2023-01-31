@@ -218,6 +218,9 @@ func main() {
 		http.StripPrefix("/files", tfm_fs).ServeHTTP(w, r)
 	}))
 	http.Handle("/thumbs/", Auth(func(w http.ResponseWriter, r *http.Request) {
+		thumb_path := strings.Split(r.URL.Path, "/")
+		thumb_path[len(thumb_path)-1] = ".thumb-" + thumb_path[len(thumb_path)-1]
+		r.URL.Path = strings.Join(thumb_path, "/")
 		http.StripPrefix("/thumbs", tfm_fs).ServeHTTP(w, r)
 	}))
 	log.Println("Running...")
