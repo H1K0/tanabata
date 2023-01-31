@@ -54,7 +54,7 @@ if [ ! -d /var/log/tanabata ]; then
   fi
 fi
 chown 42776:42776 /var/log/tanabata
-chmod 2755 /var/log/tanabata
+chmod 2775 /var/log/tanabata
 
 if [ -d ../build ]; then
   rm -r ../build/*
@@ -75,6 +75,7 @@ chmod 0755 /usr/bin/tdbms
 
 if ! cp ./tdbms.service /etc/systemd/system/; then
   echo "FATAL: failed to copy 'tdbms.service' to '/etc/systemd/system'"
+  exit 1
 fi
 chown 0:0 /etc/systemd/system/tdbms.service
 chmod 0644 /etc/systemd/system/tdbms.service
