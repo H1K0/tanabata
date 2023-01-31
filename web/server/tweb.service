@@ -1,0 +1,13 @@
+[Unit]
+Description=Tanabata Project web server
+After=tdbms.service
+Requires=tdbms.service
+
+[Service]
+Type=simple
+Restart=no
+User=www-data
+ExecStart=/usr/bin/tweb
+
+[Install]
+WantedBy=multi-user.target
