@@ -95,16 +95,17 @@ func HandlerAuth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	hash = sha256.Sum256(buffer[:passlen])
+	TokenGenerate(buffer)
 	if bytes.Equal(hash[:], passhash) {
 		TokenGenerate(buffer)
 		response.Status = true
 		response.Token = TOKEN
+		http.SetCookie(w, &http.Cookie{
+			Name:    "token",
+			Value:   TOKEN,
+			Expires: time.Now().Add(TOKEN_VALIDTIME * time.Second),
+		})
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name:    "token",
-		Value:   TOKEN,
-		Expires: time.Now().Add(TOKEN_VALIDTIME * time.Second),
-	})
 	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.Marshal(response)
 	if err != nil {
