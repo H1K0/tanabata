@@ -82,6 +82,21 @@ $(document).on("submit", "#menu-view form", function (e) {
 	$(".list-item").removeClass("selected").css("display", "block");
 });
 
+$(document).on("click", "#btn-remove", function (e) {
+	e.preventDefault();
+	if (!confirm("This tag will be removed permanently. Are you sure?")) {
+		return;
+	}
+	let resp = tdb_query("$TFM", 33, '' + current_tanzaku.id);
+	if (!resp.status) {
+		alert("Something went wrong!");
+		return;
+	}
+	$(".menu-wrapper").css("display", "none");
+	$("#menu-view").css("display", "none");
+	location.reload(true);
+});
+
 $(document).on("submit", "#menu-add form", function (e) {
 	e.preventDefault();
 	let resp = tdb_query("$TFM", 34, $("#new-name").val() + '\n' + $("#new-description").val());
