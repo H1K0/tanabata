@@ -99,9 +99,9 @@ func HandlerAuth(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	hash = sha256.Sum256(buffer[:passlen])
-	TokenGenerate(buffer)
 	if bytes.Equal(hash[:], passhash) {
 		log.Println("Password valid")
+		TokenGenerate(buffer)
 		response.Status = true
 		response.Token = TOKEN
 		http.SetCookie(w, &http.Cookie{
