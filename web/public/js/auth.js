@@ -11,7 +11,6 @@ $("#auth").on("submit", function submit(e) {
 		dataType: "json",
 		success: function (resp) {
 			if (resp.status) {
-				$.cookie("token", resp.token, {expires: 7, path: '/'});
 				input_password.removeClass("is-invalid");
 				input_password.addClass("is-valid");
 				$(".btn-secondary").css("display", "block");
