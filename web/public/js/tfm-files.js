@@ -29,7 +29,8 @@ $(document).on("dblclick", ".item", function (e) {
 	});
 	$(".item.selected").removeClass("selected");
 	$(".menu-wrapper").css("display", "flex");
-	$("#menu-view").css("display", "flex");
+	$("#menu-file-view").css("display", "flex");
+	$("#preview").attr("src", "/preview/" + current_sasa.path);
 	$("#name").val(decodeURI(current_sasa.path));
 	$("#btn-full").attr("href", "/files/" + current_sasa.path);
 	let resp = tdb_query("$TFM", 24, '' + id);
@@ -69,7 +70,7 @@ $(document).on("input", "#text-filter", function (e) {
 	});
 });
 
-$(document).on("submit", "#menu-view form", function (e) {
+$(document).on("submit", "#menu-file-view form", function (e) {
 	e.preventDefault();
 	let resp = tdb_query("$TFM", 24, '' + current_sasa.id);
 	if (!resp.status) {
@@ -77,7 +78,7 @@ $(document).on("submit", "#menu-view form", function (e) {
 		return;
 	}
 	$(".menu-wrapper").css("display", "none");
-	$("#menu-view").css("display", "none");
+	$("#menu-file-view").css("display", "none");
 	resp.data.forEach(tanzaku => {
 		let current = $(`#t${tanzaku.id}`)
 		if (current.hasClass("selected")) {

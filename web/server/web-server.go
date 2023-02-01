@@ -223,6 +223,9 @@ func main() {
 		r.URL.Path = strings.Join(thumb_path, "/")
 		http.StripPrefix("/thumbs", tfm_fs).ServeHTTP(w, r)
 	}))
+	http.Handle("/preview/", Auth(func(w http.ResponseWriter, r *http.Request) {
+		http.StripPrefix("/preview", tfm_fs).ServeHTTP(w, r)
+	}))
 	log.Println("Running...")
 	err = server.ListenAndServeTLS("/etc/ssl/certs/web-global.crt", "/etc/ssl/private/web-global.key")
 	if errors.Is(err, http.ErrServerClosed) {

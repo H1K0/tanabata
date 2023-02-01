@@ -58,6 +58,24 @@ main {
 	overflow: hidden;
 }
 
+#menu-file-view {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	border-radius: 0;
+	overflow-x: hidden;
+	overflow-y: scroll;
+}
+
+#preview {
+	max-width: 100%;
+	max-height: 90vh;
+	object-fit: contain;
+	object-position: center;
+}
+
 form {
 	flex: 1 1 auto;
 	padding: 2vw 2vw;
@@ -77,6 +95,14 @@ form {
 	overflow-y: scroll;
 	-webkit-overflow-scrolling: touch;
 	overflow-x: hidden;
+}
+
+#menu-file-view form {
+	min-height: initial;
+}
+
+#menu-file-view .list {
+	height: 50vh;
 }
 
 .list:after {
