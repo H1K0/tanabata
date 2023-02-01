@@ -45,7 +45,7 @@ func TokenGenerate(seed []byte) {
 }
 
 func Auth(handler http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		authorized := false
 		defer func() {
 			if authorized {
@@ -60,7 +60,7 @@ func Auth(handler http.HandlerFunc) http.HandlerFunc {
 			authorized = true
 			return
 		}
-	})
+	}
 }
 
 func HandlerAuth(w http.ResponseWriter, r *http.Request) {
