@@ -27,25 +27,7 @@ $(document).on("dblclick", ".item", function (e) {
 		}
 		return true;
 	});
-	$(".item.selected").removeClass("selected");
-	$(".menu-wrapper").css("display", "flex");
-	$("#menu-file-view").css("display", "flex");
-	$("#preview").attr("src", "/preview/" + current_sasa.path);
-	$("#name").val(decodeURI(current_sasa.path));
-	$("#btn-full").attr("href", "/files/" + current_sasa.path);
-	let resp = tdb_query("$TFM", 24, '' + id);
-	if (!resp.status) {
-		alert("Something went wrong!");
-		return;
-	}
-	resp.data.forEach(tanzaku => {
-		$(`#t${tanzaku.id}`).addClass("selected");
-	});
-	if ($("#selection-filter")[0].checked) {
-		$(".list-item:not(.selected)").css("display", "none");
-	} else {
-		$(".list-item:not(.selected)").css("display", "block");
-	}
+	menu_view_file_open();
 });
 
 $(document).on("input", "#text-filter", function (e) {
@@ -77,8 +59,6 @@ $(document).on("submit", "#menu-file-view form", function (e) {
 		alert("Something went wrong!");
 		return;
 	}
-	$(".menu-wrapper").css("display", "none");
-	$("#menu-file-view").css("display", "none");
 	resp.data.forEach(tanzaku => {
 		let current = $(`#t${tanzaku.id}`)
 		if (current.hasClass("selected")) {
@@ -94,8 +74,7 @@ $(document).on("submit", "#menu-file-view form", function (e) {
 			console.log("ERROR: failed to add kazari: " + current_sasa.id + '-' + $(element).attr("id").slice(1));
 		}
 	});
-	$(".list-item").removeClass("selected").css("display", "block");
-	$("#text-filter").val("");
+	menu_view_close();
 });
 
 $(document).on("submit", "#menu-add form", function (e) {
@@ -105,7 +84,6 @@ $(document).on("submit", "#menu-add form", function (e) {
 		alert("Something went wrong!");
 		return;
 	}
-	$(".menu-wrapper").css("display", "none");
-	$("#menu-add").css("display", "none");
+	menu_add_close();
 	location.reload(true);
 });

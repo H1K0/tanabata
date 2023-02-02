@@ -28,14 +28,6 @@ $(document).on("input", "#text-filter", function (e) {
 
 $(document).on("dblclick", ".item", function (e) {
 	e.preventDefault();
-	$(function () {
-		$(".thumb").Lazy({
-			scrollDirection: "vertical",
-			effect: "fadeIn",
-			visibleOnly: true,
-			appendScroll: $(".list")[0],
-		});
-	});
 	let id = parseInt($(this).attr("id").slice(1));
 	sappyou.every(tanzaku => {
 		if (tanzaku.id === id) {
@@ -44,23 +36,7 @@ $(document).on("dblclick", ".item", function (e) {
 		}
 		return true;
 	});
-	$(".item.selected").removeClass("selected");
-	$(".menu-wrapper").css("display", "flex");
-	$("#menu-view").css("display", "flex");
-	$("#name").val(decodeURI(current_tanzaku.name));
-	let resp = tdb_query("$TFM", 40, '' + id);
-	if (!resp.status) {
-		alert("Something went wrong!");
-		return;
-	}
-	resp.data.forEach(sasa => {
-		$(`#s${sasa.id}`).addClass("selected");
-	});
-	if ($("#selection-filter")[0].checked) {
-		$(".list-item:not(.selected)").css("display", "none");
-	} else {
-		$(".list-item:not(.selected)").css("display", "block");
-	}
+	menu_view_tag_open();
 });
 
 $(document).on("submit", "#menu-view form", function (e) {
@@ -70,8 +46,6 @@ $(document).on("submit", "#menu-view form", function (e) {
 		alert("Something went wrong!");
 		return;
 	}
-	$(".menu-wrapper").css("display", "none");
-	$("#menu-view").css("display", "none");
 	resp.data.forEach(sasa => {
 		let current = $(`#s${sasa.id}`)
 		if (current.hasClass("selected")) {
@@ -87,7 +61,7 @@ $(document).on("submit", "#menu-view form", function (e) {
 			console.log("ERROR: failed to add kazari: " + $(element).attr("id").slice(1) + '-' + current_tanzaku.id);
 		}
 	});
-	$(".list-item").removeClass("selected").css("display", "block");
+	menu_add_close();
 });
 
 $(document).on("click", "#btn-remove", function (e) {
@@ -100,8 +74,7 @@ $(document).on("click", "#btn-remove", function (e) {
 		alert("Something went wrong!");
 		return;
 	}
-	$(".menu-wrapper").css("display", "none");
-	$("#menu-view").css("display", "none");
+	menu_add_close();
 	location.reload(true);
 });
 
@@ -112,7 +85,6 @@ $(document).on("submit", "#menu-add form", function (e) {
 		alert("Something went wrong!");
 		return;
 	}
-	$(".menu-wrapper").css("display", "none");
-	$("#menu-add").css("display", "none");
+	menu_add_close();
 	location.reload(true);
 });
