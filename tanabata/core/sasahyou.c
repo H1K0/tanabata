@@ -144,9 +144,9 @@ int sasahyou_dump(Sasahyou *sasahyou, const char *path) {
     return sasahyou_save(sasahyou);
 }
 
-int sasa_add(Sasahyou *sasahyou, const char *path) {
+uint64_t sasa_add(Sasahyou *sasahyou, const char *path) {
     if (path == NULL || sasahyou->size == -1 && sasahyou->hole_cnt == 0) {
-        return 1;
+        return HOLE_ID;
     }
     Sasa newbie;
     newbie.created_ts = time(NULL);
@@ -165,7 +165,7 @@ int sasa_add(Sasahyou *sasahyou, const char *path) {
         sasahyou->database[newbie.id] = newbie;
     }
     sasahyou->modified_ts = newbie.created_ts;
-    return 0;
+    return newbie.id;
 }
 
 int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id) {

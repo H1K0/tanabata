@@ -40,7 +40,7 @@ int tanabata_dump(Tanabata *tanabata, const char *path);
 // ==================== SASA SECTION ==================== //
 
 // Add sasa
-int tanabata_sasa_add(Tanabata *tanabata, const char *path);
+uint64_t tanabata_sasa_add(Tanabata *tanabata, const char *path);
 
 // Remove sasa by ID
 int tanabata_sasa_rem(Tanabata *tanabata, uint64_t sasa_id);
