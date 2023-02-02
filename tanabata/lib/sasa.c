@@ -1,7 +1,7 @@
 #include "../core/core_func.h"
 #include "../../include/tanabata.h"
 
-uint64_t tanabata_sasa_add(Tanabata *tanabata, const char *path) {
+Sasa tanabata_sasa_add(Tanabata *tanabata, const char *path) {
     return sasa_add(&tanabata->sasahyou, path);
 }
 

@@ -35,7 +35,7 @@ int sasahyou_open(Sasahyou *sasahyou, const char *path);
 int sasahyou_dump(Sasahyou *sasahyou, const char *path);
 
 // Add sasa to sasahyou
-uint64_t sasa_add(Sasahyou *sasahyou, const char *path);
+Sasa sasa_add(Sasahyou *sasahyou, const char *path);
 
 // Remove sasa from sasahyou
 int sasa_rem(Sasahyou *sasahyou, uint64_t sasa_id);
