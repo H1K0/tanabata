@@ -1,43 +1,66 @@
-var sasahyou = null, sappyou = null, shoppyou = null;
+var sasahyou = JSON.parse(localStorage["sasahyou"]),
+	sappyou = JSON.parse(localStorage["sappyou"]),
+	shoppyou = JSON.parse(localStorage["shoppyou"]);
+var sasahyou_mts = parseInt(localStorage["sasahyou_mts"]),
+	sappyou_mts = parseInt(localStorage["sappyou_mts"]),
+	shoppyou_mts = parseInt(localStorage["shoppyou_mts"]);
 var current_sasa = null, current_tanzaku = null;
 
 function sasahyou_load() {
-	resp = tdb_query("$TFM", 16, "");
-	if (resp == null) {
-		$(location).attr("href", "/auth");
-		throw new Error("Unauthorized");
+	let db_info = tdb_query("$TFM", 0, "");
+	if (db_info == null || !db_info.status) {
+		alert("Failed to fetch TFM database");
+		throw new Error("Failed to fetch TFM database");
 	}
-	if (!resp.status) {
-		alert("Something went wrong");
-		return;
+	if (sasahyou == null || sasahyou_mts !== db_info.data[0].sasahyou_mts) {
+		let resp = tdb_query("$TFM", 16, "");
+		if (resp == null || !resp.status) {
+			alert("Failed to get sasahyou");
+			throw new Error("Failed to get sasahyou");
+		}
+		sasahyou = resp.data;
+		sasahyou_mts = db_info.data[0].sasahyou_mts;
+		localStorage["sasahyou"] = JSON.stringify(sasahyou);
+		localStorage["sasahyou_mts"] = sasahyou_mts;
 	}
-	sasahyou = resp.data;
 }
 
 function sappyou_load() {
-	resp = tdb_query("$TFM", 32, "");
-	if (resp == null) {
-		$(location).attr("href", "/auth");
-		throw new Error("Unauthorized");
+	let db_info = tdb_query("$TFM", 0, "");
+	if (db_info == null || !db_info.status) {
+		alert("Failed to fetch TFM database");
+		throw new Error("Failed to fetch TFM database");
 	}
-	if (!resp.status) {
-		alert("Something went wrong");
-		return;
+	if (sappyou == null || sappyou_mts !== db_info.data[0].sappyou_mts) {
+		let resp = tdb_query("$TFM", 32, "");
+		if (resp == null || !resp.status) {
+			alert("Failed to get sappyou");
+			throw new Error("Failed to get sappyou");
+		}
+		sappyou = resp.data;
+		sappyou_mts = db_info.data[0].sappyou_mts;
+		localStorage["sappyou"] = JSON.stringify(sappyou);
+		localStorage["sappyou_mts"] = sappyou_mts;
 	}
-	sappyou = resp.data;
 }
 
 function shoppyou_load() {
-	resp = tdb_query("$TFM", 8, "");
-	if (resp == null) {
-		$(location).attr("href", "/auth");
-		throw new Error("Unauthorized");
+	let db_info = tdb_query("$TFM", 0, "");
+	if (db_info == null || !db_info.status) {
+		alert("Failed to fetch TFM database");
+		throw new Error("Failed to fetch TFM database");
 	}
-	if (!resp.status) {
-		alert("Something went wrong");
-		return;
+	if (shoppyou == null || shoppyou_mts !== db_info.data[0].shoppyou_mts) {
+		let resp = tdb_query("$TFM", 8, "");
+		if (resp == null || !resp.status) {
+			alert("Failed to get shoppyou");
+			throw new Error("Failed to get shoppyou");
+		}
+		shoppyou = resp.data;
+		shoppyou_mts = db_info.data[0].shoppyou_mts;
+		localStorage["shoppyou"] = JSON.stringify(shoppyou);
+		localStorage["shoppyou_mts"] = shoppyou_mts;
 	}
-	shoppyou = resp.data;
 }
 
 $(document).keyup(function (e) {
