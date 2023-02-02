@@ -89,10 +89,6 @@ main {
 	right: 0;
 }
 
-.file-nav-btn:hover {
-	background-color: #0001;
-}
-
 #file-prev {
 	right: 50%;
 }
