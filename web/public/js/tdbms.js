@@ -1,5 +1,5 @@
 function tdb_query(trdb, trc, trb) {
-	output = null;
+	let output = null;
 	$.ajax({
 		url: "/TDBMS",
 		type: "POST",
