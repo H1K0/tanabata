@@ -28,6 +28,14 @@ $(document).on("input", "#text-filter", function (e) {
 
 $(document).on("dblclick", ".item", function (e) {
 	e.preventDefault();
+	$(function () {
+		$(".thumb").Lazy({
+			scrollDirection: "vertical",
+			effect: "fadeIn",
+			visibleOnly: true,
+			appendScroll: $(".list")[0],
+		});
+	});
 	let id = parseInt($(this).attr("id").slice(1));
 	sappyou.every(tanzaku => {
 		if (tanzaku.id === id) {
