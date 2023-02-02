@@ -83,6 +83,7 @@ function menu_view_file_open() {
 	$("#menu-file-view").css("display", "flex");
 	$("#preview").attr("src", "/preview/" + current_sasa.path);
 	$("#name").val(decodeURI(current_sasa.path));
+	$(".list-item").css("display", "");
 	$("#btn-full").attr("href", "/files/" + current_sasa.path);
 	let resp = tdb_query("$TFM", 24, '' + current_sasa.id);
 	if (!resp.status) {
@@ -131,7 +132,7 @@ function menu_view_close() {
 	$(".menu-wrapper").css("display", "none");
 	$("#menu-view").css("display", "none");
 	$("#menu-file-view").css("display", "none");
-	$(".list-item").removeClass("selected").css("display", "block");
+	$(".list-item").removeClass("selected").css("display", "");
 	$("#name").val("");
 	$(".menu #text-filter").val("");
 }
