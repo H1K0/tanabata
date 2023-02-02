@@ -594,8 +594,13 @@ int execute(char *request, char **response) {
         if (tanabata == NULL) {
             return 1;
         }
-        **response = 0;
-        return tanabata_sasa_add(tanabata, request_body);
+        Sasa newbie = tanabata_sasa_add(tanabata, request_body);
+        if (newbie.id == HOLE_ID) {
+            return 1;
+        }
+        sprintf(buffer, "{\"id\":%lu,\"cts\":%lu,\"path\":\"%s\"}]}",
+                newbie.id, newbie.created_ts, newbie.path);
+        return 0;
     }
     if (request_code == trc_sasa_update) {
         if (tanabata == NULL) {
