@@ -139,10 +139,21 @@ func HandlerTDBMS(w http.ResponseWriter, r *http.Request) {
 	}
 	response = tdbms.Query(request.TRDB, request.TRC, request.TRB)
 	if response == nil {
-		http.Error(w, "Failed to execute request", http.StatusInternalServerError)
-		defer log.Println("Failed to execute request")
-		return
+		log.Println("Failed to get TDBMS response. Trying to reconnect to TDBMS server...")
+		err = tdbms.Reconnect()
+		if err != nil {
+			http.Error(w, "TDBMS is down", http.StatusServiceUnavailable)
+			defer log.Println("TDBMS is down")
+			return
+		}
+		response = tdbms.Query(request.TRDB, request.TRC, request.TRB)
+		if response == nil {
+			http.Error(w, "Failed to get TDBMS response", http.StatusInternalServerError)
+			defer log.Println("Failed to get TDBMS response")
+			return
+		}
 	}
+	log.Println("Got TDBMS response")
 	if request.TRDB == "$TFM" && (request.TRC == 0b10000 || request.TRC == 0b101000) {
 		var json_response JSON
 		err = json.Unmarshal(response, &json_response)

@@ -7,13 +7,29 @@ import (
 
 // TDBMS connection struct
 type TDBMSConnection struct {
-	conn net.Conn
+	domain string
+	addr   string
+	conn   net.Conn
 }
 
 // Connect to TDBMS server
 func (tdbms *TDBMSConnection) Connect(domain, addr string) error {
 	c, err := net.Dial(domain, addr)
-	tdbms.conn = c
+	if err == nil {
+		tdbms.domain = domain
+		tdbms.addr = addr
+		tdbms.conn = c
+	}
+	return err
+}
+
+// Reconnect to TDBMS server
+func (tdbms *TDBMSConnection) Reconnect() error {
+	tdbms.Close()
+	c, err := net.Dial(tdbms.domain, tdbms.addr)
+	if err == nil {
+		tdbms.conn = c
+	}
 	return err
 }
 
