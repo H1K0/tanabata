@@ -69,11 +69,36 @@ main {
 	overflow-y: scroll;
 }
 
+.preview {
+	position: relative;
+	width: 100%;
+}
+
 #preview {
-	max-width: 100%;
+	width: 100%;
 	max-height: 90vh;
 	object-fit: contain;
 	object-position: center;
+}
+
+.file-nav-btn {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+}
+
+.file-nav-btn:hover {
+	background-color: #0001;
+}
+
+#file-prev {
+	right: 50%;
+}
+
+#file-next {
+	left: 50%;
 }
 
 form {

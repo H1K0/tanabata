@@ -19,6 +19,7 @@ if (localStorage["shoppyou_mts"] != null) {
 	shoppyou_mts = parseInt(localStorage["shoppyou_mts"]);
 }
 var current_sasa = null, current_tanzaku = null;
+var current_sasa_index = 0;
 
 function sasahyou_load() {
 	let db_info = tdb_query("$TFM", 0, "");
@@ -135,6 +136,7 @@ function menu_view_close() {
 	$(".list-item").removeClass("selected").css("display", "");
 	$("#name").val("");
 	$(".menu #text-filter").val("");
+	current_sasa_index = -1;
 }
 
 function menu_add_open() {
@@ -147,6 +149,26 @@ function menu_add_close() {
 	$("#menu-add").css("display", "none");
 	$("#new-name").val("");
 	$("#new-description").val("");
+}
+
+function file_next() {
+	if (current_sasa_index === sasahyou.length - 1) {
+		menu_view_close();
+		return;
+	}
+	current_sasa_index++;
+	current_sasa = sasahyou[current_sasa_index];
+	menu_view_file_open();
+}
+
+function file_prev() {
+	if (current_sasa_index === 0) {
+		menu_view_close();
+		return;
+	}
+	current_sasa_index--;
+	current_sasa = sasahyou[current_sasa_index];
+	menu_view_file_open();
 }
 
 $(document).keyup(function (e) {
@@ -200,4 +222,14 @@ $(document).on("click", "#btn-close", function (e) {
 $(document).on("click", "#btn-reset", function (e) {
 	e.preventDefault();
 	menu_add_close();
+});
+
+$(document).on("click", "#file-next", function (e) {
+	e.preventDefault();
+	file_next();
+});
+
+$(document).on("click", "#file-prev", function (e) {
+	e.preventDefault();
+	file_prev();
 });

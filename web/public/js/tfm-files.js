@@ -20,11 +20,13 @@ $(window).on("load", function () {
 $(document).on("dblclick", ".item", function (e) {
 	e.preventDefault();
 	let id = parseInt($(this).attr("id").slice(1));
+	current_sasa_index = 0;
 	sasahyou.every(sasa => {
 		if (sasa.id === id) {
 			current_sasa = sasa;
 			return false;
 		}
+		current_sasa_index++;
 		return true;
 	});
 	menu_view_file_open();
