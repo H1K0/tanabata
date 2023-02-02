@@ -150,9 +150,9 @@ int sappyou_dump(Sappyou *sappyou, const char *path) {
     return sappyou_save(sappyou);
 }
 
-int tanzaku_add(Sappyou *sappyou, const char *name, const char *description) {
+Tanzaku tanzaku_add(Sappyou *sappyou, const char *name, const char *description) {
     if (name == NULL || description == NULL || sappyou->size == -1 && sappyou->hole_cnt == 0) {
-        return 1;
+        return HOLE_TANZAKU;
     }
     Tanzaku newbie;
     newbie.created_ts = time(NULL);
@@ -174,7 +174,7 @@ int tanzaku_add(Sappyou *sappyou, const char *name, const char *description) {
         sappyou->database[newbie.id] = newbie;
     }
     sappyou->modified_ts = newbie.created_ts;
-    return 0;
+    return newbie;
 }
 
 int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id) {

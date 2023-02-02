@@ -1,7 +1,7 @@
 #include "../core/core_func.h"
 #include "../../include/tanabata.h"
 
-int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description) {
+Tanzaku tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description) {
     return tanzaku_add(&tanabata->sappyou, name, description);
 }
 

@@ -54,7 +54,7 @@ Sasa tanabata_sasa_get(Tanabata *tanabata, uint64_t sasa_id);
 // ==================== TANZAKU SECTION ==================== //
 
 // Add tanzaku
-int tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description);
+Tanzaku tanabata_tanzaku_add(Tanabata *tanabata, const char *name, const char *description);
 
 // Remove tanzaku by ID
 int tanabata_tanzaku_rem(Tanabata *tanabata, uint64_t tanzaku_id);

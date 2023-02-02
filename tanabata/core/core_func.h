@@ -64,7 +64,7 @@ int sappyou_open(Sappyou *sappyou, const char *path);
 int sappyou_dump(Sappyou *sappyou, const char *path);
 
 // Add new tanzaku to sappyou
-int tanzaku_add(Sappyou *sappyou, const char *name, const char *description);
+Tanzaku tanzaku_add(Sappyou *sappyou, const char *name, const char *description);
 
 // Remove tanzaku from sappyou
 int tanzaku_rem(Sappyou *sappyou, uint64_t tanzaku_id);
