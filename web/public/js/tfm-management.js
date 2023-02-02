@@ -19,7 +19,7 @@ if (localStorage["shoppyou_mts"] != null) {
 	shoppyou_mts = parseInt(localStorage["shoppyou_mts"]);
 }
 var current_sasa = null, current_tanzaku = null;
-var current_sasa_index = 0;
+var current_sasa_index = -1;
 
 function sasahyou_load() {
 	let db_info = tdb_query("$TFM", 0, "");
@@ -172,8 +172,25 @@ function file_prev() {
 }
 
 $(document).keyup(function (e) {
-	if (e.key === "Escape") {
-		$(".selected").removeClass("selected");
+	switch (e.key) {
+		case "Esc":
+		case "Escape":
+			$(".selected").removeClass("selected");
+			break;
+		case "Left":
+		case "ArrowLeft":
+			if (current_sasa_index >= 0) {
+				file_prev();
+			}
+			break;
+		case "Right":
+		case "ArrowRight":
+			if (current_sasa_index >= 0) {
+				file_next();
+			}
+			break;
+		default:
+			return;
 	}
 });
 
