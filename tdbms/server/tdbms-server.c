@@ -755,7 +755,17 @@ int execute(char *request, char **response) {
         }
         *request_body = 0;
         char *description = request_body + 1;
-        return tanabata_tanzaku_add(tanabata, name, description);
+        Tanzaku temp = tanabata_tanzaku_add(tanabata, name, description);
+        if (temp.id == HOLE_ID) {
+            return 1;
+        }
+        char *escaped_name = escape(temp.name),
+                *escaped_description = escape(temp.description);
+        sprintf(buffer, "{\"id\":%lu,\"cts\":%lu,\"mts\":%lu,\"name\":\"%s\",\"desc\":\"%s\"}]}",
+                temp.id, temp.created_ts, temp.modified_ts, escaped_name, escaped_description);
+        free(escaped_name);
+        free(escaped_description);
+        return 0;
     }
     if (request_code == trc_tanzaku_update) {
         if (tanabata == NULL) {
