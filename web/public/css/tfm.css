@@ -103,6 +103,21 @@ form {
 	min-height: 0;
 }
 
+.form-group.row {
+	margin-left: 0;
+	margin-right: 0;
+}
+
+.col-form-label {
+	flex: 0 0 auto;
+	margin-right: 10px;
+}
+
+.col-form-input {
+	flex: 1 1 auto;
+	min-width: 200px;
+}
+
 .list {
 	flex: 1 1 auto;
 	display: flex;
