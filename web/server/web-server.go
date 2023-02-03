@@ -44,15 +44,20 @@ func TokenGenerate(seed []byte) {
 	defer log.Println("Token generated")
 }
 
-func Auth(handler http.HandlerFunc) http.HandlerFunc {
+func Auth(handler http.HandlerFunc, redirect bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		authorized := false
 		defer func() {
 			if authorized {
 				handler.ServeHTTP(w, r)
 			} else {
-				http.Redirect(w, r, "/auth", http.StatusSeeOther)
-				defer log.Println("Unauthorized request, redirecting to /auth")
+				if redirect {
+					http.Redirect(w, r, "/auth", http.StatusSeeOther)
+					defer log.Println("Unauthorized request, redirecting to /auth")
+				} else {
+					http.Error(w, "Unauthorized", http.StatusUnauthorized)
+					defer log.Println("Unauthorized request, status 401")
+				}
 			}
 		}()
 		token, err := r.Cookie("token")
@@ -223,20 +228,20 @@ func main() {
 		public_fs.ServeHTTP(w, r)
 	})
 	http.HandleFunc("/AUTH", HandlerAuth)
-	http.HandleFunc("/TDBMS", Auth(HandlerTDBMS))
+	http.HandleFunc("/TDBMS", Auth(HandlerTDBMS, false))
 	tfm_fs := http.FileServer(http.Dir("/srv/data/tfm"))
 	http.Handle("/files/", Auth(func(w http.ResponseWriter, r *http.Request) {
 		http.StripPrefix("/files", tfm_fs).ServeHTTP(w, r)
-	}))
+	}, true))
 	http.Handle("/thumbs/", Auth(func(w http.ResponseWriter, r *http.Request) {
 		thumb_path := strings.Split(r.URL.Path, "/")
 		thumb_path[len(thumb_path)-1] = ".thumb-" + thumb_path[len(thumb_path)-1]
 		r.URL.Path = strings.Join(thumb_path, "/")
 		http.StripPrefix("/thumbs", tfm_fs).ServeHTTP(w, r)
-	}))
+	}, true))
 	http.Handle("/preview/", Auth(func(w http.ResponseWriter, r *http.Request) {
 		http.StripPrefix("/preview", tfm_fs).ServeHTTP(w, r)
-	}))
+	}, true))
 	log.Println("Running...")
 	err = server.ListenAndServeTLS("/etc/ssl/certs/web-global.crt", "/etc/ssl/private/web-global.key")
 	if errors.Is(err, http.ErrServerClosed) {
