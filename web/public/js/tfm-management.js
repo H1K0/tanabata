@@ -115,7 +115,7 @@ function menu_view_tag_open() {
 			scrollDirection: "vertical",
 			effect: "fadeIn",
 			visibleOnly: true,
-			appendScroll: $(".list")[0],
+			appendScroll: $("#menu-tag-view .list")[0],
 		});
 	});
 	$("#menu-tag-view .selected").removeClass("selected");
