@@ -7,6 +7,11 @@ function tdb_query(trdb, trc, trb) {
 		data: `{"trdb":${JSON.stringify(trdb)},"trc":${trc},"trb":${JSON.stringify(trb)}}`,
 		dataType: "json",
 		async: false,
+		statusCode: {
+			401: function () {
+				location.href = "/auth";
+			}
+		},
 		success: function (resp) {
 			output = resp;
 		},
