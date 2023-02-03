@@ -46,7 +46,7 @@ main {
 }
 
 .menu {
-	display: none;
+	display: flex;
 	flex-direction: column;
 	justify-content: flex-start;
 	background-color: #eee;
@@ -60,7 +60,7 @@ main {
 	overflow: hidden;
 }
 
-#menu-file-view {
+#menu-file-view .menu {
 	margin: 0;
 	width: 100%;
 	max-width: 120vmin;

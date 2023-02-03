@@ -34,9 +34,9 @@
 <main>
 	<form id="filter">
 		<div class="form-group row">
-			<label class="col-sm-2 col-form-label" for="text-filter">Tag filter</label>
-			<div class="col-sm-10">
-				<input type="text" name="text-filter" class="form-control" id="text-filter">
+			<label class="col-form-label" for="text-filter-all">Tag filter</label>
+			<div class="col-form-input">
+				<input type="text" name="text-filter" class="form-control" id="text-filter-all">
 			</div>
 		</div>
 	</form>
@@ -44,34 +44,69 @@
 		<button class="btn btn-outline-secondary tanzaku" id="btn-new"><b>NEW</b></button>
 	</div>
 </main>
-<div class="menu-wrapper">
-	<div class="menu" id="menu-view">
+<div class="menu-wrapper" id="menu-tag-view">
+	<div class="menu">
 		<h2>Tag menu</h2>
 		<form>
 			<div class="form-group row">
-				<label class="col-sm-2 col-form-label" for="name">Tag name</label>
-				<div class="col-sm-10">
-					<input type="text" name="name" class="form-control" id="name">
+				<label class="col-form-label" for="tag-name">Tag name</label>
+				<div class="col-form-input">
+					<input type="text" name="name" class="form-control" id="tag-name">
 				</div>
 			</div>
 			<div class="form-group form-check">
-				<input type="checkbox" name="selection-filter" class="form-check-input" id="selection-filter" checked>
-				<label class="form-check-label" for="selection-filter">Show only selected</label>
+				<input type="checkbox" name="selection-filter" class="form-check-input" id="tag-selection-filter">
+				<label class="form-check-label" for="tag-selection-filter">Show only selected</label>
 			</div>
 			<div class="form-group list"></div>
 			<div class="form-group button-flex">
-				<button type="submit" class="btn btn-primary" id="btn-confirm">Confirm</button>
+				<button type="submit" class="btn btn-primary">Confirm</button>
 				<button class="btn btn-danger" id="btn-remove">Remove</button>
-				<button class="btn btn-outline-danger" id="btn-close">Close</button>
+				<button type="reset" class="btn btn-outline-danger">Close</button>
 			</div>
 		</form>
 	</div>
-	<div class="menu" id="menu-add">
+</div>
+<div class="menu-wrapper" id="menu-file-view">
+	<div class="menu">
+		<div class="preview">
+			<img id="preview">
+			<div class="file-nav-btn" id="file-prev"></div>
+			<div class="file-nav-btn" id="file-next"></div>
+		</div>
+		<form>
+			<div class="form-group row">
+				<label class="col-form-label" for="file-name">File name</label>
+				<div class="col-form-input">
+					<input type="text" name="name" class="form-control" id="file-name">
+				</div>
+			</div>
+			<div class="form-group row">
+				<label class="col-form-label" for="text-filter">Tag filter</label>
+				<div class="col-form-input">
+					<input type="text" name="text-filter" class="form-control" id="text-filter">
+				</div>
+			</div>
+			<div class="form-group form-check">
+				<input type="checkbox" name="selection-filter" class="form-check-input" id="file-selection-filter" checked>
+				<label class="form-check-label" for="file-selection-filter">Show only selected</label>
+			</div>
+			<div class="form-group list" id="file-list"></div>
+			<div class="form-group button-flex">
+				<button type="submit" class="btn btn-primary">Confirm</button>
+				<a target="_blank" class="btn btn-outline-info" id="btn-full">View full</a>
+				<button type="reset" class="btn btn-outline-danger">Close</button>
+			</div>
+		</form>
+	</div>
+</div>
+<div class="menu-wrapper" id="menu-add">
+	<div class="menu">
 		<h2>New tag</h2>
 		<form>
 			<div class="form-group row">
-				<label class="col-sm-2 col-form-label" for="new-name">Tag name</label>
-				<div class="col-sm-10">
+				<label class="col-form-label" for="new-name">Tag name</label>
+				<div class="col-form-input">
 					<input type="text" name="new-name" class="form-control" id="new-name">
 				</div>
 			</div>
@@ -80,8 +115,8 @@
 				<textarea class="form-control" name="new-description" id="new-description" rows="10"></textarea>
 			</div>
 			<div class="form-group button-flex">
-				<button type="submit" class="btn btn-primary" id="btn-add">Add</button>
-				<button class="btn btn-outline-danger" id="btn-reset">Reset</button>
+				<button type="submit" class="btn btn-primary">Add</button>
+				<button type="reset" class="btn btn-outline-danger">Reset</button>
 			</div>
 		</form>
 	</div>
