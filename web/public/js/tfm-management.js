@@ -288,19 +288,19 @@ $(document).on("click", "#tag-selection-filter", function (e) {
 $(document).on("input", "#text-filter", function (e) {
 	let filter = $(this).val().toLowerCase();
 	let unfiltered;
-	if ($("#selection-filter")[0].checked) {
+	if ($("#file-selection-filter")[0].checked) {
 		unfiltered = $(".list-item.selected");
 	} else {
 		unfiltered = $(".list-item");
 	}
 	if (filter === "") {
-		unfiltered.css("display", "block");
+		unfiltered.css("display", "");
 		return;
 	}
 	unfiltered.each((index, element) => {
 		let current = $(element);
 		if (current.text().toLowerCase().includes(filter)) {
-			current.css("display", "block");
+			current.css("display", "");
 		} else {
 			current.css("display", "none");
 		}

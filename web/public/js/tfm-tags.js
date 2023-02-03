@@ -14,13 +14,13 @@ $(document).on("input", "#text-filter-all", function (e) {
 	let filter = $(this).val().toLowerCase();
 	let unfiltered = $(".item");
 	if (filter === "") {
-		unfiltered.css("display", "block");
+		unfiltered.css("display", "");
 		return;
 	}
 	unfiltered.each((index, element) => {
 		let current = $(element);
 		if (current.text().toLowerCase().includes(filter)) {
-			current.css("display", "block");
+			current.css("display", "");
 		} else {
 			current.css("display", "none");
 		}
