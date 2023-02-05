@@ -80,5 +80,13 @@ fi
 chown 0:0 /etc/systemd/system/tdbms.service
 chmod 0644 /etc/systemd/system/tdbms.service
 
+if ! (cmake -S .. -B ../build && cmake --build ../build --target tdb); then
+  echo "FATAL: failed to build TDB CLI client"
+  exit 1
+fi
+mv -f ../build/tdb /usr/bin/
+chown 42776 /usr/bin/tdb
+chmod 4755 /usr/bin/tdb
+
 echo "TDBMS server successfully installed."
 echo "Start it with 'systemctl start tdbms'"
