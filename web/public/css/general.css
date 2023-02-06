@@ -15,7 +15,9 @@ body {
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	background-image: url(/images/bg-1920x1440.webp);
+	color: #eee;
+	background-color: #2d2b40;
+	background-image: url(/images/bg-1920x1440-dark.webp);
 	background-size: 100% auto;
 	background-repeat: no-repeat;
 }
@@ -30,10 +32,10 @@ header {
 h1 {
 	margin: 12px 0;
 	padding: 0;
-	color: white;
+	color: inherit;
 	font-family: Epilogue, sans-serif;
 	font-size: 10vmin;
-	text-shadow: 0 0 8px black;
+	text-shadow: 0 0 8px #555;
 	text-align: center;
 	cursor: default;
 }
@@ -52,7 +54,7 @@ main {
 	margin: 0;
 	display: flex;
 	flex-direction: column;
-	background-color: #fff8;
+	background-color: #3348;
 	box-shadow: 0 0 0.5vw black;
 	border-radius: 16px;
 	width: 80vw;
@@ -62,7 +64,7 @@ main {
 }
 
 main:hover {
-	background-color: #fff;
+	background-color: #334;
 	box-shadow: 0 0 1vw black;
 }
 
@@ -83,11 +85,12 @@ h2 {
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	background-color: hsla(270, 80%, 80%, 0.6);
+	background-color: hsla(270, 30%, 60%, 0.6);
 	border-bottom: 0;
+	color: #111;
 	font-family: Secular One, sans-serif;
 	font-size: 5.5vmin;
-	text-shadow: 2.5px 2px 0.5px white;
+	text-shadow: 2.5px 2px 0.5px #ddd;
 	text-align: center;
 	cursor: default;
 }
@@ -105,6 +108,17 @@ form {
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
+}
+
+.form-control,
+.form-control:focus {
+	color: #ddd !important;
+	background-color: #445;
+}
+
+.form-control::placeholder,
+.form-control::-webkit-input-placeholder {
+	color: #bbb !important;
 }
 
 .button-flex {
