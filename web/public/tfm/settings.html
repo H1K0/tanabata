@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Settings | Tanabata File Manager</title>
+	<link rel="apple-touch-icon" sizes="57x57" href="/images/apple-icon-57x57.png">
+	<link rel="apple-touch-icon" sizes="60x60" href="/images/apple-icon-60x60.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/images/apple-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="76x76" href="/images/apple-icon-76x76.png">
+	<link rel="apple-touch-icon" sizes="114x114" href="/images/apple-icon-114x114.png">
+	<link rel="apple-touch-icon" sizes="120x120" href="/images/apple-icon-120x120.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/images/apple-icon-144x144.png">
+	<link rel="apple-touch-icon" sizes="152x152" href="/images/apple-icon-152x152.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-icon-180x180.png">
+	<link rel="icon" type="image/png" sizes="192x192" href="/images/android-icon-192x192.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="96x96" href="/images/favicon-96x96.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+	<link rel="manifest" href="/tanabata.webmanifest">
+	<meta name="msapplication-TileColor" content="#615880">
+	<meta name="msapplication-TileImage" content="/images/ms-icon-144x144.png">
+	<meta name="theme-color" content="#615880">
+	<link rel="stylesheet" href="/css/bootstrap.min.css">
+	<link rel="stylesheet" href="/css/general.css">
+	<script src="/js/jquery-3.6.0.min.js"></script>
+	<script src="/js/tdbms.js"></script>
+</head>
+<body>
+<h1>TFM: Settings</h1>
+<main>
+	<div class="contents-wrapper">
+		<form id="settings">
+			<div class="form-group">
+				<label for="db_name">Database name</label>
+				<input type="text" name="db_name" class="form-control" id="db_name" placeholder="Enter TFM database name">
+				<div class="invalid-feedback">Database not found</div>
+			</div>
+			<table class="form-group">
+				<tr>
+					<td>
+						<fieldset class="form-group">
+							<legend>Files sorting</legend>
+							<div class="form-check">
+								<input type="radio" name="sort-files" id="files-by-id">
+								<label for="files-by-id">By ID</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-files" id="files-by-ctime">
+								<label for="files-by-ctime">By ctime</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-files" id="files-by-name">
+								<label for="files-by-name">By name</label>
+							</div>
+						</fieldset>
+					</td>
+					<td>
+						<fieldset class="form-group">
+							<legend>Tags sorting</legend>
+							<div class="form-check">
+								<input type="radio" name="sort-tags" id="tags-by-id">
+								<label for="tags-by-id">By ID</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-tags" id="tags-by-ctime">
+								<label for="tags-by-ctime">By ctime</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-tags" id="tags-by-mtime">
+								<label for="tags-by-mtime">By mtime</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-tags" id="tags-by-name">
+								<label for="tags-by-name">By name</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-tags" id="tags-by-nfiles">
+								<label for="tags-by-nfiles">By kazari count</label>
+							</div>
+						</fieldset>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<div class="form-group form-check">
+							<input type="checkbox" name="sort-files-reverse" class="form-check-input" id="files-reverse">
+							<label class="form-check-label" for="files-reverse">Reverse sorting</label>
+						</div>
+					</td>
+					<td>
+						<div class="form-group form-check">
+							<input type="checkbox" name="sort-tags-reverse" class="form-check-input" id="tags-reverse">
+							<label class="form-check-label" for="tags-reverse">Reverse sorting</label>
+						</div>
+					</td>
+				</tr>
+			</table>
+			<div class="button-flex">
+				<button type="submit" class="btn btn-primary">Apply</button>
+				<a href="/tfm" class="btn btn-outline-secondary">TFM home</a>
+				<button type="reset" class="btn btn-danger">Reset</button>
+			</div>
+		</form>
+	</div>
+</main>
+<script src="/js/tfm-settings.js"></script>
+</body>
+</html>

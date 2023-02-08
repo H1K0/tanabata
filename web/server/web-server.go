@@ -159,7 +159,7 @@ func HandlerTDBMS(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	log.Println("Got TDBMS response")
-	if request.TRDB == "$TFM" && (request.TRC == 0b10000 || request.TRC == 0b101000) {
+	if strings.HasPrefix(strings.ToLower(request.TRDB), "tfm") && (request.TRC == 0b10000 || request.TRC == 0b101000) {
 		var json_response JSON
 		err = json.Unmarshal(response, &json_response)
 		if err != nil {

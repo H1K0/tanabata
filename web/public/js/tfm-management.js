@@ -1,3 +1,7 @@
+var db_name = localStorage["tfm_db_name"];
+if (db_name == null) {
+	location.href = "/tfm/settings";
+}
 var sasahyou = null, sappyou = null, shoppyou = null;
 if (localStorage["sasahyou"] != null) {
 	sasahyou = JSON.parse(localStorage["sasahyou"]);
@@ -23,13 +27,13 @@ var current_sasa_index = -1;
 var menu_count = 0;
 
 function sasahyou_load() {
-	let db_info = tdb_query("$TFM", 0, "");
+	let db_info = tdb_query(db_name, 0, "");
 	if (db_info == null || !db_info.status) {
 		alert("Failed to fetch TFM database");
 		throw new Error("Failed to fetch TFM database");
 	}
 	if (sasahyou == null || sasahyou_mts !== db_info.data[0].sasahyou.mts) {
-		let resp = tdb_query("$TFM", 16, "");
+		let resp = tdb_query(db_name, 16, "");
 		if (resp == null || !resp.status) {
 			alert("Failed to get sasahyou");
 			throw new Error("Failed to get sasahyou");
@@ -42,13 +46,13 @@ function sasahyou_load() {
 }
 
 function sappyou_load() {
-	let db_info = tdb_query("$TFM", 0, "");
+	let db_info = tdb_query(db_name, 0, "");
 	if (db_info == null || !db_info.status) {
 		alert("Failed to fetch TFM database");
 		throw new Error("Failed to fetch TFM database");
 	}
 	if (sappyou == null || sappyou_mts !== db_info.data[0].sappyou.mts) {
-		let resp = tdb_query("$TFM", 32, "");
+		let resp = tdb_query(db_name, 32, "");
 		if (resp == null || !resp.status) {
 			alert("Failed to get sappyou");
 			throw new Error("Failed to get sappyou");
@@ -61,13 +65,13 @@ function sappyou_load() {
 }
 
 function shoppyou_load() {
-	let db_info = tdb_query("$TFM", 0, "");
+	let db_info = tdb_query(db_name, 0, "");
 	if (db_info == null || !db_info.status) {
 		alert("Failed to fetch TFM database");
 		throw new Error("Failed to fetch TFM database");
 	}
 	if (shoppyou == null || shoppyou_mts !== db_info.data[0].shoppyou.mts) {
-		let resp = tdb_query("$TFM", 8, "");
+		let resp = tdb_query(db_name, 8, "");
 		if (resp == null || !resp.status) {
 			alert("Failed to get shoppyou");
 			throw new Error("Failed to get shoppyou");
@@ -90,7 +94,7 @@ function menu_view_file_open() {
 	$("#file-name").val(decodeURI(current_sasa.path));
 	$("#menu-file-view .list-item").css("display", "");
 	$("#btn-full").attr("href", "/files/" + current_sasa.path);
-	let resp = tdb_query("$TFM", 24, '' + current_sasa.id);
+	let resp = tdb_query(db_name, 24, '' + current_sasa.id);
 	if (!resp.status) {
 		alert("Something went wrong!");
 		return;
@@ -122,7 +126,7 @@ function menu_view_tag_open() {
 	$("#menu-tag-view").css("display", "flex");
 	$("#menu-tag-view .list-item").css("display", "");
 	$("#tag-name").val(decodeURI(current_tanzaku.name));
-	let resp = tdb_query("$TFM", 40, '' + current_tanzaku.id);
+	let resp = tdb_query(db_name, 40, '' + current_tanzaku.id);
 	if (!resp.status) {
 		alert("Something went wrong!");
 		return;
@@ -324,7 +328,7 @@ $(document).on("reset", "#menu-add form", function (e) {
 
 $(document).on("submit", "#menu-file-view form", function (e) {
 	e.preventDefault();
-	let resp = tdb_query("$TFM", 24, '' + current_sasa.id);
+	let resp = tdb_query(db_name, 24, '' + current_sasa.id);
 	if (!resp.status) {
 		alert("Something went wrong!");
 		return;
@@ -332,7 +336,7 @@ $(document).on("submit", "#menu-file-view form", function (e) {
 	resp.data.forEach(tanzaku => {
 		let current = $(`.list-item[tid="${tanzaku.id}"]`);
 		if (!current.hasClass("selected") &&
-			!tdb_query("$TFM", 9, '' + current_sasa.id + ' ' + tanzaku.id).status) {
+			!tdb_query(db_name, 9, '' + current_sasa.id + ' ' + tanzaku.id).status) {
 			console.log("ERROR: failed to remove kazari: " + current_sasa.id + '-' + tanzaku.id);
 		}
 	});
@@ -341,7 +345,7 @@ $(document).on("submit", "#menu-file-view form", function (e) {
 		if (resp.data.find(t => t.id === tid) != null) {
 			return;
 		}
-		if (!tdb_query("$TFM", 10, '' + current_sasa.id + ' ' + tid)) {
+		if (!tdb_query(db_name, 10, '' + current_sasa.id + ' ' + tid)) {
 			console.log("ERROR: failed to add kazari: " + current_sasa.id + '-' + tid);
 		}
 	});
@@ -350,7 +354,7 @@ $(document).on("submit", "#menu-file-view form", function (e) {
 
 $(document).on("submit", "#menu-tag-view form", function (e) {
 	e.preventDefault();
-	let resp = tdb_query("$TFM", 40, '' + current_tanzaku.id);
+	let resp = tdb_query(db_name, 40, '' + current_tanzaku.id);
 	if (!resp.status) {
 		alert("Something went wrong!");
 		return;
@@ -358,7 +362,7 @@ $(document).on("submit", "#menu-tag-view form", function (e) {
 	resp.data.forEach(sasa => {
 		let current = $(`.list-item[sid="${sasa.id}"]`);
 		if (!current.hasClass("selected") &&
-			!tdb_query("$TFM", 9, '' + sasa.id + ' ' + current_tanzaku.id).status) {
+			!tdb_query(db_name, 9, '' + sasa.id + ' ' + current_tanzaku.id).status) {
 			console.log("ERROR: failed to remove kazari: " + sasa.id + '-' + current_tanzaku.id);
 		}
 	});
@@ -367,7 +371,7 @@ $(document).on("submit", "#menu-tag-view form", function (e) {
 		if (resp.data.find(s => s.id === sid) != null) {
 			return;
 		}
-		if (!tdb_query("$TFM", 10, '' + sid + ' ' + current_tanzaku.id)) {
+		if (!tdb_query(db_name, 10, '' + sid + ' ' + current_tanzaku.id)) {
 			console.log("ERROR: failed to add kazari: " + sid + '-' + current_tanzaku.id);
 		}
 	});
@@ -379,7 +383,7 @@ $(document).on("click", "#btn-remove", function (e) {
 	if (!confirm("This tag will be removed permanently. Are you sure?")) {
 		return;
 	}
-	let resp = tdb_query("$TFM", 33, '' + current_tanzaku.id);
+	let resp = tdb_query(db_name, 33, '' + current_tanzaku.id);
 	if (!resp.status) {
 		alert("Something went wrong!");
 		return;

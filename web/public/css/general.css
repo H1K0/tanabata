@@ -121,6 +121,10 @@ form {
 	color: #bbb !important;
 }
 
+td {
+	vertical-align: top;
+}
+
 .button-flex {
 	display: flex;
 	flex-direction: row;

@@ -29,7 +29,7 @@ $(document).on("input", "#text-filter-all", function (e) {
 
 $(document).on("submit", "#menu-add form", function (e) {
 	e.preventDefault();
-	let resp = tdb_query("$TFM", 34, $("#new-name").val() + '\n' + $("#new-description").val());
+	let resp = tdb_query(db_name, 34, $("#new-name").val() + '\n' + $("#new-description").val());
 	if (!resp.status) {
 		alert("Something went wrong!");
 		return;
