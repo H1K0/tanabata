@@ -10,6 +10,7 @@ function tdb_query(trdb, trc, trb) {
 		statusCode: {
 			401: function () {
 				location.href = "/auth";
+				throw new Error("Unauthorized TDBMS request");
 			}
 		},
 		success: function (resp) {
