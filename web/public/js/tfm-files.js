@@ -7,12 +7,12 @@ $(window).on("load", function () {
 			appendScroll: $(".contents-wrapper")[0],
 		});
 	});
-	sasahyou_load();
+	sasahyou_load(db_name);
 	sasahyou.forEach((sasa) => {
 		$(".contents-wrapper").append(`<div class="item sasa" sid="${sasa.id}" title="${sasa.path.split('/').slice(-1)}"><img class="thumb" data-src="${"/thumbs/" + sasa.path}"><div class="overlay"></div></div>`);
 		$("#menu-tag-view .list").append(`<div class="list-item sasa" sid="${sasa.id}" title="${sasa.path.split('/').slice(-1)}"><img class="thumb" data-src="${"/thumbs/" + sasa.path}"><div class="overlay"></div></div>`);
 	});
-	sappyou_load();
+	sappyou_load(db_name);
 	sappyou.forEach((tanzaku) => {
 		$("#menu-file-view .list").append(`<div class="list-item tanzaku" tid="${tanzaku.id}">${tanzaku.name}</div>`);
 	});

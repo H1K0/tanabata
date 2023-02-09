@@ -1,12 +1,4 @@
-var db_name = localStorage["tfm_db_name"],
-	sort_files = localStorage["sort_files"],
-	sort_tags = localStorage["sort_tags"];
-if (sort_files == null) {
-	sort_files = "id";
-}
-if (sort_tags == null) {
-	sort_tags = "id";
-}
+var db_name = localStorage["tfm_db_name"];
 
 function settings_load() {
 	if (db_name != null) {
