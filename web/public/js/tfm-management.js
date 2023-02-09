@@ -1,4 +1,4 @@
-var db_name = localStorage["tfm_db_name"];
+db_name = localStorage["tfm_db_name"];
 if (db_name == null) {
 	location.href = "/tfm/settings";
 }
