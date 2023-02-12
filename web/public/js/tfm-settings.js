@@ -55,5 +55,13 @@ $(document).on("submit", "#settings", function (e) {
 			return;
 		}
 	}
+	let sort_f = ($("#files-reverse")[0].checked ? '-' : '') + $("input[type=radio][name=sort-files]:checked").attr("id").slice(9);
+	let sort_t = ($("#tags-reverse")[0].checked ? '-' : '') + $("input[type=radio][name=sort-tags]:checked").attr("id").slice(8);
+	if (sort_f !== sort_files && '!' + sort_f !== sort_files) {
+		localStorage["sort_files"] = sort_files = '!' + sort_f;
+	}
+	if (sort_t !== sort_tags && '!' + sort_t !== sort_tags) {
+		localStorage["sort_tags"] = sort_tags = '!' + sort_t;
+	}
 	alert("Successfully updated settings!");
 });
