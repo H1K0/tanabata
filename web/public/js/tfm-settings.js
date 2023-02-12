@@ -3,6 +3,8 @@ var db_name = localStorage["tfm_db_name"];
 function settings_load() {
 	if (db_name != null) {
 		$("#db_name").val(db_name);
+	} else {
+		$("#db_name").val("");
 	}
 	if (sort_files != null) {
 		if (sort_files[0] === '-') {
@@ -34,7 +36,7 @@ $(document).on("submit", "#settings", function (e) {
 	let db_name_input = $("#db_name");
 	let db_name_val = db_name_input.val();
 	if (db_name_val !== db_name) {
-		let resp = tdb_query("", 0, "");
+		let resp = tdb_query();
 		if (!resp.status) {
 			alert("Failed to fetch databases");
 			return;
@@ -42,8 +44,7 @@ $(document).on("submit", "#settings", function (e) {
 		let found = false;
 		resp.data.every(db => {
 			if (db.name === db_name_val) {
-				db_name = db_name_val;
-				localStorage["tfm_db_name"] = db_name;
+				localStorage["tfm_db_name"] = db_name = db_name_val;
 				found = true;
 				db_name_input.removeClass("is-invalid");
 				return false;

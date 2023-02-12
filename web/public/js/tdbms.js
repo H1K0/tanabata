@@ -33,6 +33,15 @@ if (sort_tags == null) {
 }
 
 function tdb_query(trdb, trc, trb) {
+	if (trb == null) {
+		trb = "";
+	}
+	if (trc == null) {
+		trc = 0;
+	}
+	if (trdb == null) {
+		trdb = "";
+	}
 	let output = null;
 	$.ajax({
 		url: "/TDBMS",
@@ -58,13 +67,13 @@ function tdb_query(trdb, trc, trb) {
 }
 
 function sasahyou_load() {
-	let db_info = tdb_query(db_name, 0, "");
+	let db_info = tdb_query(db_name);
 	if (db_info == null || !db_info.status) {
 		alert("Failed to fetch database");
 		throw new Error("Failed to fetch database");
 	}
 	if (sasahyou == null || sasahyou_mts !== db_info.data[0].sasahyou.mts) {
-		let resp = tdb_query(db_name, 16, "");
+		let resp = tdb_query(db_name, 16);
 		if (resp == null || !resp.status) {
 			alert("Failed to get sasahyou");
 			throw new Error("Failed to get sasahyou");
@@ -80,13 +89,13 @@ function sasahyou_load() {
 }
 
 function sappyou_load() {
-	let db_info = tdb_query(db_name, 0, "");
+	let db_info = tdb_query(db_name);
 	if (db_info == null || !db_info.status) {
 		alert("Failed to fetch database");
 		throw new Error("Failed to fetch database");
 	}
 	if (sappyou == null || sappyou_mts !== db_info.data[0].sappyou.mts) {
-		let resp = tdb_query(db_name, 32, "");
+		let resp = tdb_query(db_name, 32);
 		if (resp == null || !resp.status) {
 			alert("Failed to get sappyou");
 			throw new Error("Failed to get sappyou");
@@ -102,13 +111,13 @@ function sappyou_load() {
 }
 
 function shoppyou_load() {
-	let db_info = tdb_query(db_name, 0, "");
+	let db_info = tdb_query(db_name);
 	if (db_info == null || !db_info.status) {
 		alert("Failed to fetch database");
 		throw new Error("Failed to fetch database");
 	}
 	if (shoppyou == null || shoppyou_mts !== db_info.data[0].shoppyou.mts) {
-		let resp = tdb_query(db_name, 8, "");
+		let resp = tdb_query(db_name, 8);
 		if (resp == null || !resp.status) {
 			alert("Failed to get shoppyou");
 			throw new Error("Failed to get shoppyou");
