@@ -49,6 +49,7 @@ function menu_view_tag_open() {
 	$("#menu-tag-view").css("display", "flex");
 	$("#menu-tag-view .list-item").css("display", "");
 	$("#tag-name").val(decodeURI(current_tanzaku.name));
+	$("#description").val(current_tanzaku.desc);
 	let resp = tdb_query(db_name, 40, '' + current_tanzaku.id);
 	if (!resp.status) {
 		alert("Something went wrong!");
@@ -78,6 +79,7 @@ function menu_view_tag_close() {
 	$("#menu-tag-view").css("display", "none");
 	$("#menu-tag-view .list-item").removeClass("selected").css("display", "");
 	$("#tag-name").val("");
+	$("#description").val("");
 }
 
 function menu_add_open() {
@@ -278,14 +280,16 @@ $(document).on("submit", "#menu-file-view form", function (e) {
 $(document).on("submit", "#menu-tag-view form", function (e) {
 	e.preventDefault();
 	let resp;
-	let name = $("#tag-name").val();
-	if (name !== current_tanzaku.name) {
-		resp = tdb_query(db_name, 36, '' + current_tanzaku.id + ' ' + name + '\n' + current_tanzaku.desc);
+	let name = $("#tag-name").val(),
+		desc = $("#description").val();
+	if (name !== current_tanzaku.name || desc !== current_tanzaku.desc) {
+		resp = tdb_query(db_name, 36, '' + current_tanzaku.id + ' ' + name + '\n' + desc);
 		if (!resp.status) {
 			alert("Something went wrong!");
 			return;
 		}
 		current_tanzaku.name = name;
+		current_tanzaku.desc = desc;
 		$(`.tanzaku[tid=${current_tanzaku.id}]`).text(name);
 	}
 	resp = tdb_query(db_name, 40, '' + current_tanzaku.id);
