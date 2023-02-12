@@ -20,6 +20,9 @@ $(document).on("click", "#btn-discard", function (e) {
 	}
 	let resp = tdb_query(db_name, 2);
 	if (resp.status) {
+		localStorage["sasahyou_mts"] = sasahyou_mts = 0;
+		localStorage["sappyou_mts"] = sappyou_mts = 0;
+		localStorage["shoppyou_mts"] = shoppyou_mts = 0;
 		alert("Successfully reloaded database!");
 	} else {
 		alert("Something went wrong!");
