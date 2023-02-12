@@ -47,6 +47,9 @@ $(document).on("submit", "#settings", function (e) {
 				localStorage["tfm_db_name"] = db_name = db_name_val;
 				found = true;
 				db_name_input.removeClass("is-invalid");
+				sasahyou_mts = 0;
+				sappyou_mts = 0;
+				shoppyou_mts = 0;
 				return false;
 			}
 			return true;
