@@ -13,7 +13,7 @@ $(document).on("click", "#btn-save", function (e) {
 	}
 });
 
-$(document).on("click", "#btn-discard", function (e) {
+$(document).on("click", "#btn-reload", function (e) {
 	e.preventDefault();
 	if (!confirm("All unsaved changes will be lost permanently. Are you sure?")) {
 		return;
