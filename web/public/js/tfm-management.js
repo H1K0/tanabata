@@ -277,7 +277,18 @@ $(document).on("submit", "#menu-file-view form", function (e) {
 
 $(document).on("submit", "#menu-tag-view form", function (e) {
 	e.preventDefault();
-	let resp = tdb_query(db_name, 40, '' + current_tanzaku.id);
+	let resp;
+	let name = $("#tag-name").val();
+	if (name !== current_tanzaku.name) {
+		resp = tdb_query(db_name, 36, '' + current_tanzaku.id + ' ' + name + '\n' + current_tanzaku.desc);
+		if (!resp.status) {
+			alert("Something went wrong!");
+			return;
+		}
+		current_tanzaku.name = name;
+		$(`.tanzaku[tid=${current_tanzaku.id}]`).text(name);
+	}
+	resp = tdb_query(db_name, 40, '' + current_tanzaku.id);
 	if (!resp.status) {
 		alert("Something went wrong!");
 		return;
