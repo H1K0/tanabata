@@ -148,6 +148,7 @@ function sasahyou_sort() {
 		}
 		return 0;
 	});
+	localStorage["sasahyou"] = JSON.stringify(sasahyou);
 }
 
 function sappyou_sort() {
@@ -199,4 +200,5 @@ function sappyou_sort() {
 		}
 		return 0;
 	});
+	localStorage["sappyou"] = JSON.stringify(sappyou);
 }
