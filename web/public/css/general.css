@@ -76,6 +76,7 @@ main:hover {
 	display: flex;
 	flex-direction: row;
 	justify-content: space-around;
+	flex-wrap: wrap;
 }
 
 h2 {
@@ -129,4 +130,5 @@ td {
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
+	flex-wrap: wrap;
 }

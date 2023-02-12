@@ -20,7 +20,6 @@ main {
 	justify-content: space-between;
 	align-content: flex-start;
 	align-items: flex-start;
-	flex-wrap: wrap;
 	box-shadow: inset -5px 5px 5px #1111, inset -5px -5px 5px #1111;
 	overflow-y: scroll;
 	overflow-x: hidden;
