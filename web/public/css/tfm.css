@@ -45,25 +45,17 @@ main {
 }
 
 .menu {
+	margin: 0;
+	width: 100%;
+	max-width: 120vmin;
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-start;
 	background-color: #334;
 	box-shadow: 0 0 0.5vw black;
-	border-radius: 16px;
-	margin: 10px;
-	width: calc(100% - 20px);
-	max-width: 120vmin;
+	border-radius: 0;
 	height: 100%;
 	transition: 0.3s;
-	overflow: hidden;
-}
-
-#menu-file-view .menu {
-	margin: 0;
-	width: 100%;
-	max-width: 120vmin;
-	border-radius: 0;
 	overflow-x: hidden;
 	overflow-y: scroll;
 }
@@ -99,7 +91,6 @@ main {
 form {
 	flex: 1 1 auto;
 	padding: 2vw 2vw;
-	min-height: 0;
 }
 
 .form-group.row {
@@ -119,6 +110,7 @@ form {
 
 .list {
 	flex: 1 1 auto;
+	height: 50vh;
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
@@ -130,14 +122,6 @@ form {
 	overflow-y: scroll;
 	-webkit-overflow-scrolling: touch;
 	overflow-x: hidden;
-}
-
-#menu-file-view form {
-	min-height: initial;
-}
-
-#menu-file-view .list {
-	height: 50vh;
 }
 
 .list:after {
@@ -204,6 +188,7 @@ form {
 	left: 0;
 	right: 0;
 	margin: 0;
-	padding: .5rem 0;
+	padding-top: .5rem;
+	padding-bottom: .8rem;
 	background-color: #334;
 }
