@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -92,7 +93,7 @@ func HandlerAuth(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("Failed to close password file: %s\n", err)
 	}
 	_, err = r.Body.Read(buffer)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		defer log.Println("Bad authorization request")
 		return
