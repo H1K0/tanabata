@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>New database | Tanabata Database Management</title>
+	<link rel="apple-touch-icon" sizes="57x57" href="/images/apple-icon-57x57.png">
+	<link rel="apple-touch-icon" sizes="60x60" href="/images/apple-icon-60x60.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/images/apple-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="76x76" href="/images/apple-icon-76x76.png">
+	<link rel="apple-touch-icon" sizes="114x114" href="/images/apple-icon-114x114.png">
+	<link rel="apple-touch-icon" sizes="120x120" href="/images/apple-icon-120x120.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/images/apple-icon-144x144.png">
+	<link rel="apple-touch-icon" sizes="152x152" href="/images/apple-icon-152x152.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-icon-180x180.png">
+	<link rel="icon" type="image/png" sizes="192x192" href="/images/android-icon-192x192.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="96x96" href="/images/favicon-96x96.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+	<link rel="manifest" href="/tanabata.webmanifest">
+	<meta name="msapplication-TileColor" content="#615880">
+	<meta name="msapplication-TileImage" content="/images/ms-icon-144x144.png">
+	<meta name="theme-color" content="#615880">
+	<link rel="stylesheet" href="/css/bootstrap.min.css">
+	<link rel="stylesheet" href="/css/general.css">
+	<script src="/js/jquery-3.6.0.min.js"></script>
+	<script src="/js/tdbms.js"></script>
+	<script src="/js/tdbms-load.js"></script>
+	<script src="/js/tdbms-database.js"></script>
+</head>
+<body>
+<h1>TDBMS: add new database</h1>
+<main>
+	<div class="contents-wrapper">
+		<form id="newdb">
+			<div class="form-group">
+				<label for="newdb-name">Name</label>
+				<input type="text" name="newdb-name" class="form-control" id="newdb-name">
+			</div>
+			<div class="form-group">
+				<label for="newdb-path">Location on server</label>
+				<input type="text" name="newdb-path" class="form-control" id="newdb-path">
+			</div>
+			<div class="form-group button-flex">
+				<button type="submit" class="btn btn-primary">Submit</button>
+				<a href="/tdbms" class="btn btn-outline-secondary">TDBMS home</a>
+			</div>
+		</form>
+	</div>
+</main>
+<script src="/js/tdbms-newdb.js"></script>
+</body>
+</html>
