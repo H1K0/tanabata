@@ -220,7 +220,7 @@ func main() {
 	}
 	public_fs := http.FileServer(http.Dir("/srv/www/tanabata"))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/tfm" {
+		if r.URL.Path == "/tfm" || r.URL.Path == "/tdbms" {
 			r.URL.Path += "/"
 		}
 		if r.URL.Path[len(r.URL.Path)-1] != '/' && path.Ext(r.URL.Path) == "" {
