@@ -24,6 +24,7 @@
 	<link rel="stylesheet" href="/css/general.css">
 	<script src="/js/jquery-3.6.0.min.js"></script>
 	<script src="/js/tdbms.js"></script>
+	<script src="/js/tdbms-load.js"></script>
 </head>
 <body>
 <h1>TDBMS: Settings</h1>
@@ -32,7 +33,9 @@
 		<form id="settings">
 			<div class="form-group">
 				<label for="db_name">Database name</label>
-				<select name="db_name" id="db_name" class="form-select form-select-sm"></select>
+				<select name="db_name" id="db_name" class="form-select form-select-sm">
+					<option value=""></option>
+				</select>
 			</div>
 			<table class="form-group">
 				<tr>

@@ -2,6 +2,14 @@ db_name = localStorage["tfm_db_name"];
 if (db_name == null) {
 	location.href = "/tfm/settings";
 }
+sort_sasa = localStorage["sort_files"];
+sort_tanzaku = localStorage["sort_tags"];
+if (sort_sasa == null) {
+	localStorage["sort_files"] = sort_sasa = "id";
+}
+if (sort_tanzaku == null) {
+	localStorage["sort_tags"] = sort_tanzaku = "id";
+}
 var current_sasa = null, current_tanzaku = null;
 var current_sasa_index = -1;
 var menu_count = 0;

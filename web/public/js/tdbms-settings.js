@@ -1,32 +1,34 @@
-var db_name = localStorage["db_name"];
-
 function settings_load() {
 	if (db_name != null) {
-		$("#db_name").val(db_name);
+		$(`#db_name option[value="${db_name}"]`).prop("selected", true);
 	} else {
-		$("#db_name").val("");
+		$("#db_name option[value=\"\"]").prop("selected", true);
 	}
 	if (sort_sasa != null) {
-		if (sort_sasa[0] === '-') {
-			$("#sasa-reverse").prop("checked", true);
-			sort_sasa = sort_sasa.slice(1);
+		let sort_s = sort_sasa;
+		if (sort_s[0] === '!') {
+			sort_s = sort_s.slice(1);
 		}
-		$(`#sasa-by-${sort_sasa}`).prop("checked", true);
+		if (sort_s[0] === '-') {
+			$("#sasa-reverse").prop("checked", true);
+			sort_s = sort_s.slice(1);
+		}
+		$(`#sasa-by-${sort_s}`).prop("checked", true);
 	}
 	if (sort_tanzaku != null) {
-		if (sort_tanzaku[0] === '-') {
-			$("#tanzaku-reverse").prop("checked", true);
-			sort_tanzaku = sort_tanzaku.slice(1);
+		let sort_t = sort_tanzaku;
+		if (sort_t[0] === '!') {
+			sort_t = sort_t.slice(1);
 		}
-		$(`#tanzaku-by-${sort_tanzaku}`).prop("checked", true);
+		if (sort_t[0] === '-') {
+			$("#tanzaku-reverse").prop("checked", true);
+			sort_t = sort_t.slice(1);
+		}
+		$(`#tanzaku-by-${sort_t}`).prop("checked", true);
 	}
 }
 
 $(window).on("load", function () {
-	settings_load();
-	if (db_name != null) {
-		$(".db_name").text(db_name);
-	}
 	let resp = tdb_query();
 	if (!resp.status) {
 		alert("Failed to fetch databases");
@@ -39,6 +41,7 @@ $(window).on("load", function () {
 		}));
 		return true;
 	});
+	settings_load();
 });
 
 $(document).on("reset", "#settings", function (e) {

@@ -10,27 +10,47 @@ if (sort_tanzaku == null) {
 
 function settings_load() {
 	if (db_name != null) {
-		$("#db_name").val(db_name);
+		$(`#db_name option[value="${db_name}"]`).prop("selected", true);
 	} else {
-		$("#db_name").val("");
+		$("#db_name option[value=\"\"]").prop("selected", true);
 	}
 	if (sort_sasa != null) {
-		if (sort_sasa[0] === '-') {
-			$("#files-reverse").prop("checked", true);
-			sort_sasa = sort_sasa.slice(1);
+		let sort_s = sort_sasa;
+		if (sort_s[0] === '!') {
+			sort_s = sort_s.slice(1);
 		}
-		$(`#files-by-${sort_sasa}`).prop("checked", true);
+		if (sort_s[0] === '-') {
+			$("#files-reverse").prop("checked", true);
+			sort_s = sort_s.slice(1);
+		}
+		$(`#files-by-${sort_s}`).prop("checked", true);
 	}
 	if (sort_tanzaku != null) {
-		if (sort_tanzaku[0] === '-') {
-			$("#tags-reverse").prop("checked", true);
-			sort_tanzaku = sort_tanzaku.slice(1);
+		let sort_t = sort_tanzaku;
+		if (sort_t[0] === '!') {
+			sort_t = sort_t.slice(1);
 		}
-		$(`#tags-by-${sort_tanzaku}`).prop("checked", true);
+		if (sort_t[0] === '-') {
+			$("#tags-reverse").prop("checked", true);
+			sort_t = sort_t.slice(1);
+		}
+		$(`#tags-by-${sort_t}`).prop("checked", true);
 	}
 }
 
 $(window).on("load", function () {
+	let resp = tdb_query();
+	if (!resp.status) {
+		alert("Failed to fetch databases");
+		throw new Error("Failed to fetch databases");
+	}
+	resp.data.every(tdb => {
+		$("#db_name").append($("<option>", {
+			value: tdb.name,
+			text: tdb.name
+		}));
+		return true;
+	});
 	settings_load();
 });
 
