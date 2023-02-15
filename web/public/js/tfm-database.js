@@ -5,6 +5,9 @@ if (db_name == null) {
 
 $(document).on("click", "#btn-save", function (e) {
 	e.preventDefault();
+	if (db_name == null) {
+		return;
+	}
 	let resp = tdb_query(db_name, 4);
 	if (resp.status) {
 		alert("Successfully saved!");
@@ -15,6 +18,9 @@ $(document).on("click", "#btn-save", function (e) {
 
 $(document).on("click", "#btn-reload", function (e) {
 	e.preventDefault();
+	if (db_name == null) {
+		return;
+	}
 	if (!confirm("All unsaved changes will be lost permanently. Are you sure?")) {
 		return;
 	}
