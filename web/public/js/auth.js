@@ -24,3 +24,14 @@ $("#auth").on("submit", function submit(e) {
 		}
 	});
 });
+
+$(document).keyup(function (e) {
+	switch (e.key) {
+		case "Esc":
+		case "Escape":
+			location.href = "/";
+			break;
+		default:
+			return;
+	}
+});
