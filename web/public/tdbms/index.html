@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Home | Tanabata</title>
+	<title>Database Management | Tanabata</title>
 	<link rel="apple-touch-icon" sizes="57x57" href="/images/apple-icon-57x57.png">
 	<link rel="apple-touch-icon" sizes="60x60" href="/images/apple-icon-60x60.png">
 	<link rel="apple-touch-icon" sizes="72x72" href="/images/apple-icon-72x72.png">
@@ -24,15 +24,28 @@
 	<link rel="stylesheet" href="/css/bootstrap.min.css">
 	<link rel="stylesheet" href="/css/general.css">
 	<script src="/js/jquery-3.6.0.min.js"></script>
+	<script src="/js/tdbms.js"></script>
+	<script src="/js/tdbms-settings.js"></script>
 </head>
 <body>
-<h1>Welcome to Tanabata!</h1>
+<h1>Tanabata Database Management</h1>
 <main>
-	<h2>Select Tanabata service</h2>
+	<h2><span>TDB: 「<span class="db_name"><i>none</i></span>」</span></h2>
 	<div class="contents-wrapper">
-		<a href="/auth" class="btn btn-primary">Authorize</a>
-		<a href="/tfm" class="btn btn-primary">File Manager</a>
-		<a href="/tdbms" class="btn btn-primary">Database Management</a>
+		<a href="/tdbms/stats" class="btn btn-primary">Stats</a>
+		<a href="/tdbms/sasahyou" class="btn btn-primary">Sasahyou</a>
+		<a href="/tdbms/sappyou" class="btn btn-primary">Sappyou</a>
+		<a href="/tdbms/shoppyou" class="btn btn-primary">Shoppyou</a>
+	</div>
+	<div class="contents-wrapper">
+		<button class="btn btn-outline-success" id="btn-save">Save database</button>
+		<button class="btn btn-outline-warning" id="btn-reload">Reload database</button>
+		<a href="/tdbms/new" class="btn btn-outline-info">Create database</a>
+		<button class="btn btn-outline-danger" id="btn-remove">Remove database</button>
+	</div>
+	<div class="contents-wrapper">
+		<a href="/" class="btn btn-secondary">Home</a>
+		<a href="/tdbms/settings" class="btn btn-secondary">Settings</a>
 	</div>
 </main>
 </body>

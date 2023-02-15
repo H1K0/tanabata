@@ -2,8 +2,8 @@ var db_name = null;
 var sasahyou = localStorage["sasahyou"],
 	sappyou = localStorage["sappyou"],
 	shoppyou = localStorage["shoppyou"];
-var sort_files = localStorage["sort_files"],
-	sort_tags = localStorage["sort_tags"];
+var sort_sasa = localStorage["sort_sasa"],
+	sort_tanzaku = localStorage["sort_tanzaku"];
 if (sasahyou != null) {
 	sasahyou = JSON.parse(sasahyou);
 }
@@ -25,11 +25,11 @@ if (sappyou_mts != null) {
 if (shoppyou_mts != null) {
 	shoppyou_mts = parseInt(shoppyou_mts);
 }
-if (sort_files == null) {
-	localStorage["sort_files"] = sort_files = "id";
+if (sort_sasa == null) {
+	localStorage["sort_sasa"] = sort_sasa = "id";
 }
-if (sort_tags == null) {
-	localStorage["sort_tags"] = sort_tags = "id";
+if (sort_tanzaku == null) {
+	localStorage["sort_tanzaku"] = sort_tanzaku = "id";
 }
 
 function tdb_query(trdb, trc, trb) {
@@ -81,8 +81,8 @@ function sasahyou_load() {
 		sasahyou = resp.data;
 		localStorage["sasahyou_mts"] = sasahyou_mts = db_info.data[0].sasahyou.mts;
 		localStorage["sasahyou"] = JSON.stringify(sasahyou);
-		if (sort_files[0] !== '!') {
-			sort_files = '!' + sort_files;
+		if (sort_sasa[0] !== '!') {
+			sort_sasa = '!' + sort_sasa;
 		}
 	}
 	sasahyou_sort();
@@ -103,8 +103,8 @@ function sappyou_load() {
 		sappyou = resp.data;
 		localStorage["sappyou_mts"] = sappyou_mts = db_info.data[0].sappyou.mts;
 		localStorage["sappyou"] = JSON.stringify(sappyou);
-		if (sort_tags[0] !== '!') {
-			sort_tags = '!' + sort_tags;
+		if (sort_tanzaku[0] !== '!') {
+			sort_tanzaku = '!' + sort_tanzaku;
 		}
 	}
 	sappyou_sort();
@@ -129,10 +129,10 @@ function shoppyou_load() {
 }
 
 function sasahyou_sort() {
-	if (sort_files[0] !== '!') {
+	if (sort_sasa[0] !== '!') {
 		return;
 	}
-	let sort = localStorage["sort_files"] = sort_files = sort_files.slice(1);
+	let sort = localStorage["sort_sasa"] = sort_sasa = sort_sasa.slice(1);
 	let order = 1;
 	if (sort[0] === '-') {
 		order = -1;
@@ -152,10 +152,10 @@ function sasahyou_sort() {
 }
 
 function sappyou_sort() {
-	if (sort_tags[0] !== '!') {
+	if (sort_tanzaku[0] !== '!') {
 		return;
 	}
-	let sort = localStorage["sort_tags"] = sort_tags = sort_tags.slice(1);
+	let sort = localStorage["sort_tanzaku"] = sort_tanzaku = sort_tanzaku.slice(1);
 	let order = 1;
 	if (sort[0] === '-') {
 		order = -1;

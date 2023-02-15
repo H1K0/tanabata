@@ -1,4 +1,12 @@
 var db_name = localStorage["tfm_db_name"];
+sort_sasa = localStorage["sort_files"];
+sort_tanzaku = localStorage["sort_tags"];
+if (sort_sasa == null) {
+	localStorage["sort_files"] = sort_sasa = "id";
+}
+if (sort_tanzaku == null) {
+	localStorage["sort_tags"] = sort_tanzaku = "id";
+}
 
 function settings_load() {
 	if (db_name != null) {
@@ -6,19 +14,19 @@ function settings_load() {
 	} else {
 		$("#db_name").val("");
 	}
-	if (sort_files != null) {
-		if (sort_files[0] === '-') {
+	if (sort_sasa != null) {
+		if (sort_sasa[0] === '-') {
 			$("#files-reverse").prop("checked", true);
-			sort_files = sort_files.slice(1);
+			sort_sasa = sort_sasa.slice(1);
 		}
-		$(`#files-by-${sort_files}`).prop("checked", true);
+		$(`#files-by-${sort_sasa}`).prop("checked", true);
 	}
-	if (sort_tags != null) {
-		if (sort_tags[0] === '-') {
+	if (sort_tanzaku != null) {
+		if (sort_tanzaku[0] === '-') {
 			$("#tags-reverse").prop("checked", true);
-			sort_tags = sort_tags.slice(1);
+			sort_tanzaku = sort_tanzaku.slice(1);
 		}
-		$(`#tags-by-${sort_tags}`).prop("checked", true);
+		$(`#tags-by-${sort_tanzaku}`).prop("checked", true);
 	}
 }
 
@@ -61,11 +69,11 @@ $(document).on("submit", "#settings", function (e) {
 	}
 	let sort_f = ($("#files-reverse")[0].checked ? '-' : '') + $("input[type=radio][name=sort-files]:checked").attr("id").slice(9);
 	let sort_t = ($("#tags-reverse")[0].checked ? '-' : '') + $("input[type=radio][name=sort-tags]:checked").attr("id").slice(8);
-	if (sort_f !== sort_files && '!' + sort_f !== sort_files) {
-		localStorage["sort_files"] = sort_files = '!' + sort_f;
+	if (sort_f !== sort_sasa && '!' + sort_f !== sort_sasa) {
+		localStorage["sort_files"] = sort_sasa = '!' + sort_f;
 	}
-	if (sort_t !== sort_tags && '!' + sort_t !== sort_tags) {
-		localStorage["sort_tags"] = sort_tags = '!' + sort_t;
+	if (sort_t !== sort_tanzaku && '!' + sort_t !== sort_tanzaku) {
+		localStorage["sort_tags"] = sort_tanzaku = '!' + sort_t;
 	}
 	alert("Successfully updated settings!");
 });

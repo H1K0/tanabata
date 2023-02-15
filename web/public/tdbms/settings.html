@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Settings | Tanabata Database Management</title>
+	<link rel="apple-touch-icon" sizes="57x57" href="/images/apple-icon-57x57.png">
+	<link rel="apple-touch-icon" sizes="60x60" href="/images/apple-icon-60x60.png">
+	<link rel="apple-touch-icon" sizes="72x72" href="/images/apple-icon-72x72.png">
+	<link rel="apple-touch-icon" sizes="76x76" href="/images/apple-icon-76x76.png">
+	<link rel="apple-touch-icon" sizes="114x114" href="/images/apple-icon-114x114.png">
+	<link rel="apple-touch-icon" sizes="120x120" href="/images/apple-icon-120x120.png">
+	<link rel="apple-touch-icon" sizes="144x144" href="/images/apple-icon-144x144.png">
+	<link rel="apple-touch-icon" sizes="152x152" href="/images/apple-icon-152x152.png">
+	<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-icon-180x180.png">
+	<link rel="icon" type="image/png" sizes="192x192" href="/images/android-icon-192x192.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="96x96" href="/images/favicon-96x96.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+	<link rel="manifest" href="/tanabata.webmanifest">
+	<meta name="msapplication-TileColor" content="#615880">
+	<meta name="msapplication-TileImage" content="/images/ms-icon-144x144.png">
+	<meta name="theme-color" content="#615880">
+	<link rel="stylesheet" href="/css/bootstrap.min.css">
+	<link rel="stylesheet" href="/css/general.css">
+	<script src="/js/jquery-3.6.0.min.js"></script>
+	<script src="/js/tdbms.js"></script>
+</head>
+<body>
+<h1>TDBMS: Settings</h1>
+<main>
+	<div class="contents-wrapper">
+		<form id="settings">
+			<div class="form-group">
+				<label for="db_name">Database name</label>
+				<select name="db_name" id="db_name" class="form-select form-select-sm"></select>
+			</div>
+			<table class="form-group">
+				<tr>
+					<td>
+						<fieldset class="form-group">
+							<legend>Sasa sorting</legend>
+							<div class="form-check">
+								<input type="radio" name="sort-sasa" id="sasa-by-id">
+								<label for="sasa-by-id">By ID</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-sasa" id="sasa-by-cts">
+								<label for="sasa-by-cts">By ctime</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-sasa" id="sasa-by-path">
+								<label for="sasa-by-path">By name</label>
+							</div>
+						</fieldset>
+					</td>
+					<td>
+						<fieldset class="form-group">
+							<legend>Tanzaku sorting</legend>
+							<div class="form-check">
+								<input type="radio" name="sort-tanzaku" id="tanzaku-by-id">
+								<label for="tanzaku-by-id">By ID</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-tanzaku" id="tanzaku-by-cts">
+								<label for="tanzaku-by-cts">By ctime</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-tanzaku" id="tanzaku-by-mts">
+								<label for="tanzaku-by-mts">By mtime</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-tanzaku" id="tanzaku-by-name">
+								<label for="tanzaku-by-name">By name</label>
+							</div>
+							<div class="form-check">
+								<input type="radio" name="sort-tanzaku" id="tanzaku-by-nkazari">
+								<label for="tanzaku-by-nkazari">By kazari count</label>
+							</div>
+						</fieldset>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<div class="form-group form-check">
+							<input type="checkbox" name="sort-sasa-reverse" class="form-check-input" id="sasa-reverse">
+							<label class="form-check-label" for="sasa-reverse">Reverse sorting</label>
+						</div>
+					</td>
+					<td>
+						<div class="form-group form-check">
+							<input type="checkbox" name="sort-tanzaku-reverse" class="form-check-input" id="tanzaku-reverse">
+							<label class="form-check-label" for="tanzaku-reverse">Reverse sorting</label>
+						</div>
+					</td>
+				</tr>
+			</table>
+			<div class="button-flex">
+				<button type="submit" class="btn btn-primary">Apply</button>
+				<a href="/tdbms" class="btn btn-outline-secondary">TDBMS home</a>
+				<button type="reset" class="btn btn-danger">Reset</button>
+			</div>
+		</form>
+	</div>
+</main>
+<script src="/js/tdbms-settings.js"></script>
+</body>
+</html>

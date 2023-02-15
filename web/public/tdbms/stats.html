@@ -2,8 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Home | Tanabata</title>
+	<title>Stats | Tanabata Database Management</title>
 	<link rel="apple-touch-icon" sizes="57x57" href="/images/apple-icon-57x57.png">
 	<link rel="apple-touch-icon" sizes="60x60" href="/images/apple-icon-60x60.png">
 	<link rel="apple-touch-icon" sizes="72x72" href="/images/apple-icon-72x72.png">
@@ -23,17 +22,44 @@
 	<meta name="theme-color" content="#615880">
 	<link rel="stylesheet" href="/css/bootstrap.min.css">
 	<link rel="stylesheet" href="/css/general.css">
+	<link rel="stylesheet" href="/css/tdbms.css">
 	<script src="/js/jquery-3.6.0.min.js"></script>
+	<script src="/js/tdbms.js"></script>
 </head>
 <body>
-<h1>Welcome to Tanabata!</h1>
+<h1><a href="/tdbms"><span class="db_name"></span>: stats</a></h1>
 <main>
-	<h2>Select Tanabata service</h2>
 	<div class="contents-wrapper">
-		<a href="/auth" class="btn btn-primary">Authorize</a>
-		<a href="/tfm" class="btn btn-primary">File Manager</a>
-		<a href="/tdbms" class="btn btn-primary">Database Management</a>
+		<h3>Sasahyou</h3>
+		<table class="table table-striped table-dark" id="stats-sasahyou">
+			<tr>
+				<th>Ctime</th>
+				<th>Mtime</th>
+				<th>Number of sasa</th>
+				<th>Number of holes</th>
+			</tr>
+		</table>
+		<h3>Sappyou</h3>
+		<table class="table table-striped table-dark" id="stats-sappyou">
+			<tr>
+				<th>Ctime</th>
+				<th>Mtime</th>
+				<th>Number of tanzaku</th>
+				<th>Number of holes</th>
+			</tr>
+		</table>
+		<h3>Shoppyou</h3>
+		<table class="table table-striped table-dark" id="stats-shoppyou">
+			<tr>
+				<th>Ctime</th>
+				<th>Mtime</th>
+				<th>Number of kazari</th>
+				<th>Number of holes</th>
+			</tr>
+		</table>
 	</div>
 </main>
+<script src="/js/tdbms-management.js"></script>
+<script src="/js/tdbms-stats.js"></script>
 </body>
 </html>
