@@ -142,7 +142,7 @@ int menu_add_sasa(const char *arg) {
         fprintf(stderr, ERROR("Failed to add file to database: sasahyou is full")"\n");
         return 1;
     }
-    if (tanabata_sasa_add(&tanabata, arg) == 0 &&
+    if (tanabata_sasa_add(&tanabata, arg).id != HOLE_ID &&
         tanabata_save(&tanabata) == 0) {
         printf(SUCCESS("Successfully added file to database")"\n");
         return 0;
@@ -165,7 +165,7 @@ int menu_add_tanzaku(const char *arg) {
         printf(HIGHLIGHT("Enter tanzaku description:")"\n");
         fgets(description, 4096, stdin);
         description[strlen(description) - 1] = 0;
-        if (tanabata_tanzaku_add(&tanabata, arg, description) == 0 &&
+        if (tanabata_tanzaku_add(&tanabata, arg, description).id != HOLE_ID &&
             tanabata_save(&tanabata) == 0) {
             printf(SUCCESS("Successfully added tanzaku to database")"\n");
             return 0;
