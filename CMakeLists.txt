@@ -48,8 +48,8 @@ add_library(tanabata SHARED ${TANABATA_SRC})
 # Tanabata DBMS server
 add_executable(tdbms ${TDBMS_SERVER_SRC})
 
-# Tanabata DMBS client lib
-add_library(tdb SHARED ${TDBMS_CLIENT_SRC})
+# Tanabata DMBS CLI client app
+add_executable(tdb tdbms/cli/tdbms-cli.c ${TDBMS_CLIENT_SRC})
 
 # Tanabata CLI app
 add_executable(tfm ${CLI_SRC})
