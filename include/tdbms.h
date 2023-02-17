@@ -37,18 +37,18 @@ enum TRC {
     trc_sasa_add = 0b10010,
     trc_sasa_update = 0b10100,
     trc_sasa_remove = 0b10001,
-    trc_sasa_remove_by_tanzaku = 0b101001,
     trc_tanzaku_get = 0b100000,
     trc_tanzaku_get_by_sasa = 0b11000,
     trc_tanzaku_add = 0b100010,
     trc_tanzaku_update = 0b100100,
     trc_tanzaku_remove = 0b100001,
-    trc_tanzaku_remove_by_sasa = 0b11001,
     trc_kazari_get = 0b1000,
     trc_kazari_add = 0b1010,
     trc_kazari_add_single_sasa_to_multiple_tanzaku = 0b11010,
     trc_kazari_add_single_tanzaku_to_multiple_sasa = 0b101010,
     trc_kazari_remove = 0b1001,
+    trc_kazari_remove_single_sasa_to_multiple_tanzaku = 0b11001,
+    trc_kazari_remove_single_tanzaku_to_multiple_sasa = 0b101001,
 };
 
 #ifdef __cplusplus
