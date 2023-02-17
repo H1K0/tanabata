@@ -21,7 +21,7 @@ $(window).on("load", function () {
 $(document).on("submit", "#menu-add form", function (e) {
 	e.preventDefault();
 	let resp = tdb_query(db_name, 18, $("#new-name").val());
-	if (!resp.status) {
+	if (resp == null || !resp.status) {
 		alert("Something went wrong!");
 		return;
 	}

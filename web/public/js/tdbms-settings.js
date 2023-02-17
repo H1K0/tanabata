@@ -30,7 +30,7 @@ function settings_load() {
 
 $(window).on("load", function () {
 	let resp = tdb_query();
-	if (!resp.status) {
+	if (resp == null || !resp.status) {
 		alert("Failed to fetch databases");
 		throw new Error("Failed to fetch databases");
 	}

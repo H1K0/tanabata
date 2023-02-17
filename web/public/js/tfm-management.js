@@ -26,7 +26,7 @@ function menu_view_file_open() {
 	$("#menu-file-view .list-item").css("display", "");
 	$("#btn-full").attr("href", "/files/" + current_sasa.path);
 	let resp = tdb_query(db_name, 24, '' + current_sasa.id);
-	if (!resp.status) {
+	if (resp == null || !resp.status) {
 		alert("Something went wrong!");
 		return;
 	}
@@ -59,7 +59,7 @@ function menu_view_tag_open() {
 	$("#tag-name").val(decodeURI(current_tanzaku.name));
 	$("#description").val(current_tanzaku.desc);
 	let resp = tdb_query(db_name, 40, '' + current_tanzaku.id);
-	if (!resp.status) {
+	if (resp == null || !resp.status) {
 		alert("Something went wrong!");
 		return;
 	}
@@ -262,7 +262,7 @@ $(document).on("reset", "#menu-add form", function (e) {
 $(document).on("submit", "#menu-file-view form", function (e) {
 	e.preventDefault();
 	let resp = tdb_query(db_name, 24, '' + current_sasa.id);
-	if (!resp.status) {
+	if (resp == null || !resp.status) {
 		alert("Something went wrong!");
 		return;
 	}
@@ -280,11 +280,13 @@ $(document).on("submit", "#menu-file-view form", function (e) {
 		}
 	});
 	let status = true;
-	if (toadd !== "" && !tdb_query(db_name, 26, '' + current_sasa.id + toadd).status) {
-		status = false;
+	if (toadd !== "") {
+		resp = tdb_query(db_name, 26, '' + current_sasa.id + toadd);
+		status = (resp != null && resp.status);
 	}
-	if (toremove !== "" && !tdb_query(db_name, 25, '' + current_sasa.id + toremove).status) {
-		status = false;
+	if (toremove !== "") {
+		resp = tdb_query(db_name, 25, '' + current_sasa.id + toremove);
+		status = (resp != null && resp.status);
 	}
 	if (status) {
 		alert("Saved changes!");
@@ -300,7 +302,7 @@ $(document).on("submit", "#menu-tag-view form", function (e) {
 		desc = $("#description").val();
 	if (name !== current_tanzaku.name || desc !== current_tanzaku.desc) {
 		resp = tdb_query(db_name, 36, '' + current_tanzaku.id + ' ' + name + '\n' + desc);
-		if (!resp.status) {
+		if (resp == null || !resp.status) {
 			alert("Something went wrong!");
 			return;
 		}
@@ -309,7 +311,7 @@ $(document).on("submit", "#menu-tag-view form", function (e) {
 		$(`.tanzaku[tid=${current_tanzaku.id}]`).text(name);
 	}
 	resp = tdb_query(db_name, 40, '' + current_tanzaku.id);
-	if (!resp.status) {
+	if (resp == null || !resp.status) {
 		alert("Something went wrong!");
 		return;
 	}
@@ -327,11 +329,13 @@ $(document).on("submit", "#menu-tag-view form", function (e) {
 		}
 	});
 	let status = true;
-	if (toadd !== "" && !tdb_query(db_name, 42, '' + current_tanzaku.id + toadd).status) {
-		status = false;
+	if (toadd !== "") {
+		resp = tdb_query(db_name, 42, '' + current_tanzaku.id + toadd);
+		status = (resp != null && resp.status);
 	}
-	if (toremove !== "" && !tdb_query(db_name, 41, '' + current_tanzaku.id + toremove).status) {
-		status = false;
+	if (toremove !== "") {
+		resp = tdb_query(db_name, 41, '' + current_tanzaku.id + toremove);
+		status = (resp != null && resp.status);
 	}
 	if (status) {
 		alert("Saved changes!");
@@ -346,7 +350,7 @@ $(document).on("click", "#btn-remove", function (e) {
 		return;
 	}
 	let resp = tdb_query(db_name, 33, '' + current_tanzaku.id);
-	if (!resp.status) {
+	if (resp == null || !resp.status) {
 		alert("Something went wrong!");
 		return;
 	}

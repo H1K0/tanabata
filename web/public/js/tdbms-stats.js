@@ -1,6 +1,6 @@
 $(window).on("load", function (e) {
 	let resp = tdb_query(db_name);
-	if (!resp.status) {
+	if (resp == null || !resp.status) {
 		alert("Failed to fetch database");
 		throw new Error("Failed to fetch database");
 	}

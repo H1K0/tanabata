@@ -40,7 +40,7 @@ function settings_load() {
 
 $(window).on("load", function () {
 	let resp = tdb_query();
-	if (!resp.status) {
+	if (resp == null || !resp.status) {
 		alert("Failed to fetch databases");
 		throw new Error("Failed to fetch databases");
 	}
@@ -65,7 +65,7 @@ $(document).on("submit", "#settings", function (e) {
 	let db_name_val = db_name_input.val();
 	if (db_name_val !== db_name) {
 		let resp = tdb_query();
-		if (!resp.status) {
+		if (resp == null || !resp.status) {
 			alert("Failed to fetch databases");
 			return;
 		}

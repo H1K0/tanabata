@@ -9,11 +9,11 @@ $(document).on("click", "#btn-save", function (e) {
 		return;
 	}
 	let resp = tdb_query(db_name, 4);
-	if (resp.status) {
-		alert("Successfully saved!");
-	} else {
+	if (resp == null || !resp.status) {
 		alert("Something went wrong!");
+		return;
 	}
+	alert("Successfully saved!");
 });
 
 $(document).on("click", "#btn-reload", function (e) {
@@ -25,12 +25,12 @@ $(document).on("click", "#btn-reload", function (e) {
 		return;
 	}
 	let resp = tdb_query(db_name, 2);
-	if (resp.status) {
-		localStorage["sasahyou_mts"] = sasahyou_mts = 0;
-		localStorage["sappyou_mts"] = sappyou_mts = 0;
-		localStorage["shoppyou_mts"] = shoppyou_mts = 0;
-		alert("Successfully reloaded database!");
-	} else {
+	if (resp == null || !resp.status) {
 		alert("Something went wrong!");
+		return;
 	}
+	localStorage["sasahyou_mts"] = sasahyou_mts = 0;
+	localStorage["sappyou_mts"] = sappyou_mts = 0;
+	localStorage["shoppyou_mts"] = shoppyou_mts = 0;
+	alert("Successfully reloaded database!");
 });
