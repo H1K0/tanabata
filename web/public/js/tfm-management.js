@@ -266,23 +266,31 @@ $(document).on("submit", "#menu-file-view form", function (e) {
 		alert("Something went wrong!");
 		return;
 	}
+	let toadd = "", toremove = "";
 	resp.data.forEach(tanzaku => {
 		let current = $(`.list-item[tid="${tanzaku.id}"]`);
-		if (!current.hasClass("selected") &&
-			!tdb_query(db_name, 9, '' + current_sasa.id + ' ' + tanzaku.id).status) {
-			console.log("ERROR: failed to remove kazari: " + current_sasa.id + '-' + tanzaku.id);
+		if (!current.hasClass("selected")) {
+			toremove += ' ' + tanzaku.id;
 		}
 	});
 	$(".list-item.tanzaku.selected").each(function (index, element) {
 		let tid = parseInt($(element).attr("tid"));
-		if (resp.data.find(t => t.id === tid) != null) {
-			return;
-		}
-		if (!tdb_query(db_name, 10, '' + current_sasa.id + ' ' + tid)) {
-			console.log("ERROR: failed to add kazari: " + current_sasa.id + '-' + tid);
+		if (resp.data.find(t => t.id === tid) == null) {
+			toadd += ' ' + tid;
 		}
 	});
-	alert("Saved changes!");
+	let status = true;
+	if (toadd !== "" && !tdb_query(db_name, 26, '' + current_sasa.id + toadd).status) {
+		status = false;
+	}
+	if (toremove !== "" && !tdb_query(db_name, 25, '' + current_sasa.id + toremove).status) {
+		status = false;
+	}
+	if (status) {
+		alert("Saved changes!");
+	} else {
+		alert("Something went wrong!");
+	}
 });
 
 $(document).on("submit", "#menu-tag-view form", function (e) {
@@ -305,23 +313,31 @@ $(document).on("submit", "#menu-tag-view form", function (e) {
 		alert("Something went wrong!");
 		return;
 	}
+	let toadd = "", toremove = "";
 	resp.data.forEach(sasa => {
 		let current = $(`.list-item[sid="${sasa.id}"]`);
-		if (!current.hasClass("selected") &&
-			!tdb_query(db_name, 9, '' + sasa.id + ' ' + current_tanzaku.id).status) {
-			console.log("ERROR: failed to remove kazari: " + sasa.id + '-' + current_tanzaku.id);
+		if (!current.hasClass("selected")) {
+			toremove += ' ' + sasa.id;
 		}
 	});
 	$(".list-item.sasa.selected").each(function (index, element) {
 		let sid = parseInt($(element).attr("sid"));
-		if (resp.data.find(s => s.id === sid) != null) {
-			return;
-		}
-		if (!tdb_query(db_name, 10, '' + sid + ' ' + current_tanzaku.id)) {
-			console.log("ERROR: failed to add kazari: " + sid + '-' + current_tanzaku.id);
+		if (resp.data.find(s => s.id === sid) == null) {
+			toadd += ' ' + sid;
 		}
 	});
-	alert("Saved changes!");
+	let status = true;
+	if (toadd !== "" && !tdb_query(db_name, 42, '' + current_tanzaku.id + toadd).status) {
+		status = false;
+	}
+	if (toremove !== "" && !tdb_query(db_name, 41, '' + current_tanzaku.id + toremove).status) {
+		status = false;
+	}
+	if (status) {
+		alert("Saved changes!");
+	} else {
+		alert("Something went wrong!");
+	}
 });
 
 $(document).on("click", "#btn-remove", function (e) {
