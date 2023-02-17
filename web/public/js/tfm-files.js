@@ -16,6 +16,13 @@ $(window).on("load", function () {
 	sappyou.forEach((tanzaku) => {
 		$("#menu-file-view .list").append(`<div class="list-item tanzaku" tid="${tanzaku.id}">${tanzaku.name}</div>`);
 	});
+	lazy_menu = $("#menu-tag-view .thumb").lazy({
+		chainable: false,
+		scrollDirection: "vertical",
+		effect: "fadeIn",
+		visibleOnly: true,
+		appendScroll: $("#menu-tag-view .list")[0],
+	});
 });
 
 $(document).on("submit", "#menu-add form", function (e) {

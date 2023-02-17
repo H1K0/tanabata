@@ -8,6 +8,13 @@ $(window).on("load", function () {
 	sasahyou.forEach((sasa) => {
 		$("#menu-tag-view .list").append(`<div class="list-item sasa" sid="${sasa.id}" title="${sasa.path.split('/').slice(-1)}"><img class="thumb" data-src="${"/thumbs/" + sasa.path}"><div class="overlay"></div></div>`);
 	});
+	lazy_menu = $("#menu-tag-view .thumb").lazy({
+		chainable: false,
+		scrollDirection: "vertical",
+		effect: "fadeIn",
+		visibleOnly: true,
+		appendScroll: $("#menu-tag-view .list")[0],
+	});
 });
 
 $(document).on("input", "#text-filter-all", function (e) {
