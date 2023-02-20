@@ -142,12 +142,20 @@ int menu_add_sasa(const char *arg) {
         fprintf(stderr, ERROR("Failed to add file to database: sasahyou is full")"\n");
         return 1;
     }
-    if (tanabata_sasa_add(&tanabata, arg).id != HOLE_ID &&
+    char *path = realpath(arg, NULL);
+    if (path == NULL) {
+        fprintf(stderr, ERROR("Invalid file path")"\n");
+        free(path);
+        return 1;
+    }
+    if (tanabata_sasa_add(&tanabata, path).id != HOLE_ID &&
         tanabata_save(&tanabata) == 0) {
         printf(SUCCESS("Successfully added file to database")"\n");
+        free(path);
         return 0;
     }
     fprintf(stderr, ERROR("Failed to add file to database")"\n");
+    free(path);
     return 1;
 }
 
