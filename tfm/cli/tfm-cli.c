@@ -7,7 +7,7 @@
 #include "../../include/tanabata.h"
 
 // TFM configuration directory
-#define TFM_CONFIG_DIR "/etc/tfm/"
+#define TFM_CONFIG_DIR "/etc/tanabata/"
 
 // Stylization macros
 #define TABLE_HEADER(s) "[7;36m"s"[0m"
@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
         return 1;
     }
     char *tanabata_path;
-    FILE *config = fopen(TFM_CONFIG_DIR"/config", "r");
+    FILE *config = fopen(TFM_CONFIG_DIR"tfm-cli.conf", "r");
     if (config == NULL) {
         tanabata_path = NULL;
         struct stat st;
@@ -374,7 +374,7 @@ int main(int argc, char **argv) {
                 return 1;
             }
         }
-        config = fopen(TFM_CONFIG_DIR"/config", "w");
+        config = fopen(TFM_CONFIG_DIR"tfm-cli.conf", "w");
         if (config == NULL) {
             fprintf(stderr, ERROR("Failed to create config file. "
                                   "Try again with 'sudo' or check your permissions")"\n");
