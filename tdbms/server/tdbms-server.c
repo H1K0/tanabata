@@ -359,9 +359,9 @@ int execute(char *request, char **response) {
                 tanabata = temp->database;
                 sprintf(buffer, "{"
                                 "\"name\":\"%s\",\"loaded\":true,\"changed\":%s,"
-                                "\"sasahyou_cts\":%lu,\"sasahyou_mts\":%lu,\"sasahyou_size\":%lu,\"sasahyou_holes\":%lu,"
-                                "\"sappyou_cts\":%lu,\"sappyou_mts\":%lu,\"sappyou_size\":%lu,\"sappyou_holes\":%lu,"
-                                "\"shoppyou_cts\":%lu,\"shoppyou_mts\":%lu,\"shoppyou_size\":%lu,\"shoppyou_holes\":%lu"
+                                "\"sasahyou\":{\"cts\":%lu,\"mts\":%lu,\"size\":%lu,\"holes\":%lu},"
+                                "\"sappyou\":{\"cts\":%lu,\"mts\":%lu,\"size\":%lu,\"holes\":%lu},"
+                                "\"shoppyou\":{\"cts\":%lu,\"mts\":%lu,\"size\":%lu,\"holes\":%lu}"
                                 "},",
                         escaped_name,
                         (tanabata->sasahyou_mod != tanabata->sasahyou.modified_ts ||
