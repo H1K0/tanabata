@@ -27,7 +27,6 @@ Options:
 -t <tanzaku_id or name>    Tanzaku menu
 -c <sasa_id>-<tanzaku_id>  Kazari menu (can only be used with the '-s' or '-u' option)
 -w                         Weed (defragment) database
--V                         Print version and exit
 
 No database connected
 ```

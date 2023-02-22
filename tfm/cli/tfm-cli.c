@@ -402,7 +402,7 @@ int main(int argc, char **argv) {
             }
         }
     }
-    const char *shortopts = "hI:O:isuef:t:c:wV";
+    const char *shortopts = "hI:O:isuef:t:c:w";
     char *abspath = NULL;
     int opt;
     _Bool opt_i = 0;
@@ -437,16 +437,12 @@ int main(int argc, char **argv) {
                         HIGHLIGHT("-c <sasa_id>-<tanzaku_id>")"  Kazari menu "
                         "(can only be used with the '-s' or '-u' option)\n"
                         HIGHLIGHT("-w")"                         Weed (defragment) database\n"
-                        HIGHLIGHT("-V")"                         Print version and exit\n\n"
                 );
                 if (tanabata_path != NULL) {
                     printf(HIGHLIGHT("Current database location: %s")"\n", tanabata_path);
                 } else {
                     printf(HIGHLIGHT("No database connected")"\n");
                 }
-                return 0;
-            case 'V':
-                printf("1.0.0\n");
                 return 0;
             case 'I':
                 abspath = realpath(optarg, abspath);
