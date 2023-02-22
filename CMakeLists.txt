@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 project(Tanabata
-        VERSION 1.0.0
+        VERSION 2.0.0
         HOMEPAGE_URL https://github.com/H1K0/tanabata
         LANGUAGES C
         )
@@ -53,3 +53,5 @@ add_executable(tdb tdbms/cli/tdbms-cli.c ${TDBMS_CLIENT_SRC})
 
 # Tanabata CLI app
 add_executable(tfm ${CLI_SRC})
+
+add_executable(test test.c ${TDBMS_CLIENT_SRC})
