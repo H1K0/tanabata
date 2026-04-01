@@ -1,0 +1,2033 @@
+openapi: 3.0.3
+info:
+  title: Tanabata File Manager API
+  description: |
+    REST API for Tanabata File Manager — a multi-user, tag-based web file manager.
+
+    ## Authentication
+    All endpoints except `POST /auth/login` require a Bearer JWT token
+    in the `Authorization` header.
+
+    ## Pagination
+    - **Files**: cursor-based (`cursor` parameter, returned in `next_cursor`).
+    - **All other lists**: offset-based (`offset` + `limit`).
+
+    ## Error format
+    ```json
+    {
+      "code": "string",
+      "message": "string",
+      "details": [{ "field": "string", "message": "string" }]
+    }
+    ```
+
+    ## File filter DSL
+    Files can be filtered via a DSL in the `filter` query parameter.
+    Tokens are comma-separated inside braces: `{token1,token2,...}`.
+
+    Operators: `(`, `)`, `&` (AND), `|` (OR), `!` (NOT).
+    Conditions: `t=<tag_uuid>` (has tag), `t=00000000-0000-0000-0000-000000000000` (untagged),
+    `m=<mime_id>` (exact MIME), `m~<pattern>` (MIME LIKE pattern, e.g. `m~image%`).
+
+    Example: `{t=uuid1,&,!,t=uuid2}` → has tag1 AND NOT tag2.
+  version: 1.0.0
+  license:
+    name: Proprietary
+
+servers:
+  - url: /api/v1
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Authentication and session management
+  - name: Files
+    description: File management, upload, trash
+  - name: Tags
+    description: Tag CRUD and tag rules
+  - name: Categories
+    description: Category CRUD
+  - name: Pools
+    description: Pool CRUD, file ordering
+  - name: ACL
+    description: Access control
+  - name: Users
+    description: User management (admin)
+  - name: Audit
+    description: Audit log (admin)
+
+# ===========================================================================
+# Paths
+# ===========================================================================
+paths:
+
+  # -------------------------------------------------------------------------
+  # Auth
+  # -------------------------------------------------------------------------
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, password]
+              properties:
+                name:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: JWT token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: New token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out (invalidate current session)
+      responses:
+        '204':
+          description: Logged out
+
+  /auth/sessions:
+    get:
+      tags: [Auth]
+      summary: List my active sessions
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Session list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionList'
+
+  /auth/sessions/{session_id}:
+    delete:
+      tags: [Auth]
+      summary: Terminate a session
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Session terminated
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # -------------------------------------------------------------------------
+  # Files
+  # -------------------------------------------------------------------------
+  /files:
+    get:
+      tags: [Files]
+      summary: List files (cursor-based pagination)
+      parameters:
+        - name: cursor
+          in: query
+          description: Cursor from previous response's `next_cursor` or `prev_cursor`
+          schema:
+            type: string
+        - name: direction
+          in: query
+          description: Pagination direction relative to cursor
+          schema:
+            type: string
+            enum: [forward, backward]
+            default: forward
+        - name: anchor
+          in: query
+          description: |
+            File UUID to anchor the listing around. The response will
+            include this file and its neighbors. Use with `direction`
+            and `limit` to load items before/after the anchor.
+            Mutually exclusive with `cursor`.
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+        - name: sort
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [content_datetime, created, original_name, mime]
+            default: created
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: filter
+          in: query
+          description: Filter DSL expression (see API description)
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Search by original_name (substring match)
+          schema:
+            type: string
+        - name: trash
+          in: query
+          description: If true, return only soft-deleted files (trash)
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Paginated file list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileCursorPage'
+
+    post:
+      tags: [Files]
+      summary: Upload a new file
+      description: |
+        Upload a file via multipart form. If `content_datetime` is not provided,
+        it is extracted from EXIF data (DateTimeOriginal). EXIF metadata is
+        automatically extracted and stored in the `exif` field (immutable).
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                content_datetime:
+                  type: string
+                  format: date-time
+                notes:
+                  type: string
+                metadata:
+                  type: string
+                  description: JSON string of key-value pairs
+                is_public:
+                  type: boolean
+                  default: false
+                tag_ids:
+                  type: string
+                  description: Comma-separated tag UUIDs to assign
+      responses:
+        '201':
+          description: File created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '415':
+          description: Unsupported MIME type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /files/{file_id}:
+    get:
+      tags: [Files]
+      summary: Get file metadata
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '200':
+          description: File metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Files]
+      summary: Update file metadata
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileUpdate'
+      responses:
+        '200':
+          description: Updated file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Files]
+      summary: Soft-delete file (move to trash)
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '204':
+          description: Moved to trash
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /files/{file_id}/content:
+    get:
+      tags: [Files]
+      summary: Download file content
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '200':
+          description: File binary
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Files]
+      summary: Replace file content (keep same ID)
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: File replaced
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '415':
+          description: Unsupported MIME type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /files/{file_id}/thumbnail:
+    get:
+      tags: [Files]
+      summary: Get file thumbnail
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '200':
+          description: Thumbnail image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /files/{file_id}/preview:
+    get:
+      tags: [Files]
+      summary: Get file preview (larger than thumbnail)
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '200':
+          description: Preview image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /files/{file_id}/restore:
+    post:
+      tags: [Files]
+      summary: Restore file from trash
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '200':
+          description: File restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /files/{file_id}/permanent:
+    delete:
+      tags: [Files]
+      summary: Permanently delete file (from trash only)
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '204':
+          description: Permanently deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: File is not in trash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # --- File-Tag relations ---
+  /files/{file_id}/tags:
+    get:
+      tags: [Files, Tags]
+      summary: List tags assigned to a file
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '200':
+          description: Tag list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+
+    put:
+      tags: [Files, Tags]
+      summary: Set tags on a file (replaces all)
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tag_ids]
+              properties:
+                tag_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '200':
+          description: Updated tag list (including auto-applied tags)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+
+  /files/{file_id}/tags/{tag_id}:
+    put:
+      tags: [Files, Tags]
+      summary: Add a tag to a file
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+        - $ref: '#/components/parameters/tag_id'
+      responses:
+        '200':
+          description: Tags after addition (including auto-applied)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+
+    delete:
+      tags: [Files, Tags]
+      summary: Remove a tag from a file
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+        - $ref: '#/components/parameters/tag_id'
+      responses:
+        '204':
+          description: Tag removed
+
+  # --- Bulk file operations ---
+  /files/bulk/tags:
+    post:
+      tags: [Files, Tags]
+      summary: Bulk add/remove tags on multiple files
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids, action, tag_ids]
+              properties:
+                file_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                action:
+                  type: string
+                  enum: [add, remove]
+                tag_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '200':
+          description: Result with all applied tag IDs (including auto-applied, for add)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applied_tag_ids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+
+  /files/bulk/delete:
+    post:
+      tags: [Files]
+      summary: Bulk soft-delete files
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids]
+              properties:
+                file_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '204':
+          description: Files moved to trash
+
+  /files/bulk/common-tags:
+    post:
+      tags: [Files, Tags]
+      summary: Get tags for multiple files, split into common (all) and partial (some)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids]
+              properties:
+                file_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '200':
+          description: Tags grouped by coverage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  common_tag_ids:
+                    type: array
+                    description: Tags present on ALL specified files
+                    items:
+                      type: string
+                      format: uuid
+                  partial_tag_ids:
+                    type: array
+                    description: Tags present on SOME but not all specified files
+                    items:
+                      type: string
+                      format: uuid
+
+  # --- File import ---
+  /files/import:
+    post:
+      tags: [Files]
+      summary: Import files from a server directory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path:
+                  type: string
+                  description: Server directory path (uses user's configured import path if omitted)
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported:
+                    type: integer
+                  skipped:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        filename:
+                          type: string
+                        reason:
+                          type: string
+
+  # -------------------------------------------------------------------------
+  # Tags
+  # -------------------------------------------------------------------------
+  /tags:
+    get:
+      tags: [Tags]
+      summary: List tags
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [name, color, category_name, created]
+            default: created
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: search
+          in: query
+          description: Search by name (substring)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tag list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagOffsetPage'
+
+    post:
+      tags: [Tags]
+      summary: Create a tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagCreate'
+      responses:
+        '201':
+          description: Tag created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Tag name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /tags/{tag_id}:
+    get:
+      tags: [Tags]
+      summary: Get a tag
+      parameters:
+        - $ref: '#/components/parameters/tag_id'
+      responses:
+        '200':
+          description: Tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Tags]
+      summary: Update a tag
+      parameters:
+        - $ref: '#/components/parameters/tag_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagUpdate'
+      responses:
+        '200':
+          description: Updated tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+
+    delete:
+      tags: [Tags]
+      summary: Delete a tag
+      parameters:
+        - $ref: '#/components/parameters/tag_id'
+      responses:
+        '204':
+          description: Tag deleted
+
+  /tags/{tag_id}/files:
+    get:
+      tags: [Tags, Files]
+      summary: List files with this tag
+      parameters:
+        - $ref: '#/components/parameters/tag_id'
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: File list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileCursorPage'
+
+  # --- Tag rules ---
+  /tags/{tag_id}/rules:
+    get:
+      tags: [Tags]
+      summary: List tag rules for a tag (when this tag is applied, which tags follow)
+      parameters:
+        - $ref: '#/components/parameters/tag_id'
+      responses:
+        '200':
+          description: Tag rules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagRule'
+
+    post:
+      tags: [Tags]
+      summary: Add a tag rule
+      parameters:
+        - $ref: '#/components/parameters/tag_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [then_tag_id]
+              properties:
+                then_tag_id:
+                  type: string
+                  format: uuid
+                is_active:
+                  type: boolean
+                  default: true
+                apply_to_existing:
+                  type: boolean
+                  default: true
+                  description: Apply rule retroactively to files already tagged
+      responses:
+        '201':
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagRule'
+
+  /tags/{tag_id}/rules/{then_tag_id}:
+    delete:
+      tags: [Tags]
+      summary: Remove a tag rule
+      parameters:
+        - $ref: '#/components/parameters/tag_id'
+        - name: then_tag_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Rule removed
+
+  # -------------------------------------------------------------------------
+  # Categories
+  # -------------------------------------------------------------------------
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List categories
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [name, created]
+            default: created
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryOffsetPage'
+
+    post:
+      tags: [Categories]
+      summary: Create a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryCreate'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '409':
+          description: Name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /categories/{category_id}:
+    get:
+      tags: [Categories]
+      summary: Get a category
+      parameters:
+        - $ref: '#/components/parameters/category_id'
+      responses:
+        '200':
+          description: Category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Categories]
+      summary: Update a category
+      parameters:
+        - $ref: '#/components/parameters/category_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+      responses:
+        '200':
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+
+    delete:
+      tags: [Categories]
+      summary: Delete a category
+      parameters:
+        - $ref: '#/components/parameters/category_id'
+      responses:
+        '204':
+          description: Category deleted
+
+  /categories/{category_id}/tags:
+    get:
+      tags: [Categories, Tags]
+      summary: List tags in a category
+      parameters:
+        - $ref: '#/components/parameters/category_id'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Tag list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagOffsetPage'
+
+  # -------------------------------------------------------------------------
+  # Pools
+  # -------------------------------------------------------------------------
+  /pools:
+    get:
+      tags: [Pools]
+      summary: List pools
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [name, created]
+            default: created
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pool list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolOffsetPage'
+
+    post:
+      tags: [Pools]
+      summary: Create a pool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PoolCreate'
+      responses:
+        '201':
+          description: Pool created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pool'
+
+  /pools/{pool_id}:
+    get:
+      tags: [Pools]
+      summary: Get a pool
+      parameters:
+        - $ref: '#/components/parameters/pool_id'
+      responses:
+        '200':
+          description: Pool
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pool'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Pools]
+      summary: Update a pool
+      parameters:
+        - $ref: '#/components/parameters/pool_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PoolUpdate'
+      responses:
+        '200':
+          description: Updated pool
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pool'
+
+    delete:
+      tags: [Pools]
+      summary: Delete a pool
+      parameters:
+        - $ref: '#/components/parameters/pool_id'
+      responses:
+        '204':
+          description: Pool deleted
+
+  /pools/{pool_id}/files:
+    get:
+      tags: [Pools, Files]
+      summary: List files in a pool (ordered by position)
+      parameters:
+        - $ref: '#/components/parameters/pool_id'
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: filter
+          in: query
+          description: Filter DSL (same syntax as /files)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ordered file list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolFileCursorPage'
+
+    post:
+      tags: [Pools, Files]
+      summary: Add files to a pool
+      parameters:
+        - $ref: '#/components/parameters/pool_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids]
+              properties:
+                file_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                position:
+                  type: integer
+                  description: Insert position for the first file (rest follow sequentially; appended at end if omitted)
+      responses:
+        '201':
+          description: Files added to pool
+
+  /pools/{pool_id}/files/remove:
+    post:
+      tags: [Pools, Files]
+      summary: Remove files from a pool
+      parameters:
+        - $ref: '#/components/parameters/pool_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids]
+              properties:
+                file_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '204':
+          description: Files removed from pool
+
+  /pools/{pool_id}/files/reorder:
+    put:
+      tags: [Pools]
+      summary: Reorder files in a pool
+      parameters:
+        - $ref: '#/components/parameters/pool_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids]
+              properties:
+                file_ids:
+                  type: array
+                  description: File UUIDs in desired order
+                  items:
+                    type: string
+                    format: uuid
+      responses:
+        '204':
+          description: Reordered
+
+  # -------------------------------------------------------------------------
+  # ACL
+  # -------------------------------------------------------------------------
+  /acl/{object_type}/{object_id}:
+    get:
+      tags: [ACL]
+      summary: List permissions for an object
+      parameters:
+        - name: object_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [file, tag, category, pool]
+        - name: object_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Permission list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Permission'
+
+    put:
+      tags: [ACL]
+      summary: Set permissions for an object (replaces all)
+      parameters:
+        - name: object_type
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [file, tag, category, pool]
+        - name: object_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissions]
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: object
+                    required: [user_id]
+                    properties:
+                      user_id:
+                        type: integer
+                      can_view:
+                        type: boolean
+                        default: true
+                      can_edit:
+                        type: boolean
+                        default: false
+      responses:
+        '200':
+          description: Updated permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Permission'
+
+  # -------------------------------------------------------------------------
+  # Users (admin)
+  # -------------------------------------------------------------------------
+  /users:
+    get:
+      tags: [Users]
+      summary: List users (admin only)
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: User list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOffsetPage'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Users]
+      summary: Create a user (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      responses:
+        '200':
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    patch:
+      tags: [Users]
+      summary: Update current user profile (name, password)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/{user_id}:
+    get:
+      tags: [Users]
+      summary: Get a user (admin only)
+      parameters:
+        - $ref: '#/components/parameters/user_id'
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    patch:
+      tags: [Users]
+      summary: Update user role/status (admin only)
+      parameters:
+        - $ref: '#/components/parameters/user_id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_admin:
+                  type: boolean
+                can_create:
+                  type: boolean
+                is_blocked:
+                  type: boolean
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    delete:
+      tags: [Users]
+      summary: Delete a user (admin only)
+      parameters:
+        - $ref: '#/components/parameters/user_id'
+      responses:
+        '204':
+          description: User deleted
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # -------------------------------------------------------------------------
+  # Audit log (admin)
+  # -------------------------------------------------------------------------
+  /audit:
+    get:
+      tags: [Audit]
+      summary: Query audit log (admin only)
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+        - name: user_id
+          in: query
+          schema:
+            type: integer
+        - name: action
+          in: query
+          description: Filter by action type name
+          schema:
+            type: string
+        - name: object_type
+          in: query
+          schema:
+            type: string
+            enum: [file, tag, category, pool]
+        - name: object_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogOffsetPage'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+# ===========================================================================
+# Components
+# ===========================================================================
+components:
+
+  # -------------------------------------------------------------------------
+  # Security schemes
+  # -------------------------------------------------------------------------
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # -------------------------------------------------------------------------
+  # Parameters
+  # -------------------------------------------------------------------------
+  parameters:
+    file_id:
+      name: file_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    tag_id:
+      name: tag_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    category_id:
+      name: category_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    pool_id:
+      name: pool_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    user_id:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+    offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+
+    limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 50
+        minimum: 1
+        maximum: 200
+
+  # -------------------------------------------------------------------------
+  # Responses
+  # -------------------------------------------------------------------------
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  # -------------------------------------------------------------------------
+  # Schemas
+  # -------------------------------------------------------------------------
+  schemas:
+
+    # --- Error ---
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: not_found
+        message:
+          type: string
+          example: File not found
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+    # --- Auth ---
+    TokenPair:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          description: Access token TTL in seconds
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_agent:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_activity:
+          type: string
+          format: date-time
+        is_current:
+          type: boolean
+
+    SessionList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Session'
+        total:
+          type: integer
+
+    # --- File ---
+    File:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        original_name:
+          type: string
+          nullable: true
+        mime_type:
+          type: string
+          example: image/jpeg
+        mime_extension:
+          type: string
+          example: jpg
+        content_datetime:
+          type: string
+          format: date-time
+        notes:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        exif:
+          type: object
+          readOnly: true
+          description: EXIF data extracted at upload time (immutable, empty object if no EXIF)
+        phash:
+          type: integer
+          format: int64
+          nullable: true
+        creator_id:
+          type: integer
+        creator_name:
+          type: string
+        is_public:
+          type: boolean
+        is_deleted:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          description: Extracted from UUID v7
+
+    FileUpdate:
+      type: object
+      properties:
+        original_name:
+          type: string
+        content_datetime:
+          type: string
+          format: date-time
+        notes:
+          type: string
+        metadata:
+          type: object
+        is_public:
+          type: boolean
+
+    FileCursorPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+        next_cursor:
+          type: string
+          nullable: true
+          description: Cursor for loading next (forward) page; null if no more items ahead
+        prev_cursor:
+          type: string
+          nullable: true
+          description: Cursor for loading previous (backward) page; null if at the beginning
+
+    # --- Tag ---
+    Tag:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+          example: "5DCAA5"
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        category_name:
+          type: string
+          nullable: true
+        category_color:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        creator_id:
+          type: integer
+        creator_name:
+          type: string
+        is_public:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    TagCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        color:
+          type: string
+          pattern: '^[A-Fa-f0-9]{6}$'
+        category_id:
+          type: string
+          format: uuid
+        metadata:
+          type: object
+        is_public:
+          type: boolean
+          default: false
+
+    TagUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        color:
+          type: string
+          nullable: true
+          description: Hex color or null to clear
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Category UUID or null to unassign
+        metadata:
+          type: object
+        is_public:
+          type: boolean
+
+    TagOffsetPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+
+    # --- Tag rule ---
+    TagRule:
+      type: object
+      properties:
+        when_tag_id:
+          type: string
+          format: uuid
+        then_tag_id:
+          type: string
+          format: uuid
+        then_tag_name:
+          type: string
+        is_active:
+          type: boolean
+
+    # --- Category ---
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        creator_id:
+          type: integer
+        creator_name:
+          type: string
+        is_public:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    CategoryCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        color:
+          type: string
+          pattern: '^[A-Fa-f0-9]{6}$'
+        metadata:
+          type: object
+        is_public:
+          type: boolean
+          default: false
+
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        color:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+        is_public:
+          type: boolean
+
+    CategoryOffsetPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+
+    # --- Pool ---
+    Pool:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        creator_id:
+          type: integer
+        creator_name:
+          type: string
+        is_public:
+          type: boolean
+        file_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    PoolCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        metadata:
+          type: object
+        is_public:
+          type: boolean
+          default: false
+
+    PoolUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        notes:
+          type: string
+        metadata:
+          type: object
+        is_public:
+          type: boolean
+
+    PoolOffsetPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pool'
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+
+    PoolFile:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/File'
+        - type: object
+          properties:
+            position:
+              type: integer
+
+    PoolFileCursorPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PoolFile'
+        next_cursor:
+          type: string
+          nullable: true
+
+    # --- ACL ---
+    Permission:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        user_name:
+          type: string
+        can_view:
+          type: boolean
+        can_edit:
+          type: boolean
+
+    # --- User ---
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        is_admin:
+          type: boolean
+        can_create:
+          type: boolean
+        is_blocked:
+          type: boolean
+
+    UserCreate:
+      type: object
+      required: [name, password]
+      properties:
+        name:
+          type: string
+        password:
+          type: string
+        is_admin:
+          type: boolean
+          default: false
+        can_create:
+          type: boolean
+          default: false
+
+    UserOffsetPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+
+    # --- Audit ---
+    AuditLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        user_id:
+          type: integer
+        user_name:
+          type: string
+        action:
+          type: string
+          example: file_create
+        object_type:
+          type: string
+          nullable: true
+        object_id:
+          type: string
+          format: uuid
+          nullable: true
+        details:
+          type: object
+          nullable: true
+        performed_at:
+          type: string
+          format: date-time
+
+    AuditLogOffsetPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLogEntry'
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
