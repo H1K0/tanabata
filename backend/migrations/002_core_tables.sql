@@ -6,6 +6,7 @@ CREATE TABLE core.users (
     password   text        NOT NULL,  -- bcrypt hash via pgcrypto
     is_admin   boolean     NOT NULL DEFAULT false,
     can_create boolean     NOT NULL DEFAULT false,
+    is_blocked boolean     NOT NULL DEFAULT false,
 
     CONSTRAINT uni__users__name UNIQUE (name)
 );

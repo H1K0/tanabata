@@ -16,6 +16,7 @@ CREATE TABLE activity.sessions (
     started_at    timestamptz  NOT NULL DEFAULT statement_timestamp(),
     expires_at    timestamptz,
     last_activity timestamptz  NOT NULL DEFAULT statement_timestamp(),
+    is_active     boolean      NOT NULL DEFAULT true,
 
     CONSTRAINT uni__sessions__token_hash UNIQUE (token_hash)
 );
