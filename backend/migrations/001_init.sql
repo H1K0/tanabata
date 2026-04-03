@@ -164,7 +164,7 @@ CREATE TABLE data.files (
     content_datetime timestamptz  NOT NULL DEFAULT clock_timestamp(),  -- content datetime (e.g. photo taken)
     notes            text,
     metadata         jsonb,                 -- user-editable key-value data
-    exif             jsonb        NOT NULL DEFAULT '{}'::jsonb,  -- EXIF data extracted at upload (immutable)
+    exif             jsonb        NOT NULL,  -- EXIF data extracted at upload (immutable)
     phash            bigint,                -- perceptual hash for duplicate detection (future)
     creator_id       smallint     NOT NULL REFERENCES core.users(id)
                                   ON UPDATE CASCADE ON DELETE RESTRICT,
