@@ -9,6 +9,7 @@ CREATE SCHEMA IF NOT EXISTS acl;
 CREATE SCHEMA IF NOT EXISTS activity;
 
 -- UUID v7 generator
+-- +goose StatementBegin
 CREATE OR REPLACE FUNCTION public.uuid_v7(cts timestamptz DEFAULT clock_timestamp())
 RETURNS uuid LANGUAGE plpgsql AS $$
 DECLARE
@@ -38,14 +39,17 @@ BEGIN
             substring(entropy from 1 for 12))::uuid;
 END;
 $$;
+-- +goose StatementEnd
 
 -- Extract timestamp from UUID v7
+-- +goose StatementBegin
 CREATE OR REPLACE FUNCTION public.uuid_extract_timestamp(uuid_val uuid)
 RETURNS timestamptz LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
     SELECT to_timestamp(
         ('x' || left(replace(uuid_val::text, '-', ''), 12))::bit(48)::bigint / 1000.0
     );
 $$;
+-- +goose StatementEnd
 
 -- +goose Down
 

@@ -26,7 +26,11 @@ INSERT INTO activity.action_types (name) VALUES
     -- Sessions
     ('session_terminate');
 
+INSERT INTO core.users (name, password, is_admin, can_create) VALUES
+    ('admin', '$2a$10$zk.VTFjRRxbkTE7cKfc7KOWeZfByk1VEkbkgZMJggI1fFf.yDEHZy', true, true);
+
 -- +goose Down
 
+DELETE FROM core.users WHERE name = 'admin';
 DELETE FROM activity.action_types;
 DELETE FROM core.object_types;

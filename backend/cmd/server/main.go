@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"os"
 
-	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 
 	"tanabata/backend/internal/config"
+	"tanabata/backend/internal/db/postgres"
+	"tanabata/backend/internal/handler"
+	"tanabata/backend/internal/service"
 	"tanabata/backend/migrations"
 )
 
@@ -22,22 +22,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	pool, err := pgxpool.New(context.Background(), cfg.DatabaseURL)
+	pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL)
 	if err != nil {
 		slog.Error("failed to connect to database", "err", err)
 		os.Exit(1)
 	}
 	defer pool.Close()
-
-	if err := pool.Ping(context.Background()); err != nil {
-		slog.Error("database ping failed", "err", err)
-		os.Exit(1)
-	}
 	slog.Info("database connected")
 
-	// Run migrations using the embedded FS.
-	// stdlib.OpenDBFromPool wraps the pool in a *sql.DB without closing
-	// the pool when the sql.DB is closed.
 	migDB := stdlib.OpenDBFromPool(pool)
 	goose.SetBaseFS(migrations.FS)
 	if err := goose.SetDialect("postgres"); err != nil {
@@ -51,12 +43,24 @@ func main() {
 	migDB.Close()
 	slog.Info("migrations applied")
 
-	r := gin.New()
-	r.Use(gin.Recovery())
+	// Repositories
+	userRepo    := postgres.NewUserRepo(pool)
+	sessionRepo := postgres.NewSessionRepo(pool)
 
-	r.GET("/health", func(c *gin.Context) {
-		c.Status(http.StatusOK)
-	})
+	// Services
+	authSvc := service.NewAuthService(
+		userRepo,
+		sessionRepo,
+		cfg.JWTSecret,
+		cfg.JWTAccessTTL,
+		cfg.JWTRefreshTTL,
+	)
+
+	// Handlers
+	authMiddleware := handler.NewAuthMiddleware(authSvc)
+	authHandler    := handler.NewAuthHandler(authSvc)
+
+	r := handler.NewRouter(authMiddleware, authHandler)
 
 	slog.Info("starting server", "addr", cfg.ListenAddr)
 	if err := r.Run(cfg.ListenAddr); err != nil {
