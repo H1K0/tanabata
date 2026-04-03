@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	{% include 'head.html' %}
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/interface.css') }}">
+	<title>New category | Tanabata File Manager</title>
+</head>
+<body data-bs-theme="dark">
+	<header>
+		<h1><img src="{{ url_for('static', filename='images/icon-category.svg') }}" alt="Category -" class="icon-header"> New category</h1>
+		<form id="object-add" method="POST" action="/categories/new">
+			<div class="row">
+				<div class="form-group col-md-10">
+					<label for="name">Name</label>
+					<input type="text" class="form-control" name="name" id="name" required>
+				</div>
+				<div class="form-group col-md-2">
+					<label for="color">Color</label>
+					<input type="color" class="form-control form-control-color" name="color" id="color" value="#444455">
+				</div>
+			</div>
+			<div class="form-group">
+				<label for="notes">Notes</label>
+				<textarea class="form-control" name="notes" id="notes" rows="3"></textarea>
+			</div>
+			<div class="form-check">
+				<label for="is_private" class="form-check-label">Is private</label>
+				<input type="checkbox" name="is_private" id="is_private" class="form-check-input" checked>
+			</div>
+			<div class="form-group">
+				<button type="submit" class="btn btn-primary">Add category</button>
+			</div>
+		</form>
+	</header>
+	<div id="loader" style="display: none">
+		<div class="loader-wrapper">
+			<img src="{{ url_for('static', filename='images/loader.gif') }}" alt="Loading..." class="loader-img">
+		</div>
+	</div>
+	<script src="{{ url_for('static', filename='js/interface.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/add-category.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	{% include 'head.html' %}
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/interface.css') }}">
+	<title>File - {{ file['id'] }}.{{ file['extension'] }} | Tanabata File Manager</title>
+</head>
+<body data-bs-theme="dark">
+	<div class="file">
+		<a href="/static/files/{{ file['id'] }}" class="preview-link" target="_blank">
+		<img src="/static/previews/{{ file['id'] }}" alt="{{ file['id'] }}" class="preview-img">
+		</a>
+	</div>
+	<header>
+	<form id="object-edit">
+		<div class="form-group">
+			<label for="notes">Notes</label>
+			<textarea class="form-control" name="init-notes" rows="3" hidden>{{ file['notes'] }}</textarea>
+			<textarea class="form-control" id="notes" name="notes" rows="3">{{ file['notes'] }}</textarea>
+		</div>
+		<div class="form-group">
+			<label for="datetime">Datetime</label>
+			<input type="datetime-local" class="form-control" name="init-datetime" step="1" value="{{ file['datetime'] }}" hidden>
+			<input type="datetime-local" class="form-control" id="datetime" name="datetime" step="1" value="{{ file['datetime'] }}" required>
+		</div>
+		<div class="form-check">
+			<label for="is_private" class="form-check-label">Is private</label>
+			<input type="checkbox" class="form-check-input" name="init-is_private" {% if file['is_private'] %}checked{% endif %} hidden>
+			<input type="checkbox" class="form-check-input" id="is_private" name="is_private" {% if file['is_private'] %}checked{% endif %}>
+		</div>
+		<div class="form-group">
+			<button type="submit" class="btn btn-primary">Save changes</button>
+		</div>
+	</form>
+	<div class="file-tags">
+		<div class="tags-container" id="file-tags-selected">
+			{% for tag in tags_all %}
+			<div class="tag-preview" tag_id="{{ tag['id'] }}" style="{% if tag['color'] %}background-color: #{{ tag['color'] }};{% elif tag['category_color'] %}background-color: #{{ tag['category_color'] }};{% endif %}{% if tag not in tags %}display: none;{% endif %}">{{ tag['name'] }}</div>
+			{% endfor %}
+		</div>
+		<input type="text" class="form-control filtering" id="file-tags-filter" placeholder="Filter tags...">
+		<div class="tags-container" id="file-tags-other">
+			{% for tag in tags_all %}
+			<div class="tag-preview" tag_id="{{ tag['id'] }}" style="{% if tag['color'] %}background-color: #{{ tag['color'] }};{% elif tag['category_color'] %}background-color: #{{ tag['category_color'] }};{% endif %}{% if tag in tags %}display: none;{% endif %}">{{ tag['name'] }}</div>
+			{% endfor %}
+		</div>
+	</div>
+	</header>
+	<div id="loader" style="display: none">
+		<div class="loader-wrapper">
+			<img src="{{ url_for('static', filename='images/loader.gif') }}" alt="Loading..." class="loader-img">
+		</div>
+	</div>
+	<script src="{{ url_for('static', filename='js/interface.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/file.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+body {
+	justify-content: center;
+	align-items: center;
+}
+
+.decoration {
+	position: absolute;
+	top: 0;
+}
+
+.decoration.left {
+	left: 0;
+	width: 20vw;
+}
+
+.decoration.right {
+	right: 0;
+	width: 20vw;
+}
+
+#auth {
+	max-width: 100%;
+}
+
+#auth h1 {
+	margin-bottom: 28px;
+}
+
+#auth .form-control {
+	margin: 14px 0;
+	border-radius: 14px;
+}
+
+#login {
+	margin-top: 20px;
+}

@@ -1,0 +1,33 @@
+{% extends 'section.html' %}
+{% set section = 'files' %}
+{% set sorting_options = ['mime_name', 'datetime', 'created'] %}
+
+{% block Header %}
+	<div class="filtering-wrapper">
+		<div class="filtering-tokens" id="files-filter"></div>
+	</div>
+	<div class="filtering-block" style="display: none">
+		<div class="filtering-operators">
+			<div class="filtering-token" val="("><i>(</i></div>
+			<div class="filtering-token" val="&"><i>AND</i></div>
+			<div class="filtering-token" val="!"><i>NOT</i></div>
+			<div class="filtering-token" val="|"><i>OR</i></div>
+			<div class="filtering-token" val=")"><i>)</i></div>
+		</div>
+		<div class="filtering-filter">
+			<input type="text" class="form-control filtering" id="filter-filtering" placeholder="Filter tags...">
+		</div>
+		<div class="filtering-tokens" id="filtering-tokens-all">
+			<div class="filtering-token" val="t=00000000-0000-0000-0000-000000000000"><i>Untagged</i></div>
+			<div class="filtering-token" val="m~image%"><i>MIME: image/*</i></div>
+			<div class="filtering-token" val="m~video%"><i>MIME: video/*</i></div>
+		</div>
+		<div class="form-group btn-row">
+			<button class="btn btn-primary" id="filtering-apply" style="width: 48%;">Apply</button>
+			<button class="btn btn-danger" id="filtering-reset" style="width: 48%;">Reset</button>
+		</div>
+	</div>
+{% endblock %}
+
+{% block Main %}
+{% endblock %}

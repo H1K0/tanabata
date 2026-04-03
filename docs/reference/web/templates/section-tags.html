@@ -1,0 +1,15 @@
+{% extends 'section.html' %}
+{% set section = 'tags' %}
+{% set sorting_options = ['name', 'color', 'category_name', 'created'] %}
+
+{% block Header %}
+	<div class="filtering-wrapper">
+		<input type="text" class="form-control filtering" id="filter" placeholder="Filter {{ section }}...">
+	</div>
+{% endblock %}
+
+{% block Main %}
+	{% for tag in tags %}
+	<div class="item-preview tag-preview" tag_id="{{ tag['id'] }}"{% if tag['color'] %} style="background-color: #{{ tag['color'] }}"{% elif tag['category_color'] %} style="background-color: #{{ tag['category_color'] }}"{% endif %}>{{ tag['name'] }}</div>
+	{% endfor %}
+{% endblock %}

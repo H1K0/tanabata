@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	{% include 'head.html' %}
+	<title>Welcome to Tanabata File Manager!</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body data-bs-theme="dark">
+	<img src="{{ url_for('static', filename='images/tanabata-left.png') }}" alt="" class="decoration left">
+	<img src="{{ url_for('static', filename='images/tanabata-right.png') }}" alt="" class="decoration right">
+	<form id="auth">
+		<h1>Welcome to Tanabata File Manager!</h1>
+		<div class="form-group">
+			<input type="text" class="form-control form-control-lg" id="username" name="username" placeholder="Username..." required>
+		</div>
+		<div class="form-group">
+			<input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Password..." required>
+		</div>
+		<div class="form-group">
+			<button type="submit" class="btn btn-primary" id="login">Log in</button>
+		</div>
+	</form>
+	<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>
