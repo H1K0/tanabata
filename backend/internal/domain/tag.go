@@ -20,7 +20,7 @@ type Tag struct {
 	CreatorID     int16
 	CreatorName   string // denormalized
 	IsPublic      bool
-	CreatedAt     time.Time // extracted from UUID v7
+	CreatedAt     time.Time // extracted from UUID v7 via UUIDCreatedAt
 }
 
 // TagRule defines an auto-tagging rule: when WhenTagID is applied,
@@ -30,4 +30,12 @@ type TagRule struct {
 	ThenTagID   uuid.UUID
 	ThenTagName string // denormalized
 	IsActive    bool
+}
+
+// TagOffsetPage is an offset-based page of tags.
+type TagOffsetPage struct {
+	Items  []Tag
+	Total  int
+	Offset int
+	Limit  int
 }

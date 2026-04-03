@@ -17,7 +17,7 @@ type Pool struct {
 	CreatorName string // denormalized
 	IsPublic    bool
 	FileCount   int
-	CreatedAt   time.Time // extracted from UUID v7
+	CreatedAt   time.Time // extracted from UUID v7 via UUIDCreatedAt
 }
 
 // PoolFile is a File with its ordering position within a pool.
@@ -30,4 +30,12 @@ type PoolFile struct {
 type PoolFilePage struct {
 	Items      []PoolFile
 	NextCursor *string
+}
+
+// PoolOffsetPage is an offset-based page of pools.
+type PoolOffsetPage struct {
+	Items  []Pool
+	Total  int
+	Offset int
+	Limit  int
 }

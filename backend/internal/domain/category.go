@@ -17,5 +17,13 @@ type Category struct {
 	CreatorID   int16
 	CreatorName string // denormalized
 	IsPublic    bool
-	CreatedAt   time.Time // extracted from UUID v7
+	CreatedAt   time.Time // extracted from UUID v7 via UUIDCreatedAt
+}
+
+// CategoryOffsetPage is an offset-based page of categories.
+type CategoryOffsetPage struct {
+	Items  []Category
+	Total  int
+	Offset int
+	Limit  int
 }

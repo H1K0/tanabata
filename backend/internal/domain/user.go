@@ -4,12 +4,12 @@ import "time"
 
 // User is an application user.
 type User struct {
-	ID         int16
-	Name       string
-	Password   string // bcrypt hash; only populated when needed for auth
-	IsAdmin    bool
-	CanCreate  bool
-	IsBlocked  bool
+	ID        int16
+	Name      string
+	Password  string // bcrypt hash; only populated when needed for auth
+	IsAdmin   bool
+	CanCreate bool
+	IsBlocked bool
 }
 
 // Session is an active user session.
@@ -24,7 +24,7 @@ type Session struct {
 	IsCurrent    bool // true when this session matches the caller's token
 }
 
-// OffsetPage is a generic offset-based page of users.
+// UserPage is an offset-based page of users.
 type UserPage struct {
 	Items  []User
 	Total  int
