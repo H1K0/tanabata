@@ -63,6 +63,8 @@ func main() {
 	mimeRepo    := postgres.NewMimeRepo(pool)
 	aclRepo     := postgres.NewACLRepo(pool)
 	auditRepo   := postgres.NewAuditRepo(pool)
+	tagRepo     := postgres.NewTagRepo(pool)
+	tagRuleRepo := postgres.NewTagRuleRepo(pool)
 	transactor  := postgres.NewTransactor(pool)
 
 	// Services
@@ -75,12 +77,14 @@ func main() {
 	)
 	aclSvc   := service.NewACLService(aclRepo)
 	auditSvc := service.NewAuditService(auditRepo)
+	tagSvc   := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
 	fileSvc  := service.NewFileService(
 		fileRepo,
 		mimeRepo,
 		diskStorage,
 		aclSvc,
 		auditSvc,
+		tagSvc,
 		transactor,
 		cfg.ImportPath,
 	)
@@ -88,9 +92,10 @@ func main() {
 	// Handlers
 	authMiddleware := handler.NewAuthMiddleware(authSvc)
 	authHandler    := handler.NewAuthHandler(authSvc)
-	fileHandler    := handler.NewFileHandler(fileSvc)
+	fileHandler    := handler.NewFileHandler(fileSvc, tagSvc)
+	tagHandler     := handler.NewTagHandler(tagSvc, fileSvc)
 
-	r := handler.NewRouter(authMiddleware, authHandler, fileHandler)
+	r := handler.NewRouter(authMiddleware, authHandler, fileHandler, tagHandler)
 
 	slog.Info("starting server", "addr", cfg.ListenAddr)
 	if err := r.Run(cfg.ListenAddr); err != nil {

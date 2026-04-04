@@ -63,6 +63,19 @@ type TagRepo interface {
 	Create(ctx context.Context, t *domain.Tag) (*domain.Tag, error)
 	Update(ctx context.Context, id uuid.UUID, t *domain.Tag) (*domain.Tag, error)
 	Delete(ctx context.Context, id uuid.UUID) error
+
+	// ListByFile returns all tags assigned to a specific file, ordered by name.
+	ListByFile(ctx context.Context, fileID uuid.UUID) ([]domain.Tag, error)
+	// AddFileTag inserts a single file→tag relation. No-op if already present.
+	AddFileTag(ctx context.Context, fileID, tagID uuid.UUID) error
+	// RemoveFileTag deletes a single file→tag relation.
+	RemoveFileTag(ctx context.Context, fileID, tagID uuid.UUID) error
+	// SetFileTags replaces all tags on a file (full replace semantics).
+	SetFileTags(ctx context.Context, fileID uuid.UUID, tagIDs []uuid.UUID) error
+	// CommonTagsForFiles returns tags present on every one of the given files.
+	CommonTagsForFiles(ctx context.Context, fileIDs []uuid.UUID) ([]domain.Tag, error)
+	// PartialTagsForFiles returns tags present on some but not all of the given files.
+	PartialTagsForFiles(ctx context.Context, fileIDs []uuid.UUID) ([]domain.Tag, error)
 }
 
 // TagRuleRepo is the persistence interface for auto-tag rules.

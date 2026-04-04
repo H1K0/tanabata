@@ -7,7 +7,12 @@ import (
 )
 
 // NewRouter builds and returns a configured Gin engine.
-func NewRouter(auth *AuthMiddleware, authHandler *AuthHandler, fileHandler *FileHandler) *gin.Engine {
+func NewRouter(
+	auth *AuthMiddleware,
+	authHandler *AuthHandler,
+	fileHandler *FileHandler,
+	tagHandler *TagHandler,
+) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 
@@ -18,7 +23,9 @@ func NewRouter(auth *AuthMiddleware, authHandler *AuthHandler, fileHandler *File
 
 	v1 := r.Group("/api/v1")
 
-	// Auth endpoints — login and refresh are public; others require a valid token.
+	// -------------------------------------------------------------------------
+	// Auth
+	// -------------------------------------------------------------------------
 	authGroup := v1.Group("/auth")
 	{
 		authGroup.POST("/login", authHandler.Login)
@@ -32,13 +39,15 @@ func NewRouter(auth *AuthMiddleware, authHandler *AuthHandler, fileHandler *File
 		}
 	}
 
-	// File endpoints — all require authentication.
+	// -------------------------------------------------------------------------
+	// Files (all require auth)
+	// -------------------------------------------------------------------------
 	files := v1.Group("/files", auth.Handle())
 	{
 		files.GET("", fileHandler.List)
 		files.POST("", fileHandler.Upload)
 
-		// Bulk routes must be registered before /:id to avoid ambiguity.
+		// Bulk + import routes registered before /:id to prevent param collision.
 		files.POST("/bulk/tags", fileHandler.BulkSetTags)
 		files.POST("/bulk/delete", fileHandler.BulkDelete)
 		files.POST("/bulk/common-tags", fileHandler.CommonTags)
@@ -56,10 +65,30 @@ func NewRouter(auth *AuthMiddleware, authHandler *AuthHandler, fileHandler *File
 		files.POST("/:id/restore", fileHandler.Restore)
 		files.DELETE("/:id/permanent", fileHandler.PermanentDelete)
 
-		files.GET("/:id/tags", fileHandler.ListTags)
-		files.PUT("/:id/tags", fileHandler.SetTags)
-		files.PUT("/:id/tags/:tag_id", fileHandler.AddTag)
-		files.DELETE("/:id/tags/:tag_id", fileHandler.RemoveTag)
+		// File–tag relations — served by TagHandler for auto-rule support.
+		files.GET("/:id/tags", tagHandler.FileListTags)
+		files.PUT("/:id/tags", tagHandler.FileSetTags)
+		files.PUT("/:id/tags/:tag_id", tagHandler.FileAddTag)
+		files.DELETE("/:id/tags/:tag_id", tagHandler.FileRemoveTag)
+	}
+
+	// -------------------------------------------------------------------------
+	// Tags (all require auth)
+	// -------------------------------------------------------------------------
+	tags := v1.Group("/tags", auth.Handle())
+	{
+		tags.GET("", tagHandler.List)
+		tags.POST("", tagHandler.Create)
+
+		tags.GET("/:tag_id", tagHandler.Get)
+		tags.PATCH("/:tag_id", tagHandler.Update)
+		tags.DELETE("/:tag_id", tagHandler.Delete)
+
+		tags.GET("/:tag_id/files", tagHandler.ListFiles)
+
+		tags.GET("/:tag_id/rules", tagHandler.ListRules)
+		tags.POST("/:tag_id/rules", tagHandler.CreateRule)
+		tags.DELETE("/:tag_id/rules/:then_tag_id", tagHandler.DeleteRule)
 	}
 
 	return r

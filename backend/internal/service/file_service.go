@@ -73,6 +73,7 @@ type FileService struct {
 	storage    port.FileStorage
 	acl        *ACLService
 	audit      *AuditService
+	tags       *TagService
 	tx         port.Transactor
 	importPath string // default server-side import directory
 }
@@ -84,6 +85,7 @@ func NewFileService(
 	storage port.FileStorage,
 	acl *ACLService,
 	audit *AuditService,
+	tags *TagService,
 	tx port.Transactor,
 	importPath string,
 ) *FileService {
@@ -93,6 +95,7 @@ func NewFileService(
 		storage:    storage,
 		acl:        acl,
 		audit:      audit,
+		tags:       tags,
 		tx:         tx,
 		importPath: importPath,
 	}
@@ -166,10 +169,7 @@ func (s *FileService) Upload(ctx context.Context, p UploadParams) (*domain.File,
 		}
 
 		if len(p.TagIDs) > 0 {
-			if err := s.files.SetTags(ctx, created.ID, p.TagIDs); err != nil {
-				return err
-			}
-			tags, err := s.files.ListTags(ctx, created.ID)
+			tags, err := s.tags.SetFileTags(ctx, created.ID, p.TagIDs)
 			if err != nil {
 				return err
 			}
@@ -249,10 +249,7 @@ func (s *FileService) Update(ctx context.Context, id uuid.UUID, p UpdateParams) 
 			return updateErr
 		}
 		if p.TagIDs != nil {
-			if err := s.files.SetTags(ctx, id, *p.TagIDs); err != nil {
-				return err
-			}
-			tags, err := s.files.ListTags(ctx, id)
+			tags, err := s.tags.SetFileTags(ctx, id, *p.TagIDs)
 			if err != nil {
 				return err
 			}
@@ -448,120 +445,6 @@ func (s *FileService) GetPreview(ctx context.Context, id uuid.UUID) (io.ReadClos
 }
 
 // ---------------------------------------------------------------------------
-// Tag operations
-// ---------------------------------------------------------------------------
-
-// ListFileTags returns the tags on a file, enforcing view ACL.
-func (s *FileService) ListFileTags(ctx context.Context, fileID uuid.UUID) ([]domain.Tag, error) {
-	if _, err := s.Get(ctx, fileID); err != nil {
-		return nil, err
-	}
-	return s.files.ListTags(ctx, fileID)
-}
-
-// SetFileTags replaces all tags on a file (full replace semantics), enforcing edit ACL.
-func (s *FileService) SetFileTags(ctx context.Context, fileID uuid.UUID, tagIDs []uuid.UUID) ([]domain.Tag, error) {
-	userID, isAdmin, _ := domain.UserFromContext(ctx)
-
-	f, err := s.files.GetByID(ctx, fileID)
-	if err != nil {
-		return nil, err
-	}
-	ok, err := s.acl.CanEdit(ctx, userID, isAdmin, f.CreatorID, fileObjectTypeID, fileID)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, domain.ErrForbidden
-	}
-
-	if err := s.files.SetTags(ctx, fileID, tagIDs); err != nil {
-		return nil, err
-	}
-
-	objType := fileObjectType
-	_ = s.audit.Log(ctx, "file_tag_add", &objType, &fileID, nil)
-	return s.files.ListTags(ctx, fileID)
-}
-
-// AddTag adds a single tag to a file, enforcing edit ACL.
-func (s *FileService) AddTag(ctx context.Context, fileID, tagID uuid.UUID) ([]domain.Tag, error) {
-	userID, isAdmin, _ := domain.UserFromContext(ctx)
-
-	f, err := s.files.GetByID(ctx, fileID)
-	if err != nil {
-		return nil, err
-	}
-	ok, err := s.acl.CanEdit(ctx, userID, isAdmin, f.CreatorID, fileObjectTypeID, fileID)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, domain.ErrForbidden
-	}
-
-	current, err := s.files.ListTags(ctx, fileID)
-	if err != nil {
-		return nil, err
-	}
-	// Only add if not already present.
-	for _, t := range current {
-		if t.ID == tagID {
-			return current, nil
-		}
-	}
-	ids := make([]uuid.UUID, 0, len(current)+1)
-	for _, t := range current {
-		ids = append(ids, t.ID)
-	}
-	ids = append(ids, tagID)
-
-	if err := s.files.SetTags(ctx, fileID, ids); err != nil {
-		return nil, err
-	}
-
-	objType := fileObjectType
-	_ = s.audit.Log(ctx, "file_tag_add", &objType, &fileID, map[string]any{"tag_id": tagID})
-	return s.files.ListTags(ctx, fileID)
-}
-
-// RemoveTag removes a single tag from a file, enforcing edit ACL.
-func (s *FileService) RemoveTag(ctx context.Context, fileID, tagID uuid.UUID) error {
-	userID, isAdmin, _ := domain.UserFromContext(ctx)
-
-	f, err := s.files.GetByID(ctx, fileID)
-	if err != nil {
-		return err
-	}
-	ok, err := s.acl.CanEdit(ctx, userID, isAdmin, f.CreatorID, fileObjectTypeID, fileID)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return domain.ErrForbidden
-	}
-
-	current, err := s.files.ListTags(ctx, fileID)
-	if err != nil {
-		return err
-	}
-	ids := make([]uuid.UUID, 0, len(current))
-	for _, t := range current {
-		if t.ID != tagID {
-			ids = append(ids, t.ID)
-		}
-	}
-
-	if err := s.files.SetTags(ctx, fileID, ids); err != nil {
-		return err
-	}
-
-	objType := fileObjectType
-	_ = s.audit.Log(ctx, "file_tag_remove", &objType, &fileID, map[string]any{"tag_id": tagID})
-	return nil
-}
-
-// ---------------------------------------------------------------------------
 // Bulk operations
 // ---------------------------------------------------------------------------
 
@@ -569,7 +452,6 @@ func (s *FileService) RemoveTag(ctx context.Context, fileID, tagID uuid.UUID) er
 func (s *FileService) BulkDelete(ctx context.Context, fileIDs []uuid.UUID) error {
 	for _, id := range fileIDs {
 		if err := s.Delete(ctx, id); err != nil {
-			// Skip files not found or forbidden; surface real errors.
 			if err == domain.ErrNotFound || err == domain.ErrForbidden {
 				continue
 			}
@@ -577,78 +459,6 @@ func (s *FileService) BulkDelete(ctx context.Context, fileIDs []uuid.UUID) error
 		}
 	}
 	return nil
-}
-
-// BulkSetTags adds or removes the given tags on multiple files.
-// For "add": tags are appended to each file's existing set.
-// For "remove": tags are removed from each file's existing set.
-// Returns the tag IDs that were applied (the input tagIDs, for add).
-func (s *FileService) BulkSetTags(ctx context.Context, fileIDs []uuid.UUID, action string, tagIDs []uuid.UUID) ([]uuid.UUID, error) {
-	for _, fileID := range fileIDs {
-		switch action {
-		case "add":
-			for _, tagID := range tagIDs {
-				if _, err := s.AddTag(ctx, fileID, tagID); err != nil {
-					if err == domain.ErrNotFound || err == domain.ErrForbidden {
-						continue
-					}
-					return nil, err
-				}
-			}
-		case "remove":
-			for _, tagID := range tagIDs {
-				if err := s.RemoveTag(ctx, fileID, tagID); err != nil {
-					if err == domain.ErrNotFound || err == domain.ErrForbidden {
-						continue
-					}
-					return nil, err
-				}
-			}
-		default:
-			return nil, domain.ErrValidation
-		}
-	}
-	if action == "add" {
-		return tagIDs, nil
-	}
-	return []uuid.UUID{}, nil
-}
-
-// CommonTags loads the tag sets for all given files and splits them into:
-//   - common: tag IDs present on every file
-//   - partial: tag IDs present on some but not all files
-func (s *FileService) CommonTags(ctx context.Context, fileIDs []uuid.UUID) (common, partial []uuid.UUID, err error) {
-	if len(fileIDs) == 0 {
-		return nil, nil, nil
-	}
-
-	// Count how many files each tag appears on.
-	counts := map[uuid.UUID]int{}
-	for _, fid := range fileIDs {
-		tags, err := s.files.ListTags(ctx, fid)
-		if err != nil {
-			return nil, nil, err
-		}
-		for _, t := range tags {
-			counts[t.ID]++
-		}
-	}
-
-	n := len(fileIDs)
-	for id, cnt := range counts {
-		if cnt == n {
-			common = append(common, id)
-		} else {
-			partial = append(partial, id)
-		}
-	}
-	if common == nil {
-		common = []uuid.UUID{}
-	}
-	if partial == nil {
-		partial = []uuid.UUID{}
-	}
-	return common, partial, nil
 }
 
 // ---------------------------------------------------------------------------

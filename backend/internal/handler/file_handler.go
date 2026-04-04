@@ -20,11 +20,12 @@ import (
 // FileHandler handles all /files endpoints.
 type FileHandler struct {
 	fileSvc *service.FileService
+	tagSvc  *service.TagService
 }
 
 // NewFileHandler creates a FileHandler.
-func NewFileHandler(fileSvc *service.FileService) *FileHandler {
-	return &FileHandler{fileSvc: fileSvc}
+func NewFileHandler(fileSvc *service.FileService, tagSvc *service.TagService) *FileHandler {
+	return &FileHandler{fileSvc: fileSvc, tagSvc: tagSvc}
 }
 
 // ---------------------------------------------------------------------------
@@ -499,117 +500,6 @@ func (h *FileHandler) PermanentDelete(c *gin.Context) {
 }
 
 // ---------------------------------------------------------------------------
-// GET /files/:id/tags
-// ---------------------------------------------------------------------------
-
-func (h *FileHandler) ListTags(c *gin.Context) {
-	id, ok := parseFileID(c)
-	if !ok {
-		return
-	}
-
-	tags, err := h.fileSvc.ListFileTags(c.Request.Context(), id)
-	if err != nil {
-		respondError(c, err)
-		return
-	}
-
-	items := make([]tagJSON, len(tags))
-	for i, t := range tags {
-		items[i] = toTagJSON(t)
-	}
-	respondJSON(c, http.StatusOK, items)
-}
-
-// ---------------------------------------------------------------------------
-// PUT /files/:id/tags  (replace all)
-// ---------------------------------------------------------------------------
-
-func (h *FileHandler) SetTags(c *gin.Context) {
-	id, ok := parseFileID(c)
-	if !ok {
-		return
-	}
-
-	var body struct {
-		TagIDs []string `json:"tag_ids" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil {
-		respondError(c, domain.ErrValidation)
-		return
-	}
-
-	tagIDs, err := parseUUIDs(body.TagIDs)
-	if err != nil {
-		respondError(c, domain.ErrValidation)
-		return
-	}
-
-	tags, err := h.fileSvc.SetFileTags(c.Request.Context(), id, tagIDs)
-	if err != nil {
-		respondError(c, err)
-		return
-	}
-
-	items := make([]tagJSON, len(tags))
-	for i, t := range tags {
-		items[i] = toTagJSON(t)
-	}
-	respondJSON(c, http.StatusOK, items)
-}
-
-// ---------------------------------------------------------------------------
-// PUT /files/:id/tags/:tag_id
-// ---------------------------------------------------------------------------
-
-func (h *FileHandler) AddTag(c *gin.Context) {
-	fileID, ok := parseFileID(c)
-	if !ok {
-		return
-	}
-	tagID, err := uuid.Parse(c.Param("tag_id"))
-	if err != nil {
-		respondError(c, domain.ErrValidation)
-		return
-	}
-
-	tags, err := h.fileSvc.AddTag(c.Request.Context(), fileID, tagID)
-	if err != nil {
-		respondError(c, err)
-		return
-	}
-
-	items := make([]tagJSON, len(tags))
-	for i, t := range tags {
-		items[i] = toTagJSON(t)
-	}
-	respondJSON(c, http.StatusOK, items)
-}
-
-// ---------------------------------------------------------------------------
-// DELETE /files/:id/tags/:tag_id
-// ---------------------------------------------------------------------------
-
-func (h *FileHandler) RemoveTag(c *gin.Context) {
-	fileID, ok := parseFileID(c)
-	if !ok {
-		return
-	}
-	tagID, err := uuid.Parse(c.Param("tag_id"))
-	if err != nil {
-		respondError(c, domain.ErrValidation)
-		return
-	}
-
-	if err := h.fileSvc.RemoveTag(c.Request.Context(), fileID, tagID); err != nil {
-		respondError(c, err)
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-}
-
-// ---------------------------------------------------------------------------
 // POST /files/bulk/tags
 // ---------------------------------------------------------------------------
 
@@ -639,7 +529,7 @@ func (h *FileHandler) BulkSetTags(c *gin.Context) {
 		return
 	}
 
-	applied, err := h.fileSvc.BulkSetTags(c.Request.Context(), fileIDs, body.Action, tagIDs)
+	applied, err := h.tagSvc.BulkSetTags(c.Request.Context(), fileIDs, body.Action, tagIDs)
 	if err != nil {
 		respondError(c, err)
 		return
@@ -698,16 +588,16 @@ func (h *FileHandler) CommonTags(c *gin.Context) {
 		return
 	}
 
-	common, partial, err := h.fileSvc.CommonTags(c.Request.Context(), fileIDs)
+	common, partial, err := h.tagSvc.CommonTags(c.Request.Context(), fileIDs)
 	if err != nil {
 		respondError(c, err)
 		return
 	}
 
-	toStrs := func(ids []uuid.UUID) []string {
-		s := make([]string, len(ids))
-		for i, id := range ids {
-			s[i] = id.String()
+	toStrs := func(tags []domain.Tag) []string {
+		s := make([]string, len(tags))
+		for i, t := range tags {
+			s[i] = t.ID.String()
 		}
 		return s
 	}
