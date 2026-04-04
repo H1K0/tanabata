@@ -7,8 +7,7 @@ import (
 )
 
 // NewRouter builds and returns a configured Gin engine.
-// Additional handlers will be added here as they are implemented.
-func NewRouter(auth *AuthMiddleware, authHandler *AuthHandler) *gin.Engine {
+func NewRouter(auth *AuthMiddleware, authHandler *AuthHandler, fileHandler *FileHandler) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 
@@ -31,6 +30,36 @@ func NewRouter(auth *AuthMiddleware, authHandler *AuthHandler) *gin.Engine {
 			protected.GET("/sessions", authHandler.ListSessions)
 			protected.DELETE("/sessions/:id", authHandler.TerminateSession)
 		}
+	}
+
+	// File endpoints — all require authentication.
+	files := v1.Group("/files", auth.Handle())
+	{
+		files.GET("", fileHandler.List)
+		files.POST("", fileHandler.Upload)
+
+		// Bulk routes must be registered before /:id to avoid ambiguity.
+		files.POST("/bulk/tags", fileHandler.BulkSetTags)
+		files.POST("/bulk/delete", fileHandler.BulkDelete)
+		files.POST("/bulk/common-tags", fileHandler.CommonTags)
+		files.POST("/import", fileHandler.Import)
+
+		// Per-file routes.
+		files.GET("/:id", fileHandler.GetMeta)
+		files.PATCH("/:id", fileHandler.UpdateMeta)
+		files.DELETE("/:id", fileHandler.SoftDelete)
+
+		files.GET("/:id/content", fileHandler.GetContent)
+		files.PUT("/:id/content", fileHandler.ReplaceContent)
+		files.GET("/:id/thumbnail", fileHandler.GetThumbnail)
+		files.GET("/:id/preview", fileHandler.GetPreview)
+		files.POST("/:id/restore", fileHandler.Restore)
+		files.DELETE("/:id/permanent", fileHandler.PermanentDelete)
+
+		files.GET("/:id/tags", fileHandler.ListTags)
+		files.PUT("/:id/tags", fileHandler.SetTags)
+		files.PUT("/:id/tags/:tag_id", fileHandler.AddTag)
+		files.DELETE("/:id/tags/:tag_id", fileHandler.RemoveTag)
 	}
 
 	return r

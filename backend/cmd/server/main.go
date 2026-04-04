@@ -12,6 +12,7 @@ import (
 	"tanabata/backend/internal/db/postgres"
 	"tanabata/backend/internal/handler"
 	"tanabata/backend/internal/service"
+	"tanabata/backend/internal/storage"
 	"tanabata/backend/migrations"
 )
 
@@ -43,9 +44,26 @@ func main() {
 	migDB.Close()
 	slog.Info("migrations applied")
 
+	// Storage
+	diskStorage, err := storage.NewDiskStorage(
+		cfg.FilesPath,
+		cfg.ThumbsCachePath,
+		cfg.ThumbWidth, cfg.ThumbHeight,
+		cfg.PreviewWidth, cfg.PreviewHeight,
+	)
+	if err != nil {
+		slog.Error("failed to initialise storage", "err", err)
+		os.Exit(1)
+	}
+
 	// Repositories
 	userRepo    := postgres.NewUserRepo(pool)
 	sessionRepo := postgres.NewSessionRepo(pool)
+	fileRepo    := postgres.NewFileRepo(pool)
+	mimeRepo    := postgres.NewMimeRepo(pool)
+	aclRepo     := postgres.NewACLRepo(pool)
+	auditRepo   := postgres.NewAuditRepo(pool)
+	transactor  := postgres.NewTransactor(pool)
 
 	// Services
 	authSvc := service.NewAuthService(
@@ -55,12 +73,24 @@ func main() {
 		cfg.JWTAccessTTL,
 		cfg.JWTRefreshTTL,
 	)
+	aclSvc   := service.NewACLService(aclRepo)
+	auditSvc := service.NewAuditService(auditRepo)
+	fileSvc  := service.NewFileService(
+		fileRepo,
+		mimeRepo,
+		diskStorage,
+		aclSvc,
+		auditSvc,
+		transactor,
+		cfg.ImportPath,
+	)
 
 	// Handlers
 	authMiddleware := handler.NewAuthMiddleware(authSvc)
 	authHandler    := handler.NewAuthHandler(authSvc)
+	fileHandler    := handler.NewFileHandler(fileSvc)
 
-	r := handler.NewRouter(authMiddleware, authHandler)
+	r := handler.NewRouter(authMiddleware, authHandler, fileHandler)
 
 	slog.Info("starting server", "addr", cfg.ListenAddr)
 	if err := r.Run(cfg.ListenAddr); err != nil {
