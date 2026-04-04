@@ -1,8 +1,13 @@
 // Package integration contains end-to-end tests that start a real HTTP server
-// against a disposable PostgreSQL container spun up via testcontainers-go.
+// against a disposable PostgreSQL database created on the fly.
 //
-// Run with:
+// The test connects to an admin DSN (defaults to the local PG 16 socket) to
+// CREATE / DROP an ephemeral database per test suite run, then runs all goose
+// migrations on it.
 //
+// Override the admin DSN with TANABATA_TEST_ADMIN_DSN:
+//
+//	export TANABATA_TEST_ADMIN_DSN="host=/var/run/postgresql port=5434 user=h1k0 dbname=postgres sslmode=disable"
 //	go test -v -timeout 120s tanabata/backend/internal/integration
 package integration
 
@@ -22,13 +27,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	"github.com/testcontainers/testcontainers-go"
-	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -38,6 +40,10 @@ import (
 	"tanabata/backend/internal/storage"
 	"tanabata/backend/migrations"
 )
+
+// defaultAdminDSN is the fallback when TANABATA_TEST_ADMIN_DSN is unset.
+// Targets the PG 16 cluster on this machine (port 5434, Unix socket).
+const defaultAdminDSN = "host=/var/run/postgresql port=5434 user=h1k0 dbname=postgres sslmode=disable"
 
 // ---------------------------------------------------------------------------
 // Test harness
@@ -49,32 +55,45 @@ type harness struct {
 	client *http.Client
 }
 
-// setupSuite spins up a Postgres container, runs migrations, wires the full
-// service graph, and returns an httptest.Server + bare http.Client.
+// setupSuite creates an ephemeral database, runs migrations, wires the full
+// service graph into an httptest.Server, and registers cleanup.
 func setupSuite(t *testing.T) *harness {
 	t.Helper()
 	ctx := context.Background()
 
-	// --- Postgres container --------------------------------------------------
-	pgCtr, err := tcpostgres.Run(ctx,
-		"postgres:16-alpine",
-		tcpostgres.WithDatabase("tanabata_test"),
-		tcpostgres.WithUsername("test"),
-		tcpostgres.WithPassword("test"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).
-				WithStartupTimeout(60*time.Second),
-		),
-	)
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = pgCtr.Terminate(ctx) })
+	// --- Create an isolated test database ------------------------------------
+	adminDSN := os.Getenv("TANABATA_TEST_ADMIN_DSN")
+	if adminDSN == "" {
+		adminDSN = defaultAdminDSN
+	}
 
-	dsn, err := pgCtr.ConnectionString(ctx, "sslmode=disable")
+	// Use a unique name so parallel test runs don't collide.
+	dbName := fmt.Sprintf("tanabata_test_%d", time.Now().UnixNano())
+
+	adminConn, err := pgx.Connect(ctx, adminDSN)
+	require.NoError(t, err, "connect to admin DSN: %s", adminDSN)
+
+	_, err = adminConn.Exec(ctx, "CREATE DATABASE "+dbName)
 	require.NoError(t, err)
+	adminConn.Close(ctx)
+
+	// Build the DSN for the new database (replace dbname= in adminDSN).
+	testDSN := replaceDSNDatabase(adminDSN, dbName)
+
+	t.Cleanup(func() {
+		// Drop all connections then drop the database.
+		conn, err := pgx.Connect(context.Background(), adminDSN)
+		if err != nil {
+			return
+		}
+		defer conn.Close(context.Background())
+		_, _ = conn.Exec(context.Background(),
+			"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1", dbName)
+		_, _ = conn.Exec(context.Background(), "DROP DATABASE IF EXISTS "+dbName)
+	})
 
 	// --- Migrations ----------------------------------------------------------
-	pool, err := pgxpool.New(ctx, dsn)
+	pool, err := pgxpool.New(ctx, testDSN)
 	require.NoError(t, err)
 	t.Cleanup(pool.Close)
 
@@ -145,11 +164,27 @@ func setupSuite(t *testing.T) *harness {
 // HTTP helpers
 // ---------------------------------------------------------------------------
 
+// testResponse wraps an HTTP response with the body already read into memory.
+// This avoids the "body consumed by error-message arg before decode" pitfall.
+type testResponse struct {
+	StatusCode int
+	bodyBytes  []byte
+}
+
+// String returns the body as a string (for use in assertion messages).
+func (r *testResponse) String() string { return string(r.bodyBytes) }
+
+// decode unmarshals the body JSON into dst.
+func (r *testResponse) decode(t *testing.T, dst any) {
+	t.Helper()
+	require.NoError(t, json.Unmarshal(r.bodyBytes, dst), "decode body: %s", r.String())
+}
+
 func (h *harness) url(path string) string {
 	return h.server.URL + "/api/v1" + path
 }
 
-func (h *harness) do(method, path string, body io.Reader, token string, contentType string) *http.Response {
+func (h *harness) do(method, path string, body io.Reader, token string, contentType string) *testResponse {
 	h.t.Helper()
 	req, err := http.NewRequest(method, h.url(path), body)
 	require.NoError(h.t, err)
@@ -159,12 +194,14 @@ func (h *harness) do(method, path string, body io.Reader, token string, contentT
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
-	resp, err := h.client.Do(req)
+	httpResp, err := h.client.Do(req)
 	require.NoError(h.t, err)
-	return resp
+	b, _ := io.ReadAll(httpResp.Body)
+	httpResp.Body.Close()
+	return &testResponse{StatusCode: httpResp.StatusCode, bodyBytes: b}
 }
 
-func (h *harness) doJSON(method, path string, payload any, token string) *http.Response {
+func (h *harness) doJSON(method, path string, payload any, token string) *testResponse {
 	h.t.Helper()
 	var buf io.Reader
 	if payload != nil {
@@ -175,29 +212,17 @@ func (h *harness) doJSON(method, path string, payload any, token string) *http.R
 	return h.do(method, path, buf, token, "application/json")
 }
 
-func decodeJSON(t *testing.T, resp *http.Response, dst any) {
-	t.Helper()
-	defer resp.Body.Close()
-	require.NoError(t, json.NewDecoder(resp.Body).Decode(dst))
-}
-
-func bodyString(resp *http.Response) string {
-	b, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	return string(b)
-}
-
 // login posts credentials and returns an access token.
 func (h *harness) login(name, password string) string {
 	h.t.Helper()
 	resp := h.doJSON("POST", "/auth/login", map[string]string{
 		"name": name, "password": password,
 	}, "")
-	require.Equal(h.t, http.StatusOK, resp.StatusCode, "login failed: "+bodyString(resp))
+	require.Equal(h.t, http.StatusOK, resp.StatusCode, "login failed: %s", resp)
 	var out struct {
 		AccessToken string `json:"access_token"`
 	}
-	decodeJSON(h.t, resp, &out)
+	resp.decode(h.t, &out)
 	require.NotEmpty(h.t, out.AccessToken)
 	return out.AccessToken
 }
@@ -206,22 +231,19 @@ func (h *harness) login(name, password string) string {
 func (h *harness) uploadJPEG(token, originalName string) map[string]any {
 	h.t.Helper()
 
-	// Minimal valid JPEG (1×1 red pixel).
-	jpegBytes := minimalJPEG()
-
 	var buf bytes.Buffer
 	mw := multipart.NewWriter(&buf)
 	fw, err := mw.CreateFormFile("file", originalName)
 	require.NoError(h.t, err)
-	_, err = fw.Write(jpegBytes)
+	_, err = fw.Write(minimalJPEG())
 	require.NoError(h.t, err)
 	require.NoError(h.t, mw.Close())
 
 	resp := h.do("POST", "/files", &buf, token, mw.FormDataContentType())
-	require.Equal(h.t, http.StatusCreated, resp.StatusCode, "upload failed: "+bodyString(resp))
+	require.Equal(h.t, http.StatusCreated, resp.StatusCode, "upload failed: %s", resp)
 
 	var out map[string]any
-	decodeJSON(h.t, resp, &out)
+	resp.decode(h.t, &out)
 	return out
 }
 
@@ -247,16 +269,16 @@ func TestFullFlow(t *testing.T) {
 	resp := h.doJSON("POST", "/users", map[string]any{
 		"name": "alice", "password": "alicepass", "can_create": true,
 	}, adminToken)
-	require.Equal(t, http.StatusCreated, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
 	var aliceUser map[string]any
-	decodeJSON(t, resp, &aliceUser)
+	resp.decode(t, &aliceUser)
 	assert.Equal(t, "alice", aliceUser["name"])
 
 	// Create a second regular user for ACL testing.
 	resp = h.doJSON("POST", "/users", map[string]any{
 		"name": "bob", "password": "bobpass", "can_create": true,
 	}, adminToken)
-	require.Equal(t, http.StatusCreated, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
 
 	// =========================================================================
 	// 3. Log in as alice
@@ -279,21 +301,21 @@ func TestFullFlow(t *testing.T) {
 	resp = h.doJSON("POST", "/tags", map[string]any{
 		"name": "nature", "is_public": true,
 	}, aliceToken)
-	require.Equal(t, http.StatusCreated, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
 	var tagObj map[string]any
-	decodeJSON(t, resp, &tagObj)
+	resp.decode(t, &tagObj)
 	tagID := tagObj["id"].(string)
 
 	resp = h.doJSON("PUT", "/files/"+fileID+"/tags", map[string]any{
 		"tag_ids": []string{tagID},
 	}, aliceToken)
-	require.Equal(t, http.StatusOK, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
 
 	// Verify tag is returned with the file.
 	resp = h.doJSON("GET", "/files/"+fileID, nil, aliceToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var fileWithTags map[string]any
-	decodeJSON(t, resp, &fileWithTags)
+	resp.decode(t, &fileWithTags)
 	tags := fileWithTags["tags"].([]any)
 	require.Len(t, tags, 1)
 	assert.Equal(t, "nature", tags[0].(map[string]any)["name"])
@@ -301,10 +323,10 @@ func TestFullFlow(t *testing.T) {
 	// =========================================================================
 	// 6. Filter files by tag
 	// =========================================================================
-	resp = h.doJSON("GET", "/files?filter=tag:"+tagID, nil, aliceToken)
+	resp = h.doJSON("GET", "/files?filter=%7Bt%3D"+tagID+"%7D", nil, aliceToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var filePage map[string]any
-	decodeJSON(t, resp, &filePage)
+	resp.decode(t, &filePage)
 	items := filePage["items"].([]any)
 	require.Len(t, items, 1)
 	assert.Equal(t, fileID, items[0].(map[string]any)["id"])
@@ -313,7 +335,7 @@ func TestFullFlow(t *testing.T) {
 	// 7. ACL — Bob cannot see Alice's private file
 	// =========================================================================
 	resp = h.doJSON("GET", "/files/"+fileID, nil, bobToken)
-	assert.Equal(t, http.StatusForbidden, resp.StatusCode, bodyString(resp))
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode, resp.String())
 
 	// Grant Bob view access.
 	bobUserID := int(aliceUser["id"].(float64)) // alice's id used for reference; get bob's
@@ -321,7 +343,7 @@ func TestFullFlow(t *testing.T) {
 	resp = h.doJSON("GET", "/users", nil, adminToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var usersPage map[string]any
-	decodeJSON(t, resp, &usersPage)
+	resp.decode(t, &usersPage)
 	var bobID float64
 	for _, u := range usersPage["items"].([]any) {
 		um := u.(map[string]any)
@@ -337,11 +359,11 @@ func TestFullFlow(t *testing.T) {
 			{"user_id": bobID, "can_view": true, "can_edit": false},
 		},
 	}, aliceToken)
-	require.Equal(t, http.StatusOK, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
 
 	// Now Bob can view.
 	resp = h.doJSON("GET", "/files/"+fileID, nil, bobToken)
-	assert.Equal(t, http.StatusOK, resp.StatusCode, bodyString(resp))
+	assert.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
 
 	// =========================================================================
 	// 8. Create a pool and add the file
@@ -349,29 +371,29 @@ func TestFullFlow(t *testing.T) {
 	resp = h.doJSON("POST", "/pools", map[string]any{
 		"name": "alice's pool", "is_public": false,
 	}, aliceToken)
-	require.Equal(t, http.StatusCreated, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
 	var poolObj map[string]any
-	decodeJSON(t, resp, &poolObj)
+	resp.decode(t, &poolObj)
 	poolID := poolObj["id"].(string)
 	assert.Equal(t, "alice's pool", poolObj["name"])
 
 	resp = h.doJSON("POST", "/pools/"+poolID+"/files", map[string]any{
 		"file_ids": []string{fileID},
 	}, aliceToken)
-	require.Equal(t, http.StatusCreated, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
 
 	// Pool file count should now be 1.
 	resp = h.doJSON("GET", "/pools/"+poolID, nil, aliceToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var poolFull map[string]any
-	decodeJSON(t, resp, &poolFull)
+	resp.decode(t, &poolFull)
 	assert.Equal(t, float64(1), poolFull["file_count"])
 
 	// List pool files and verify position.
 	resp = h.doJSON("GET", "/pools/"+poolID+"/files", nil, aliceToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var poolFiles map[string]any
-	decodeJSON(t, resp, &poolFiles)
+	resp.decode(t, &poolFiles)
 	poolItems := poolFiles["items"].([]any)
 	require.Len(t, poolItems, 1)
 	assert.Equal(t, fileID, poolItems[0].(map[string]any)["id"])
@@ -382,13 +404,13 @@ func TestFullFlow(t *testing.T) {
 
 	// Soft-delete the file.
 	resp = h.doJSON("DELETE", "/files/"+fileID, nil, aliceToken)
-	require.Equal(t, http.StatusNoContent, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
 
 	// File no longer appears in normal listing.
 	resp = h.doJSON("GET", "/files", nil, aliceToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var normalPage map[string]any
-	decodeJSON(t, resp, &normalPage)
+	resp.decode(t, &normalPage)
 	normalItems, _ := normalPage["items"].([]any)
 	assert.Len(t, normalItems, 0)
 
@@ -396,7 +418,7 @@ func TestFullFlow(t *testing.T) {
 	resp = h.doJSON("GET", "/files?trash=true", nil, aliceToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var trashPage map[string]any
-	decodeJSON(t, resp, &trashPage)
+	resp.decode(t, &trashPage)
 	trashItems := trashPage["items"].([]any)
 	require.Len(t, trashItems, 1)
 	assert.Equal(t, fileID, trashItems[0].(map[string]any)["id"])
@@ -404,13 +426,13 @@ func TestFullFlow(t *testing.T) {
 
 	// Restore the file.
 	resp = h.doJSON("POST", "/files/"+fileID+"/restore", nil, aliceToken)
-	require.Equal(t, http.StatusOK, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
 
 	// File is back in normal listing.
 	resp = h.doJSON("GET", "/files", nil, aliceToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var restoredPage map[string]any
-	decodeJSON(t, resp, &restoredPage)
+	resp.decode(t, &restoredPage)
 	restoredItems := restoredPage["items"].([]any)
 	require.Len(t, restoredItems, 1)
 	assert.Equal(t, fileID, restoredItems[0].(map[string]any)["id"])
@@ -420,11 +442,11 @@ func TestFullFlow(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	resp = h.doJSON("DELETE", "/files/"+fileID+"/permanent", nil, aliceToken)
-	require.Equal(t, http.StatusNoContent, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
 
 	// File is gone entirely.
 	resp = h.doJSON("GET", "/files/"+fileID, nil, aliceToken)
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode, bodyString(resp))
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode, resp.String())
 
 	// =========================================================================
 	// 10. Audit log records actions (admin only)
@@ -432,13 +454,13 @@ func TestFullFlow(t *testing.T) {
 	resp = h.doJSON("GET", "/audit", nil, adminToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var auditPage map[string]any
-	decodeJSON(t, resp, &auditPage)
+	resp.decode(t, &auditPage)
 	auditItems := auditPage["items"].([]any)
 	assert.NotEmpty(t, auditItems, "audit log should have entries")
 
 	// Non-admin cannot read the audit log.
 	resp = h.doJSON("GET", "/audit", nil, aliceToken)
-	assert.Equal(t, http.StatusForbidden, resp.StatusCode, bodyString(resp))
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode, resp.String())
 }
 
 // ---------------------------------------------------------------------------
@@ -460,7 +482,7 @@ func TestBlockedUserCannotLogin(t *testing.T) {
 	}, adminToken)
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 	var u map[string]any
-	decodeJSON(t, resp, &u)
+	resp.decode(t, &u)
 	userID := u["id"].(float64)
 
 	// Block charlie.
@@ -495,7 +517,7 @@ func TestPoolReorder(t *testing.T) {
 	resp := h.doJSON("POST", "/pools", map[string]any{"name": "reorder-test"}, adminToken)
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 	var pool map[string]any
-	decodeJSON(t, resp, &pool)
+	resp.decode(t, &pool)
 	poolID := pool["id"].(string)
 
 	resp = h.doJSON("POST", "/pools/"+poolID+"/files", map[string]any{
@@ -507,7 +529,7 @@ func TestPoolReorder(t *testing.T) {
 	resp = h.doJSON("GET", "/pools/"+poolID+"/files", nil, adminToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var page map[string]any
-	decodeJSON(t, resp, &page)
+	resp.decode(t, &page)
 	items := page["items"].([]any)
 	require.Len(t, items, 2)
 	assert.Equal(t, id1, items[0].(map[string]any)["id"])
@@ -517,13 +539,13 @@ func TestPoolReorder(t *testing.T) {
 	resp = h.doJSON("PUT", "/pools/"+poolID+"/files/reorder", map[string]any{
 		"file_ids": []string{id2, id1},
 	}, adminToken)
-	require.Equal(t, http.StatusNoContent, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
 
 	// Verify new order.
 	resp = h.doJSON("GET", "/pools/"+poolID+"/files", nil, adminToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var page2 map[string]any
-	decodeJSON(t, resp, &page2)
+	resp.decode(t, &page2)
 	items2 := page2["items"].([]any)
 	require.Len(t, items2, 2)
 	assert.Equal(t, id2, items2[0].(map[string]any)["id"])
@@ -543,20 +565,20 @@ func TestTagAutoRule(t *testing.T) {
 	resp := h.doJSON("POST", "/tags", map[string]any{"name": "outdoor"}, adminToken)
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 	var outdoor map[string]any
-	decodeJSON(t, resp, &outdoor)
+	resp.decode(t, &outdoor)
 	outdoorID := outdoor["id"].(string)
 
 	resp = h.doJSON("POST", "/tags", map[string]any{"name": "nature"}, adminToken)
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 	var nature map[string]any
-	decodeJSON(t, resp, &nature)
+	resp.decode(t, &nature)
 	natureID := nature["id"].(string)
 
 	// Create rule: when "outdoor" → also apply "nature".
 	resp = h.doJSON("POST", "/tags/"+outdoorID+"/rules", map[string]any{
 		"then_tag_id": natureID,
 	}, adminToken)
-	require.Equal(t, http.StatusCreated, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
 
 	// Upload a file and assign only "outdoor".
 	file := h.uploadJPEG(adminToken, "park.jpg")
@@ -565,13 +587,13 @@ func TestTagAutoRule(t *testing.T) {
 	resp = h.doJSON("PUT", "/files/"+fileID+"/tags", map[string]any{
 		"tag_ids": []string{outdoorID},
 	}, adminToken)
-	require.Equal(t, http.StatusOK, resp.StatusCode, bodyString(resp))
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
 
 	// Both "outdoor" and "nature" should be on the file.
 	resp = h.doJSON("GET", "/files/"+fileID+"/tags", nil, adminToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	var tagsResp []any
-	decodeJSON(t, resp, &tagsResp)
+	resp.decode(t, &tagsResp)
 	names := make([]string, 0, len(tagsResp))
 	for _, tg := range tagsResp {
 		names = append(names, tg.(map[string]any)["name"].(string))
@@ -620,15 +642,33 @@ func minimalJPEG() []byte {
 	}
 }
 
+// replaceDSNDatabase returns a copy of dsn with the dbname parameter replaced.
+// Handles both key=value libpq-style strings and postgres:// URLs.
+func replaceDSNDatabase(dsn, newDB string) string {
+	// key=value style: replace dbname=xxx or append if absent.
+	if !strings.Contains(dsn, "://") {
+		const key = "dbname="
+		if idx := strings.Index(dsn, key); idx >= 0 {
+			end := strings.IndexByte(dsn[idx+len(key):], ' ')
+			if end < 0 {
+				return dsn[:idx] + key + newDB
+			}
+			return dsn[:idx] + key + newDB + dsn[idx+len(key)+end:]
+		}
+		return dsn + " dbname=" + newDB
+	}
+	// URL style: not used in our defaults, but handled for completeness.
+	return dsn
+}
+
 // freePort returns an available TCP port on localhost.
-// Used when a fixed port is needed outside httptest.
 func freePort() int {
 	l, _ := net.Listen("tcp", ":0")
 	defer l.Close()
 	return l.Addr().(*net.TCPAddr).Port
 }
 
-// writeFile is a helper used to write a temp file with given content.
+// writeFile writes content to a temp file and returns its path.
 func writeFile(t *testing.T, dir, name string, content []byte) string {
 	t.Helper()
 	path := filepath.Join(dir, name)
@@ -636,7 +676,8 @@ func writeFile(t *testing.T, dir, name string, content []byte) string {
 	return path
 }
 
-// ensure unused imports don't cause compile errors in stub helpers.
-var _ = strings.Contains
-var _ = freePort
-var _ = writeFile
+// suppress unused-import warnings for helpers kept for future use.
+var (
+	_ = freePort
+	_ = writeFile
+)

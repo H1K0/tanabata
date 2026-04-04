@@ -302,17 +302,18 @@ const fileSelectCTE = `
 // Create
 // ---------------------------------------------------------------------------
 
-// Create inserts a new file record. The MIME type is resolved from
-// f.MIMEType (name string) via a subquery; the DB generates the UUID v7 id.
+// Create inserts a new file record using the ID already set on f.
+// The MIME type is resolved from f.MIMEType (name string) via a subquery.
 func (r *FileRepo) Create(ctx context.Context, f *domain.File) (*domain.File, error) {
 	const sqlStr = `
         WITH r AS (
             INSERT INTO data.files
-                (original_name, mime_id, content_datetime, notes, metadata, exif, phash, creator_id, is_public)
+                (id, original_name, mime_id, content_datetime, notes, metadata, exif, phash, creator_id, is_public)
             VALUES (
                 $1,
-                (SELECT id FROM core.mime_types WHERE name = $2),
-                $3, $4, $5, $6, $7, $8, $9
+                $2,
+                (SELECT id FROM core.mime_types WHERE name = $3),
+                $4, $5, $6, $7, $8, $9, $10
             )
             RETURNING id, original_name, mime_id, content_datetime, notes,
                       metadata, exif, phash, creator_id, is_public, is_deleted
@@ -320,7 +321,7 @@ func (r *FileRepo) Create(ctx context.Context, f *domain.File) (*domain.File, er
 
 	q := connOrTx(ctx, r.pool)
 	rows, err := q.Query(ctx, sqlStr,
-		f.OriginalName, f.MIMEType, f.ContentDatetime,
+		f.ID, f.OriginalName, f.MIMEType, f.ContentDatetime,
 		f.Notes, f.Metadata, f.EXIF, f.PHash,
 		f.CreatorID, f.IsPublic,
 	)
