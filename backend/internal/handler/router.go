@@ -12,6 +12,7 @@ func NewRouter(
 	authHandler *AuthHandler,
 	fileHandler *FileHandler,
 	tagHandler *TagHandler,
+	categoryHandler *CategoryHandler,
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
@@ -89,6 +90,21 @@ func NewRouter(
 		tags.GET("/:tag_id/rules", tagHandler.ListRules)
 		tags.POST("/:tag_id/rules", tagHandler.CreateRule)
 		tags.DELETE("/:tag_id/rules/:then_tag_id", tagHandler.DeleteRule)
+	}
+
+	// -------------------------------------------------------------------------
+	// Categories (all require auth)
+	// -------------------------------------------------------------------------
+	categories := v1.Group("/categories", auth.Handle())
+	{
+		categories.GET("", categoryHandler.List)
+		categories.POST("", categoryHandler.Create)
+
+		categories.GET("/:category_id", categoryHandler.Get)
+		categories.PATCH("/:category_id", categoryHandler.Update)
+		categories.DELETE("/:category_id", categoryHandler.Delete)
+
+		categories.GET("/:category_id/tags", categoryHandler.ListTags)
 	}
 
 	return r

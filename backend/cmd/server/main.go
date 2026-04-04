@@ -57,15 +57,16 @@ func main() {
 	}
 
 	// Repositories
-	userRepo    := postgres.NewUserRepo(pool)
-	sessionRepo := postgres.NewSessionRepo(pool)
-	fileRepo    := postgres.NewFileRepo(pool)
-	mimeRepo    := postgres.NewMimeRepo(pool)
-	aclRepo     := postgres.NewACLRepo(pool)
-	auditRepo   := postgres.NewAuditRepo(pool)
-	tagRepo     := postgres.NewTagRepo(pool)
-	tagRuleRepo := postgres.NewTagRuleRepo(pool)
-	transactor  := postgres.NewTransactor(pool)
+	userRepo     := postgres.NewUserRepo(pool)
+	sessionRepo  := postgres.NewSessionRepo(pool)
+	fileRepo     := postgres.NewFileRepo(pool)
+	mimeRepo     := postgres.NewMimeRepo(pool)
+	aclRepo      := postgres.NewACLRepo(pool)
+	auditRepo    := postgres.NewAuditRepo(pool)
+	tagRepo      := postgres.NewTagRepo(pool)
+	tagRuleRepo  := postgres.NewTagRuleRepo(pool)
+	categoryRepo := postgres.NewCategoryRepo(pool)
+	transactor   := postgres.NewTransactor(pool)
 
 	// Services
 	authSvc := service.NewAuthService(
@@ -75,9 +76,10 @@ func main() {
 		cfg.JWTAccessTTL,
 		cfg.JWTRefreshTTL,
 	)
-	aclSvc   := service.NewACLService(aclRepo)
-	auditSvc := service.NewAuditService(auditRepo)
-	tagSvc   := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
+	aclSvc      := service.NewACLService(aclRepo)
+	auditSvc    := service.NewAuditService(auditRepo)
+	tagSvc      := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
+	categorySvc := service.NewCategoryService(categoryRepo, tagRepo, aclSvc, auditSvc)
 	fileSvc  := service.NewFileService(
 		fileRepo,
 		mimeRepo,
@@ -90,12 +92,13 @@ func main() {
 	)
 
 	// Handlers
-	authMiddleware := handler.NewAuthMiddleware(authSvc)
-	authHandler    := handler.NewAuthHandler(authSvc)
-	fileHandler    := handler.NewFileHandler(fileSvc, tagSvc)
-	tagHandler     := handler.NewTagHandler(tagSvc, fileSvc)
+	authMiddleware  := handler.NewAuthMiddleware(authSvc)
+	authHandler     := handler.NewAuthHandler(authSvc)
+	fileHandler     := handler.NewFileHandler(fileSvc, tagSvc)
+	tagHandler      := handler.NewTagHandler(tagSvc, fileSvc)
+	categoryHandler := handler.NewCategoryHandler(categorySvc)
 
-	r := handler.NewRouter(authMiddleware, authHandler, fileHandler, tagHandler)
+	r := handler.NewRouter(authMiddleware, authHandler, fileHandler, tagHandler, categoryHandler)
 
 	slog.Info("starting server", "addr", cfg.ListenAddr)
 	if err := r.Run(cfg.ListenAddr); err != nil {
