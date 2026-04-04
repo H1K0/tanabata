@@ -92,6 +92,7 @@ func main() {
 		transactor,
 		cfg.ImportPath,
 	)
+	userSvc := service.NewUserService(userRepo, auditSvc)
 
 	// Handlers
 	authMiddleware  := handler.NewAuthMiddleware(authSvc)
@@ -100,8 +101,15 @@ func main() {
 	tagHandler      := handler.NewTagHandler(tagSvc, fileSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 	poolHandler     := handler.NewPoolHandler(poolSvc)
+	userHandler     := handler.NewUserHandler(userSvc)
+	aclHandler      := handler.NewACLHandler(aclSvc)
+	auditHandler    := handler.NewAuditHandler(auditSvc)
 
-	r := handler.NewRouter(authMiddleware, authHandler, fileHandler, tagHandler, categoryHandler, poolHandler)
+	r := handler.NewRouter(
+		authMiddleware, authHandler,
+		fileHandler, tagHandler, categoryHandler, poolHandler,
+		userHandler, aclHandler, auditHandler,
+	)
 
 	slog.Info("starting server", "addr", cfg.ListenAddr)
 	if err := r.Run(cfg.ListenAddr); err != nil {

@@ -14,6 +14,9 @@ func NewRouter(
 	tagHandler *TagHandler,
 	categoryHandler *CategoryHandler,
 	poolHandler *PoolHandler,
+	userHandler *UserHandler,
+	aclHandler *ACLHandler,
+	auditHandler *AuditHandler,
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
@@ -127,6 +130,37 @@ func NewRouter(
 		pools.GET("/:pool_id/files", poolHandler.ListFiles)
 		pools.POST("/:pool_id/files", poolHandler.AddFiles)
 	}
+
+	// -------------------------------------------------------------------------
+	// Users (auth required; admin checks enforced in handler)
+	// -------------------------------------------------------------------------
+	users := v1.Group("/users", auth.Handle())
+	{
+		// /users/me must be registered before /:user_id to avoid param capture.
+		users.GET("/me", userHandler.GetMe)
+		users.PATCH("/me", userHandler.UpdateMe)
+
+		users.GET("", userHandler.List)
+		users.POST("", userHandler.Create)
+
+		users.GET("/:user_id", userHandler.Get)
+		users.PATCH("/:user_id", userHandler.UpdateAdmin)
+		users.DELETE("/:user_id", userHandler.Delete)
+	}
+
+	// -------------------------------------------------------------------------
+	// ACL (auth required)
+	// -------------------------------------------------------------------------
+	acl := v1.Group("/acl", auth.Handle())
+	{
+		acl.GET("/:object_type/:object_id", aclHandler.GetPermissions)
+		acl.PUT("/:object_type/:object_id", aclHandler.SetPermissions)
+	}
+
+	// -------------------------------------------------------------------------
+	// Audit (auth required; admin check enforced in handler)
+	// -------------------------------------------------------------------------
+	v1.GET("/audit", auth.Handle(), auditHandler.List)
 
 	return r
 }

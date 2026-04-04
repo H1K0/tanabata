@@ -162,12 +162,12 @@ func (r *UserRepo) Create(ctx context.Context, u *domain.User) (*domain.User, er
 func (r *UserRepo) Update(ctx context.Context, id int16, u *domain.User) (*domain.User, error) {
 	const sql = `
 		UPDATE core.users
-		SET name = $2, password = $3, is_admin = $4, can_create = $5
+		SET name = $2, password = $3, is_admin = $4, can_create = $5, is_blocked = $6
 		WHERE id = $1
 		RETURNING id, name, password, is_admin, can_create, is_blocked`
 
 	q := connOrTx(ctx, r.pool)
-	rows, err := q.Query(ctx, sql, id, u.Name, u.Password, u.IsAdmin, u.CanCreate)
+	rows, err := q.Query(ctx, sql, id, u.Name, u.Password, u.IsAdmin, u.CanCreate, u.IsBlocked)
 	if err != nil {
 		return nil, fmt.Errorf("UserRepo.Update: %w", err)
 	}
