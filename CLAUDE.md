@@ -52,4 +52,7 @@ npm run generate:types       # regenerate API types from openapi.yaml
 - TypeScript: strict mode, named exports
 - SQL: snake_case, all migrations via goose
 - API errors: { code, message, details? }
-- Git: conventional commits (feat:, fix:, docs:, refactor:)
+- Git: conventional commits with scope — `type(scope): message`
+  - `(backend)` for Go backend code
+  - `(frontend)` for SvelteKit/TypeScript code
+  - `(project)` for root-level files (.gitignore, docs/reference, structure)
