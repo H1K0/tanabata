@@ -8,10 +8,12 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
-	_ "image/gif" // register GIF decoder
-	_ "image/png" // register PNG decoder
+	_ "image/gif"                    // register GIF decoder
+	_ "image/png"                    // register PNG decoder
+	_ "golang.org/x/image/webp"      // register WebP decoder
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/disintegration/imaging"
@@ -108,16 +110,16 @@ func (s *DiskStorage) Delete(_ context.Context, id uuid.UUID) error {
 
 // Thumbnail returns a JPEG that fits within the configured max width×height
 // (never upscaled, never cropped). Generated on first call and cached.
-// Non-image source files receive a solid-colour placeholder.
-func (s *DiskStorage) Thumbnail(_ context.Context, id uuid.UUID) (io.ReadCloser, error) {
-	return s.serveGenerated(id, s.thumbCachePath(id), s.thumbWidth, s.thumbHeight)
+// Video files are thumbnailed via ffmpeg; other non-image files get a placeholder.
+func (s *DiskStorage) Thumbnail(ctx context.Context, id uuid.UUID) (io.ReadCloser, error) {
+	return s.serveGenerated(ctx, id, s.thumbCachePath(id), s.thumbWidth, s.thumbHeight)
 }
 
 // Preview returns a JPEG that fits within the configured max width×height
 // (never upscaled, never cropped). Generated on first call and cached.
-// Non-image source files receive a solid-colour placeholder.
-func (s *DiskStorage) Preview(_ context.Context, id uuid.UUID) (io.ReadCloser, error) {
-	return s.serveGenerated(id, s.previewCachePath(id), s.previewWidth, s.previewHeight)
+// Video files are thumbnailed via ffmpeg; other non-image files get a placeholder.
+func (s *DiskStorage) Preview(ctx context.Context, id uuid.UUID) (io.ReadCloser, error) {
+	return s.serveGenerated(ctx, id, s.previewCachePath(id), s.previewWidth, s.previewHeight)
 }
 
 // ---------------------------------------------------------------------------
@@ -126,7 +128,13 @@ func (s *DiskStorage) Preview(_ context.Context, id uuid.UUID) (io.ReadCloser, e
 
 // serveGenerated is the shared implementation for Thumbnail and Preview.
 // imaging.Thumbnail fits the source within maxW×maxH without upscaling or cropping.
-func (s *DiskStorage) serveGenerated(id uuid.UUID, cachePath string, maxW, maxH int) (io.ReadCloser, error) {
+//
+// Resolution order:
+//  1. Return cached JPEG if present.
+//  2. Decode as still image (JPEG/PNG/GIF via imaging).
+//  3. Extract a frame with ffmpeg (video files).
+//  4. Solid-colour placeholder (archives, unrecognised formats, etc.).
+func (s *DiskStorage) serveGenerated(ctx context.Context, id uuid.UUID, cachePath string, maxW, maxH int) (io.ReadCloser, error) {
 	// Fast path: cache hit.
 	if f, err := os.Open(cachePath); err == nil {
 		return f, nil
@@ -141,12 +149,14 @@ func (s *DiskStorage) serveGenerated(id uuid.UUID, cachePath string, maxW, maxH 
 		return nil, fmt.Errorf("storage: stat %q: %w", srcPath, err)
 	}
 
-	// Attempt to decode as an image. imaging.Open handles JPEG, PNG, and GIF
-	// (decoders registered via blank imports). Any non-decodable file (video,
-	// archive, …) silently produces a placeholder.
+	// 1. Try still-image decode (JPEG/PNG/GIF).
+	// 2. Try video frame extraction via ffmpeg.
+	// 3. Fall back to placeholder.
 	var img image.Image
 	if decoded, err := imaging.Open(srcPath, imaging.AutoOrientation(true)); err == nil {
 		img = imaging.Thumbnail(decoded, maxW, maxH, imaging.Lanczos)
+	} else if frame, err := extractVideoFrame(ctx, srcPath); err == nil {
+		img = imaging.Thumbnail(frame, maxW, maxH, imaging.Lanczos)
 	} else {
 		img = placeholder(maxW, maxH)
 	}
@@ -194,6 +204,30 @@ func writeCache(cachePath string, img image.Image) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("storage: open cache file: %w", err)
 	}
 	return f, nil
+}
+
+// extractVideoFrame uses ffmpeg to extract a single frame from a video file.
+// It seeks 1 second in (keyframe-accurate fast seek) and pipes the frame out
+// as PNG. If the video is shorter than 1 s the seek is silently ignored by
+// ffmpeg and the first available frame is returned instead.
+// Returns an error if ffmpeg is not installed or produces no output.
+func extractVideoFrame(ctx context.Context, srcPath string) (image.Image, error) {
+	var out bytes.Buffer
+	cmd := exec.CommandContext(ctx, "ffmpeg",
+		"-ss", "1", // fast input seek; ignored gracefully on short files
+		"-i", srcPath,
+		"-vframes", "1",
+		"-f", "image2",
+		"-vcodec", "png",
+		"pipe:1",
+	)
+	cmd.Stdout = &out
+	cmd.Stderr = io.Discard // suppress ffmpeg progress output
+
+	if err := cmd.Run(); err != nil || out.Len() == 0 {
+		return nil, fmt.Errorf("ffmpeg frame extract: %w", err)
+	}
+	return imaging.Decode(&out)
 }
 
 // ---------------------------------------------------------------------------

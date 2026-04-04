@@ -1,5 +1,17 @@
 -- +goose Up
 
+INSERT INTO core.mime_types (name, extension) VALUES
+    ('image/jpeg',       'jpg'),
+    ('image/png',        'png'),
+    ('image/gif',        'gif'),
+    ('image/webp',       'webp'),
+    ('video/mp4',        'mp4'),
+    ('video/quicktime',  'mov'),
+    ('video/x-msvideo',  'avi'),
+    ('video/webm',       'webm'),
+    ('video/3gpp',       '3gp'),
+    ('video/x-m4v',      'm4v');
+
 INSERT INTO core.object_types (name) VALUES
     ('file'), ('tag'), ('category'), ('pool');
 
@@ -34,3 +46,4 @@ INSERT INTO core.users (name, password, is_admin, can_create) VALUES
 DELETE FROM core.users WHERE name = 'admin';
 DELETE FROM activity.action_types;
 DELETE FROM core.object_types;
+DELETE FROM core.mime_types;
