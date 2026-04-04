@@ -11,15 +11,15 @@ import (
 // thumbnails, and previews.
 type FileStorage interface {
 	// Save writes the reader's content to storage and returns the number of
-	// bytes written. ext is the file extension without a leading dot (e.g. "jpg").
-	Save(ctx context.Context, id uuid.UUID, ext string, r io.Reader) (int64, error)
+	// bytes written.
+	Save(ctx context.Context, id uuid.UUID, r io.Reader) (int64, error)
 
 	// Read opens the file content for reading. The caller must close the returned
 	// ReadCloser.
-	Read(ctx context.Context, id uuid.UUID, ext string) (io.ReadCloser, error)
+	Read(ctx context.Context, id uuid.UUID) (io.ReadCloser, error)
 
 	// Delete removes the file content from storage.
-	Delete(ctx context.Context, id uuid.UUID, ext string) error
+	Delete(ctx context.Context, id uuid.UUID) error
 
 	// Thumbnail opens the pre-generated thumbnail (JPEG). Returns ErrNotFound
 	// if the thumbnail has not been generated yet.
