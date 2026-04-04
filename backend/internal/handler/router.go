@@ -13,6 +13,7 @@ func NewRouter(
 	fileHandler *FileHandler,
 	tagHandler *TagHandler,
 	categoryHandler *CategoryHandler,
+	poolHandler *PoolHandler,
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
@@ -105,6 +106,26 @@ func NewRouter(
 		categories.DELETE("/:category_id", categoryHandler.Delete)
 
 		categories.GET("/:category_id/tags", categoryHandler.ListTags)
+	}
+
+	// -------------------------------------------------------------------------
+	// Pools (all require auth)
+	// -------------------------------------------------------------------------
+	pools := v1.Group("/pools", auth.Handle())
+	{
+		pools.GET("", poolHandler.List)
+		pools.POST("", poolHandler.Create)
+
+		pools.GET("/:pool_id", poolHandler.Get)
+		pools.PATCH("/:pool_id", poolHandler.Update)
+		pools.DELETE("/:pool_id", poolHandler.Delete)
+
+		// Sub-routes registered before /:pool_id/files to avoid param conflicts.
+		pools.POST("/:pool_id/files/remove", poolHandler.RemoveFiles)
+		pools.PUT("/:pool_id/files/reorder", poolHandler.Reorder)
+
+		pools.GET("/:pool_id/files", poolHandler.ListFiles)
+		pools.POST("/:pool_id/files", poolHandler.AddFiles)
 	}
 
 	return r
