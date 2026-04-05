@@ -17,7 +17,13 @@
 	let tags = $state<Tag[]>([]);
 	let search = $state('');
 	let tokens = $state<string[]>(parseDslFilter(value));
-	let tagNames = $derived(new Map(tags.filter((t) => t.id && t.name).map((t) => [t.id as string, t.name as string])));
+	let tagNames = $derived(
+		new Map(
+			tags
+				.filter((t) => t.id && t.name)
+				.map((t) => [t.id as string, t.name as string]),
+		),
+	);
 
 	$effect(() => {
 		tokens = parseDslFilter(value ?? null);
@@ -52,6 +58,39 @@
 		search = '';
 		onApply(null);
 	}
+
+	// --- Drag-and-drop reordering ---
+	let dragIndex = $state<number | null>(null);
+	let dropIndex = $state<number | null>(null);
+
+	function onDragStart(i: number, e: DragEvent) {
+		dragIndex = i;
+		e.dataTransfer!.effectAllowed = 'move';
+		// Set minimal drag image so the token itself acts as the ghost
+		e.dataTransfer!.setData('text/plain', String(i));
+	}
+
+	function onDragOver(i: number, e: DragEvent) {
+		e.preventDefault();
+		e.dataTransfer!.dropEffect = 'move';
+		dropIndex = i;
+	}
+
+	function onDrop(i: number, e: DragEvent) {
+		e.preventDefault();
+		if (dragIndex === null || dragIndex === i) return;
+		const next = [...tokens];
+		const [moved] = next.splice(dragIndex, 1);
+		next.splice(i, 0, moved);
+		tokens = next;
+		dragIndex = null;
+		dropIndex = null;
+	}
+
+	function onDragEnd() {
+		dragIndex = null;
+		dropIndex = null;
+	}
 </script>
 
 <div class="bar">
@@ -61,9 +100,24 @@
 			<span class="hint">No filter — tap a tag or operator below to build one</span>
 		{:else}
 			{#each tokens as token, i (i)}
-				<button class="token active-token" onclick={() => removeToken(i)} title="Remove">
+				<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+				<div
+					class="token active-token"
+					class:dragging={dragIndex === i}
+					class:drop-before={dropIndex === i && dragIndex !== null && dragIndex !== i}
+					draggable="true"
+					role="button"
+					tabindex="0"
+					title="Drag to reorder · Click to remove"
+					ondragstart={(e) => onDragStart(i, e)}
+					ondragover={(e) => onDragOver(i, e)}
+					ondrop={(e) => onDrop(i, e)}
+					ondragend={onDragEnd}
+					onclick={() => removeToken(i)}
+					onkeydown={(e) => e.key === 'Delete' && removeToken(i)}
+				>
 					{tokenLabel(token, tagNames)}
-				</button>
+				</div>
 			{/each}
 		{/if}
 	</div>
@@ -155,10 +209,24 @@
 		background-color: var(--color-accent);
 		color: var(--color-bg-primary);
 		font-weight: 600;
+		cursor: grab;
+		user-select: none;
+		transition: opacity 0.15s, outline 0.1s;
+		outline: 2px solid transparent;
 	}
 
 	.active-token:hover {
 		background-color: var(--color-accent-hover);
+	}
+
+	.active-token.dragging {
+		opacity: 0.4;
+		cursor: grabbing;
+	}
+
+	.active-token.drop-before {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 2px;
 	}
 
 	.op-token {
