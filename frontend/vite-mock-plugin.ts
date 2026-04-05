@@ -87,6 +87,14 @@ const MOCK_FILES = Array.from({ length: 75 }, (_, i) => {
 	};
 });
 
+const MOCK_TAGS = [
+	{ id: '00000000-0000-7000-8001-000000000001', name: 'nature', color: '7ECBA1', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
+	{ id: '00000000-0000-7000-8001-000000000002', name: 'portrait', color: '9592B5', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
+	{ id: '00000000-0000-7000-8001-000000000003', name: 'travel', color: '4DC7ED', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
+	{ id: '00000000-0000-7000-8001-000000000004', name: 'architecture', color: 'E08C5A', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
+	{ id: '00000000-0000-7000-8001-000000000005', name: 'food', color: 'DB6060', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
+];
+
 export function mockApiPlugin(): Plugin {
 	return {
 		name: 'mock-api',
@@ -166,7 +174,7 @@ export function mockApiPlugin(): Plugin {
 
 				// GET /tags
 				if (method === 'GET' && path === '/tags') {
-					return json(res, 200, { items: [], total: 0, offset: 0, limit: 50 });
+					return json(res, 200, { items: MOCK_TAGS, total: MOCK_TAGS.length, offset: 0, limit: 200 });
 				}
 
 				// GET /categories
