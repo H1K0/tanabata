@@ -87,13 +87,52 @@ const MOCK_FILES = Array.from({ length: 75 }, (_, i) => {
 	};
 });
 
-const MOCK_TAGS = [
-	{ id: '00000000-0000-7000-8001-000000000001', name: 'nature', color: '7ECBA1', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
-	{ id: '00000000-0000-7000-8001-000000000002', name: 'portrait', color: '9592B5', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
-	{ id: '00000000-0000-7000-8001-000000000003', name: 'travel', color: '4DC7ED', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
-	{ id: '00000000-0000-7000-8001-000000000004', name: 'architecture', color: 'E08C5A', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
-	{ id: '00000000-0000-7000-8001-000000000005', name: 'food', color: 'DB6060', category_id: null, category_name: null, category_color: null, created_at: new Date().toISOString() },
+const TAG_NAMES = [
+	'nature', 'portrait', 'travel', 'architecture', 'food', 'street', 'macro',
+	'landscape', 'wildlife', 'urban', 'abstract', 'black-and-white', 'night',
+	'golden-hour', 'blue-hour', 'aerial', 'underwater', 'infrared', 'long-exposure',
+	'panorama', 'astrophotography', 'documentary', 'editorial', 'fashion', 'wedding',
+	'newborn', 'maternity', 'family', 'pet', 'sport', 'concert', 'theatre',
+	'interior', 'exterior', 'product', 'still-life', 'automotive', 'aviation',
+	'marine', 'industrial', 'medical', 'scientific', 'satellite', 'drone',
+	'film', 'analog', 'polaroid', 'tilt-shift', 'fisheye', 'telephoto',
+	'wide-angle', 'bokeh', 'silhouette', 'reflection', 'shadow', 'texture',
+	'pattern', 'color', 'minimal', 'surreal', 'conceptual', 'fine-art',
+	'photojournalism', 'war', 'protest', 'people', 'crowd', 'solitude',
+	'children', 'elderly', 'culture', 'tradition', 'festival', 'religion',
+	'asia', 'europe', 'africa', 'americas', 'oceania', 'arctic', 'desert',
+	'forest', 'mountain', 'ocean', 'lake', 'river', 'waterfall', 'cave',
+	'volcano', 'canyon', 'glacier', 'field', 'garden', 'park', 'city',
+	'village', 'ruins', 'bridge', 'road', 'railway', 'harbor', 'airport',
+	'market', 'cafe', 'restaurant', 'bar', 'museum', 'library', 'school',
+	'hospital', 'church', 'mosque', 'temple', 'shrine', 'cemetery', 'stadium',
+	'spring', 'summer', 'autumn', 'winter', 'rain', 'snow', 'fog', 'storm',
+	'sunrise', 'sunset', 'cloudy', 'clear', 'rainbow', 'lightning', 'wind',
+	'cat', 'dog', 'bird', 'horse', 'fish', 'insect', 'reptile', 'mammal',
+	'flower', 'tree', 'grass', 'moss', 'mushroom', 'fruit', 'vegetable',
+	'fire', 'water', 'earth', 'air', 'smoke', 'ice', 'stone', 'wood', 'metal',
+	'glass', 'fabric', 'paper', 'plastic', 'ceramic', 'leather', 'concrete',
+	'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink',
+	'brown', 'white', 'grey', 'dark', 'bright', 'pastel', 'vivid', 'muted',
+	'raw', 'edited', 'hdr', 'composite', 'retouched', 'unedited', 'scanned',
+	'selfie', 'candid', 'posed', 'staged', 'spontaneous', 'planned', 'series',
 ];
+
+const TAG_COLORS = [
+	'7ECBA1', '9592B5', '4DC7ED', 'E08C5A', 'DB6060',
+	'F5E872', 'A67CB8', '5A9ED4', 'C4A44A', '6DB89E',
+	'E07090', '70B0E0', 'C0A060', '80C080', 'D080B0',
+];
+
+const MOCK_TAGS = TAG_NAMES.map((name, i) => ({
+	id: `00000000-0000-7000-8001-${String(i + 1).padStart(12, '0')}`,
+	name,
+	color: TAG_COLORS[i % TAG_COLORS.length],
+	category_id: null,
+	category_name: null,
+	category_color: null,
+	created_at: new Date(Date.now() - i * 3_600_000).toISOString(),
+}));
 
 export function mockApiPlugin(): Plugin {
 	return {
