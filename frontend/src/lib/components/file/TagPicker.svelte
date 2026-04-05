@@ -82,13 +82,22 @@
 	{/if}
 
 	<!-- Search -->
-	<input
-		class="search"
-		type="search"
-		placeholder="Search tags…"
-		bind:value={search}
-		autocomplete="off"
-	/>
+	<div class="search-wrap">
+		<input
+			class="search"
+			type="search"
+			placeholder="Search tags…"
+			bind:value={search}
+			autocomplete="off"
+		/>
+		{#if search}
+			<button class="search-clear" onclick={() => (search = '')} aria-label="Clear search">
+				<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+					<path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+				</svg>
+			</button>
+		{/if}
+	</div>
 
 	<!-- Available tags -->
 	{#if filteredAvailable.length > 0}
@@ -180,6 +189,12 @@
 		filter: brightness(1.1);
 	}
 
+	.search-wrap {
+		position: relative;
+		display: flex;
+		align-items: center;
+	}
+
 	.search {
 		width: 100%;
 		box-sizing: border-box;
@@ -196,6 +211,27 @@
 
 	.search:focus {
 		border-color: var(--color-accent);
+	}
+
+	.search-clear {
+		position: absolute;
+		right: 6px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		border: none;
+		background: none;
+		color: var(--color-text-muted);
+		cursor: pointer;
+		padding: 0;
+	}
+
+	.search-clear:hover {
+		color: var(--color-text-primary);
+		background-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
 	}
 
 	.empty {
