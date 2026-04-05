@@ -42,3 +42,10 @@ export const tagSorting = makeSortStore<TagSortField>('sort:tags', {
 	sort: 'created',
 	order: 'desc',
 });
+
+export type CategorySortField = 'name' | 'color' | 'created';
+
+export const categorySorting = makeSortStore<CategorySortField>('sort:categories', {
+	sort: 'name',
+	order: 'asc',
+});

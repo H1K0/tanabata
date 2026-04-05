@@ -502,9 +502,101 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 201, newTag);
 				}
 
+				// GET /categories/{id}/tags
+				const catTagsMatch = path.match(/^\/categories\/([^/]+)\/tags$/);
+				if (method === 'GET' && catTagsMatch) {
+					const catId = catTagsMatch[1];
+					const qs = new URLSearchParams(url.split('?')[1] ?? '');
+					const limit = Math.min(Number(qs.get('limit') ?? 100), 500);
+					const offset = Number(qs.get('offset') ?? 0);
+					const all = MOCK_TAGS.filter((t) => t.category_id === catId);
+					all.sort((a, b) => a.name.localeCompare(b.name));
+					const items = all.slice(offset, offset + limit);
+					return json(res, 200, { items, total: all.length, offset, limit });
+				}
+
+				// GET /categories/{id}
+				const catGetMatch = path.match(/^\/categories\/([^/]+)$/);
+				if (method === 'GET' && catGetMatch) {
+					const cat = MOCK_CATEGORIES.find((c) => c.id === catGetMatch[1]);
+					if (!cat) return json(res, 404, { code: 'not_found', message: 'Category not found' });
+					return json(res, 200, cat);
+				}
+
+				// PATCH /categories/{id}
+				const catPatchMatch = path.match(/^\/categories\/([^/]+)$/);
+				if (method === 'PATCH' && catPatchMatch) {
+					const idx = MOCK_CATEGORIES.findIndex((c) => c.id === catPatchMatch[1]);
+					if (idx < 0) return json(res, 404, { code: 'not_found', message: 'Category not found' });
+					const body = (await readBody(req)) as Partial<typeof MOCK_CATEGORIES[0]>;
+					Object.assign(MOCK_CATEGORIES[idx], body);
+					// Sync category_name/color on affected tags
+					const cat = MOCK_CATEGORIES[idx];
+					for (const t of MOCK_TAGS) {
+						if (t.category_id === cat.id) {
+							t.category_name = cat.name;
+							t.category_color = cat.color;
+						}
+					}
+					return json(res, 200, MOCK_CATEGORIES[idx]);
+				}
+
+				// DELETE /categories/{id}
+				const catDelMatch = path.match(/^\/categories\/([^/]+)$/);
+				if (method === 'DELETE' && catDelMatch) {
+					const idx = MOCK_CATEGORIES.findIndex((c) => c.id === catDelMatch[1]);
+					if (idx >= 0) {
+						const catId = MOCK_CATEGORIES[idx].id;
+						MOCK_CATEGORIES.splice(idx, 1);
+						for (const t of MOCK_TAGS) {
+							if (t.category_id === catId) {
+								t.category_id = null;
+								t.category_name = null;
+								t.category_color = null;
+							}
+						}
+					}
+					return noContent(res);
+				}
+
 				// GET /categories
 				if (method === 'GET' && path === '/categories') {
-					return json(res, 200, { items: MOCK_CATEGORIES, total: MOCK_CATEGORIES.length, offset: 0, limit: 50 });
+					const qs = new URLSearchParams(url.split('?')[1] ?? '');
+					const search = qs.get('search')?.toLowerCase() ?? '';
+					const sort = qs.get('sort') ?? 'name';
+					const order = qs.get('order') ?? 'asc';
+					const limit = Math.min(Number(qs.get('limit') ?? 50), 500);
+					const offset = Number(qs.get('offset') ?? 0);
+
+					let filtered = search
+						? MOCK_CATEGORIES.filter((c) => c.name.toLowerCase().includes(search))
+						: [...MOCK_CATEGORIES];
+
+					filtered.sort((a, b) => {
+						let av: string, bv: string;
+						if (sort === 'color') { av = a.color; bv = b.color; }
+						else if (sort === 'created') { av = a.created_at; bv = b.created_at; }
+						else { av = a.name; bv = b.name; }
+						const cmp = av.localeCompare(bv);
+						return order === 'desc' ? -cmp : cmp;
+					});
+
+					const items = filtered.slice(offset, offset + limit);
+					return json(res, 200, { items, total: filtered.length, offset, limit });
+				}
+
+				// POST /categories
+				if (method === 'POST' && path === '/categories') {
+					const body = (await readBody(req)) as Partial<typeof MOCK_CATEGORIES[0]>;
+					const newCat = {
+						id: `00000000-0000-7000-8002-${String(Date.now()).slice(-12)}`,
+						name: body.name ?? 'Unnamed',
+						color: body.color ?? '9592B5',
+						notes: body.notes ?? null,
+						created_at: new Date().toISOString(),
+					};
+					MOCK_CATEGORIES.unshift(newCat);
+					return json(res, 201, newCat);
 				}
 
 				// GET /pools
