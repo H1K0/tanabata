@@ -1,10 +1,15 @@
 import { writable, derived } from 'svelte/store';
-import type { User } from '$lib/api/types';
+
+export interface AuthUser {
+	id: number;
+	name: string;
+	isAdmin: boolean;
+}
 
 export interface AuthState {
 	accessToken: string | null;
 	refreshToken: string | null;
-	user: User | null;
+	user: AuthUser | null;
 }
 
 const initial: AuthState = { accessToken: null, refreshToken: null, user: null };
