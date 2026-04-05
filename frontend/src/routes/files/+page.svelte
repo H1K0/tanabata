@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api/client';
 	import { ApiError } from '$lib/api/client';
@@ -29,7 +29,7 @@
 	let error = $state('');
 	let filterOpen = $state(false);
 
-	let filterParam = $derived($page.url.searchParams.get('filter'));
+	let filterParam = $derived(page.url.searchParams.get('filter'));
 	let activeTokens = $derived(parseDslFilter(filterParam));
 	let sortState = $derived($fileSorting);
 
@@ -71,7 +71,7 @@
 	}
 
 	function applyFilter(filter: string | null) {
-		const url = new URL($page.url);
+		const url = new URL(page.url);
 		if (filter) {
 			url.searchParams.set('filter', filter);
 		} else {

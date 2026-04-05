@@ -134,6 +134,16 @@ const MOCK_TAGS = TAG_NAMES.map((name, i) => ({
 	created_at: new Date(Date.now() - i * 3_600_000).toISOString(),
 }));
 
+// Mutable in-memory state for file metadata and tags
+const fileOverrides = new Map<string, Partial<typeof MOCK_FILES[0]>>();
+const fileTags = new Map<string, Set<string>>(); // fileId → Set<tagId>
+
+function getMockFile(id: string) {
+	const base = MOCK_FILES.find((f) => f.id === id);
+	if (!base) return null;
+	return { ...base, ...(fileOverrides.get(id) ?? {}) };
+}
+
 export function mockApiPlugin(): Plugin {
 	return {
 		name: 'mock-api',
@@ -197,17 +207,89 @@ export function mockApiPlugin(): Plugin {
 					return res.end(svg);
 				}
 
-				// GET /files (cursor pagination — page through MOCK_FILES in chunks of 50)
+				// GET /files/{id}/preview  (same SVG, just bigger)
+				const previewMatch = path.match(/^\/files\/([^/]+)\/preview$/);
+				if (method === 'GET' && previewMatch) {
+					const id = previewMatch[1];
+					const color = THUMB_COLORS[id.charCodeAt(id.length - 1) % THUMB_COLORS.length];
+					const label = id.slice(-4);
+					const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600">
+  <rect width="800" height="600" fill="${color}"/>
+  <text x="400" y="315" text-anchor="middle" font-family="monospace" font-size="48" fill="rgba(0,0,0,0.35)">${label}</text>
+</svg>`;
+					res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Content-Length': Buffer.byteLength(svg) });
+					return res.end(svg);
+				}
+
+				// GET /files/{id}/tags
+				const fileTagsGetMatch = path.match(/^\/files\/([^/]+)\/tags$/);
+				if (method === 'GET' && fileTagsGetMatch) {
+					const ids = fileTags.get(fileTagsGetMatch[1]) ?? new Set<string>();
+					return json(res, 200, MOCK_TAGS.filter((t) => ids.has(t.id)));
+				}
+
+				// PUT /files/{id}/tags/{tag_id}  — add tag
+				const fileTagPutMatch = path.match(/^\/files\/([^/]+)\/tags\/([^/]+)$/);
+				if (method === 'PUT' && fileTagPutMatch) {
+					const [, fid, tid] = fileTagPutMatch;
+					if (!fileTags.has(fid)) fileTags.set(fid, new Set());
+					fileTags.get(fid)!.add(tid);
+					const ids = fileTags.get(fid)!;
+					return json(res, 200, MOCK_TAGS.filter((t) => ids.has(t.id)));
+				}
+
+				// DELETE /files/{id}/tags/{tag_id}  — remove tag
+				const fileTagDelMatch = path.match(/^\/files\/([^/]+)\/tags\/([^/]+)$/);
+				if (method === 'DELETE' && fileTagDelMatch) {
+					const [, fid, tid] = fileTagDelMatch;
+					fileTags.get(fid)?.delete(tid);
+					return noContent(res);
+				}
+
+				// GET /files/{id}  — single file
+				const fileGetMatch = path.match(/^\/files\/([^/]+)$/);
+				if (method === 'GET' && fileGetMatch) {
+					const f = getMockFile(fileGetMatch[1]);
+					if (!f) return json(res, 404, { code: 'not_found', message: 'File not found' });
+					return json(res, 200, f);
+				}
+
+				// PATCH /files/{id}  — update metadata
+				const filePatchMatch = path.match(/^\/files\/([^/]+)$/);
+				if (method === 'PATCH' && filePatchMatch) {
+					const id = filePatchMatch[1];
+					const base = getMockFile(id);
+					if (!base) return json(res, 404, { code: 'not_found', message: 'File not found' });
+					const body = (await readBody(req)) as Record<string, unknown>;
+					fileOverrides.set(id, { ...(fileOverrides.get(id) ?? {}), ...body });
+					return json(res, 200, getMockFile(id));
+				}
+
+				// GET /files (cursor pagination + anchor support)
 				if (method === 'GET' && path === '/files') {
 					const qs = new URLSearchParams(url.split('?')[1] ?? '');
+					const anchor = qs.get('anchor');
 					const cursor = qs.get('cursor');
 					const limit = Math.min(Number(qs.get('limit') ?? 50), 200);
+
+					if (anchor) {
+						// Anchor mode: return the anchor file surrounded by neighbors
+						const anchorIdx = MOCK_FILES.findIndex((f) => f.id === anchor);
+						if (anchorIdx < 0) return json(res, 404, { code: 'not_found', message: 'Anchor not found' });
+						const from = Math.max(0, anchorIdx - Math.floor(limit / 2));
+						const slice = MOCK_FILES.slice(from, from + limit);
+						const next_cursor = from + slice.length < MOCK_FILES.length
+							? Buffer.from(String(from + slice.length)).toString('base64') : null;
+						const prev_cursor = from > 0
+							? Buffer.from(String(from)).toString('base64') : null;
+						return json(res, 200, { items: slice, next_cursor, prev_cursor });
+					}
+
 					const offset = cursor ? Number(Buffer.from(cursor, 'base64').toString()) : 0;
 					const slice = MOCK_FILES.slice(offset, offset + limit);
 					const nextOffset = offset + slice.length;
 					const next_cursor = nextOffset < MOCK_FILES.length
-						? Buffer.from(String(nextOffset)).toString('base64')
-						: null;
+						? Buffer.from(String(nextOffset)).toString('base64') : null;
 					return json(res, 200, { items: slice, next_cursor, prev_cursor: null });
 				}
 
