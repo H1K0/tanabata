@@ -124,15 +124,67 @@ const TAG_COLORS = [
 	'E07090', '70B0E0', 'C0A060', '80C080', 'D080B0',
 ];
 
-const MOCK_TAGS = TAG_NAMES.map((name, i) => ({
-	id: `00000000-0000-7000-8001-${String(i + 1).padStart(12, '0')}`,
-	name,
-	color: TAG_COLORS[i % TAG_COLORS.length],
-	category_id: null,
-	category_name: null,
-	category_color: null,
-	created_at: new Date(Date.now() - i * 3_600_000).toISOString(),
-}));
+const MOCK_CATEGORIES = [
+	{ id: '00000000-0000-7000-8002-000000000001', name: 'Style', color: '9592B5', notes: null, created_at: new Date().toISOString() },
+	{ id: '00000000-0000-7000-8002-000000000002', name: 'Subject', color: '4DC7ED', notes: null, created_at: new Date().toISOString() },
+	{ id: '00000000-0000-7000-8002-000000000003', name: 'Location', color: '7ECBA1', notes: null, created_at: new Date().toISOString() },
+	{ id: '00000000-0000-7000-8002-000000000004', name: 'Season', color: 'E08C5A', notes: null, created_at: new Date().toISOString() },
+	{ id: '00000000-0000-7000-8002-000000000005', name: 'Color', color: 'DB6060', notes: null, created_at: new Date().toISOString() },
+];
+
+// Assign some tags to categories
+const CATEGORY_ASSIGNMENTS: Record<string, string> = {};
+TAG_NAMES.forEach((name, i) => {
+	if (['film', 'analog', 'polaroid', 'bokeh', 'silhouette', 'long-exposure', 'tilt-shift', 'fisheye', 'telephoto', 'wide-angle', 'macro', 'infrared', 'hdr', 'composite'].includes(name))
+		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[0].id; // Style
+	else if (['portrait', 'wildlife', 'people', 'children', 'elderly', 'cat', 'dog', 'bird', 'horse', 'flower', 'tree', 'insect', 'reptile', 'mammal'].includes(name))
+		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[1].id; // Subject
+	else if (['asia', 'europe', 'africa', 'americas', 'oceania', 'arctic', 'desert', 'forest', 'mountain', 'ocean', 'lake', 'river', 'city', 'village'].includes(name))
+		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[2].id; // Location
+	else if (['spring', 'summer', 'autumn', 'winter'].includes(name))
+		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[3].id; // Season
+	else if (['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'brown', 'white', 'grey', 'dark', 'bright', 'pastel', 'vivid', 'muted'].includes(name))
+		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[4].id; // Color
+});
+
+function getCategoryForId(catId: string | null) {
+	if (!catId) return null;
+	return MOCK_CATEGORIES.find((c) => c.id === catId) ?? null;
+}
+
+type MockTag = {
+	id: string;
+	name: string;
+	color: string;
+	notes: string | null;
+	category_id: string | null;
+	category_name: string | null;
+	category_color: string | null;
+	is_public: boolean;
+	created_at: string;
+};
+
+const mockTagsArr: MockTag[] = TAG_NAMES.map((name, i) => {
+	const catId = CATEGORY_ASSIGNMENTS[name] ?? null;
+	const cat = getCategoryForId(catId);
+	return {
+		id: `00000000-0000-7000-8001-${String(i + 1).padStart(12, '0')}`,
+		name,
+		color: TAG_COLORS[i % TAG_COLORS.length],
+		notes: null,
+		category_id: catId,
+		category_name: cat?.name ?? null,
+		category_color: cat?.color ?? null,
+		is_public: false,
+		created_at: new Date(Date.now() - i * 3_600_000).toISOString(),
+	};
+});
+
+// Backwards-compatible reference for existing file-tag lookups
+const MOCK_TAGS = mockTagsArr;
+
+// Tag rules: Map<tagId, Set<thenTagId>>
+const tagRules = new Map<string, Set<string>>();
 
 // Mutable in-memory state for file metadata and tags
 const fileOverrides = new Map<string, Partial<typeof MOCK_FILES[0]>>();
@@ -325,14 +377,120 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 200, { items: slice, next_cursor, prev_cursor: null });
 				}
 
+				// GET /tags/{id}/rules
+				const tagRulesGetMatch = path.match(/^\/tags\/([^/]+)\/rules$/);
+				if (method === 'GET' && tagRulesGetMatch) {
+					const tid = tagRulesGetMatch[1];
+					const ruleIds = [...(tagRules.get(tid) ?? new Set<string>())];
+					const items = ruleIds.map((thenId) => {
+						const t = MOCK_TAGS.find((x) => x.id === thenId);
+						return { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: true };
+					});
+					return json(res, 200, items);
+				}
+
+				// POST /tags/{id}/rules
+				const tagRulesPostMatch = path.match(/^\/tags\/([^/]+)\/rules$/);
+				if (method === 'POST' && tagRulesPostMatch) {
+					const tid = tagRulesPostMatch[1];
+					const body = (await readBody(req)) as Record<string, unknown>;
+					const thenId = body.then_tag_id as string;
+					if (!tagRules.has(tid)) tagRules.set(tid, new Set());
+					tagRules.get(tid)!.add(thenId);
+					const t = MOCK_TAGS.find((x) => x.id === thenId);
+					return json(res, 201, { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: true });
+				}
+
+				// DELETE /tags/{id}/rules/{then_id}
+				const tagRulesDelMatch = path.match(/^\/tags\/([^/]+)\/rules\/([^/]+)$/);
+				if (method === 'DELETE' && tagRulesDelMatch) {
+					const [, tid, thenId] = tagRulesDelMatch;
+					tagRules.get(tid)?.delete(thenId);
+					return noContent(res);
+				}
+
+				// GET /tags/{id}
+				const tagGetMatch = path.match(/^\/tags\/([^/]+)$/);
+				if (method === 'GET' && tagGetMatch) {
+					const t = MOCK_TAGS.find((x) => x.id === tagGetMatch[1]);
+					if (!t) return json(res, 404, { code: 'not_found', message: 'Tag not found' });
+					return json(res, 200, t);
+				}
+
+				// PATCH /tags/{id}
+				const tagPatchMatch = path.match(/^\/tags\/([^/]+)$/);
+				if (method === 'PATCH' && tagPatchMatch) {
+					const idx = MOCK_TAGS.findIndex((x) => x.id === tagPatchMatch[1]);
+					if (idx < 0) return json(res, 404, { code: 'not_found', message: 'Tag not found' });
+					const body = (await readBody(req)) as Partial<MockTag>;
+					const catId = body.category_id ?? MOCK_TAGS[idx].category_id;
+					const cat = getCategoryForId(catId);
+					Object.assign(MOCK_TAGS[idx], {
+						...body,
+						category_name: cat?.name ?? null,
+						category_color: cat?.color ?? null,
+					});
+					return json(res, 200, MOCK_TAGS[idx]);
+				}
+
+				// DELETE /tags/{id}
+				const tagDelMatch = path.match(/^\/tags\/([^/]+)$/);
+				if (method === 'DELETE' && tagDelMatch) {
+					const idx = MOCK_TAGS.findIndex((x) => x.id === tagDelMatch[1]);
+					if (idx >= 0) MOCK_TAGS.splice(idx, 1);
+					return noContent(res);
+				}
+
 				// GET /tags
 				if (method === 'GET' && path === '/tags') {
-					return json(res, 200, { items: MOCK_TAGS, total: MOCK_TAGS.length, offset: 0, limit: 200 });
+					const qs = new URLSearchParams(url.split('?')[1] ?? '');
+					const search = qs.get('search')?.toLowerCase() ?? '';
+					const sort = qs.get('sort') ?? 'name';
+					const order = qs.get('order') ?? 'asc';
+					const limit = Math.min(Number(qs.get('limit') ?? 100), 500);
+					const offset = Number(qs.get('offset') ?? 0);
+
+					let filtered = search
+						? MOCK_TAGS.filter((t) => t.name.toLowerCase().includes(search))
+						: [...MOCK_TAGS];
+
+					filtered.sort((a, b) => {
+						let av: string, bv: string;
+						if (sort === 'color') { av = a.color; bv = b.color; }
+						else if (sort === 'category_name') { av = a.category_name ?? ''; bv = b.category_name ?? ''; }
+						else if (sort === 'created') { av = a.created_at; bv = b.created_at; }
+						else { av = a.name; bv = b.name; }
+						const cmp = av.localeCompare(bv);
+						return order === 'desc' ? -cmp : cmp;
+					});
+
+					const items = filtered.slice(offset, offset + limit);
+					return json(res, 200, { items, total: filtered.length, offset, limit });
+				}
+
+				// POST /tags
+				if (method === 'POST' && path === '/tags') {
+					const body = (await readBody(req)) as Partial<MockTag>;
+					const catId = body.category_id ?? null;
+					const cat = getCategoryForId(catId);
+					const newTag: MockTag = {
+						id: `00000000-0000-7000-8001-${String(Date.now()).slice(-12)}`,
+						name: body.name ?? 'Unnamed',
+						color: body.color ?? '444455',
+						notes: body.notes ?? null,
+						category_id: catId,
+						category_name: cat?.name ?? null,
+						category_color: cat?.color ?? null,
+						is_public: body.is_public ?? false,
+						created_at: new Date().toISOString(),
+					};
+					MOCK_TAGS.unshift(newTag);
+					return json(res, 201, newTag);
 				}
 
 				// GET /categories
 				if (method === 'GET' && path === '/categories') {
-					return json(res, 200, { items: [], total: 0, offset: 0, limit: 50 });
+					return json(res, 200, { items: MOCK_CATEGORIES, total: MOCK_CATEGORIES.length, offset: 0, limit: 50 });
 				}
 
 				// GET /pools
