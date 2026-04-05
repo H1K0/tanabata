@@ -183,8 +183,8 @@ const mockTagsArr: MockTag[] = TAG_NAMES.map((name, i) => {
 // Backwards-compatible reference for existing file-tag lookups
 const MOCK_TAGS = mockTagsArr;
 
-// Tag rules: Map<tagId, Set<thenTagId>>
-const tagRules = new Map<string, Set<string>>();
+// Tag rules: Map<tagId, Map<thenTagId, is_active>>
+const tagRules = new Map<string, Map<string, boolean>>();
 
 // Mutable in-memory state for file metadata and tags
 const fileOverrides = new Map<string, Partial<typeof MOCK_FILES[0]>>();
@@ -381,10 +381,10 @@ export function mockApiPlugin(): Plugin {
 				const tagRulesGetMatch = path.match(/^\/tags\/([^/]+)\/rules$/);
 				if (method === 'GET' && tagRulesGetMatch) {
 					const tid = tagRulesGetMatch[1];
-					const ruleIds = [...(tagRules.get(tid) ?? new Set<string>())];
-					const items = ruleIds.map((thenId) => {
+					const ruleMap = tagRules.get(tid) ?? new Map<string, boolean>();
+					const items = [...ruleMap.entries()].map(([thenId, isActive]) => {
 						const t = MOCK_TAGS.find((x) => x.id === thenId);
-						return { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: true };
+						return { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: isActive };
 					});
 					return json(res, 200, items);
 				}
@@ -395,10 +395,11 @@ export function mockApiPlugin(): Plugin {
 					const tid = tagRulesPostMatch[1];
 					const body = (await readBody(req)) as Record<string, unknown>;
 					const thenId = body.then_tag_id as string;
-					if (!tagRules.has(tid)) tagRules.set(tid, new Set());
-					tagRules.get(tid)!.add(thenId);
+					const isActive = body.is_active !== false;
+					if (!tagRules.has(tid)) tagRules.set(tid, new Map());
+					tagRules.get(tid)!.set(thenId, isActive);
 					const t = MOCK_TAGS.find((x) => x.id === thenId);
-					return json(res, 201, { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: true });
+					return json(res, 201, { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: isActive });
 				}
 
 				// DELETE /tags/{id}/rules/{then_id}
