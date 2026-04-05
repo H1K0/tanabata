@@ -317,6 +317,16 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 200, getMockFile(id));
 				}
 
+				// POST /files/bulk/delete  — soft delete (just remove from mock array)
+				if (method === 'POST' && path === '/files/bulk/delete') {
+					const body = (await readBody(req)) as { file_ids?: string[] };
+					const ids = new Set(body.file_ids ?? []);
+					for (let i = MOCK_FILES.length - 1; i >= 0; i--) {
+						if (ids.has(MOCK_FILES[i].id)) MOCK_FILES.splice(i, 1);
+					}
+					return noContent(res);
+				}
+
 				// POST /files  — upload (mock: drain body, return a new fake file)
 				if (method === 'POST' && path === '/files') {
 					// Drain the multipart body without parsing it

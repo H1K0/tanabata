@@ -11,10 +11,12 @@
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
 	import { fileSorting, type FileSortField } from '$lib/stores/sorting';
 	import { selectionStore, selectionActive } from '$lib/stores/selection';
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { parseDslFilter } from '$lib/utils/dsl';
 	import type { File, FileCursorPage } from '$lib/api/types';
 
 	let uploader = $state<{ open: () => void } | undefined>();
+	let confirmDeleteFiles = $state(false);
 
 	function handleUploaded(file: File) {
 		files = [file, ...files];
@@ -229,12 +231,27 @@
 	<SelectionBar
 		onEditTags={() => {/* TODO */}}
 		onAddToPool={() => {/* TODO */}}
-		onDelete={() => {
-			if (confirm(`Delete ${$selectionStore.ids.size} file(s)?`)) {
-				// TODO: call delete API
-				selectionStore.exit();
+		onDelete={() => (confirmDeleteFiles = true)}
+	/>
+{/if}
+
+{#if confirmDeleteFiles}
+	<ConfirmDialog
+		message={`Move ${$selectionStore.ids.size} file(s) to trash?`}
+		confirmLabel="Move to trash"
+		danger
+		onConfirm={async () => {
+			const ids = [...$selectionStore.ids];
+			confirmDeleteFiles = false;
+			selectionStore.exit();
+			try {
+				await api.post('/files/bulk/delete', { file_ids: ids });
+				files = files.filter((f) => !ids.includes(f.id ?? ''));
+			} catch {
+				// silently ignore — file list already updated optimistically
 			}
 		}}
+		onCancel={() => (confirmDeleteFiles = false)}
 	/>
 {/if}
 

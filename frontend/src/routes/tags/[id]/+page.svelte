@@ -4,6 +4,7 @@
 	import { api, ApiError } from '$lib/api/client';
 	import type { Category, CategoryOffsetPage, Tag, TagRule } from '$lib/api/types';
 	import TagRuleEditor from '$lib/components/tag/TagRuleEditor.svelte';
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
 	let tagId = $derived(page.params.id);
 
@@ -21,6 +22,7 @@
 	let deleting = $state(false);
 	let loadError = $state('');
 	let saveError = $state('');
+	let confirmDelete = $state(false);
 
 	let loaded = $state(false);
 
@@ -68,9 +70,8 @@
 		}
 	}
 
-	async function deleteTag() {
-		if (deleting) return;
-		if (!confirm(`Delete tag "${name}"? This cannot be undone.`)) return;
+	async function doDeleteTag() {
+		confirmDelete = false;
 		deleting = true;
 		try {
 			await api.delete(`/tags/${tagId}`);
@@ -162,7 +163,7 @@
 					<button type="submit" class="submit-btn" disabled={!name.trim() || saving}>
 						{saving ? 'Saving…' : 'Save changes'}
 					</button>
-					<button type="button" class="delete-btn" onclick={deleteTag} disabled={deleting}>
+					<button type="button" class="delete-btn" onclick={() => (confirmDelete = true)} disabled={deleting}>
 						{deleting ? 'Deleting…' : 'Delete'}
 					</button>
 				</div>
@@ -177,6 +178,16 @@
 		{/if}
 	</main>
 </div>
+
+{#if confirmDelete}
+	<ConfirmDialog
+		message={`Delete tag "${name}"? This cannot be undone.`}
+		confirmLabel="Delete"
+		danger
+		onConfirm={doDeleteTag}
+		onCancel={() => (confirmDelete = false)}
+	/>
+{/if}
 
 <style>
 	.page { flex: 1; min-height: 0; display: flex; flex-direction: column; }

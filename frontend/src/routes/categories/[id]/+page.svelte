@@ -4,6 +4,7 @@
 	import { api, ApiError } from '$lib/api/client';
 	import type { Category, Tag, TagOffsetPage } from '$lib/api/types';
 	import TagBadge from '$lib/components/tag/TagBadge.svelte';
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
 	let categoryId = $derived(page.params.id);
 
@@ -23,6 +24,7 @@
 	let loadError = $state('');
 	let saveError = $state('');
 	let loaded = $state(false);
+	let confirmDelete = $state(false);
 
 	const TAGS_LIMIT = 100;
 
@@ -87,9 +89,8 @@
 		}
 	}
 
-	async function deleteCategory() {
-		if (deleting) return;
-		if (!confirm(`Delete category "${name}"? Tags in this category will be unassigned.`)) return;
+	async function doDeleteCategory() {
+		confirmDelete = false;
 		deleting = true;
 		try {
 			await api.delete(`/categories/${categoryId}`);
@@ -171,7 +172,7 @@
 					<button type="submit" class="submit-btn" disabled={!name.trim() || saving}>
 						{saving ? 'Saving…' : 'Save changes'}
 					</button>
-					<button type="button" class="delete-btn" onclick={deleteCategory} disabled={deleting}>
+					<button type="button" class="delete-btn" onclick={() => (confirmDelete = true)} disabled={deleting}>
 						{deleting ? 'Deleting…' : 'Delete'}
 					</button>
 				</div>
@@ -211,6 +212,16 @@
 		{/if}
 	</main>
 </div>
+
+{#if confirmDelete}
+	<ConfirmDialog
+		message={`Delete category "${name}"? Tags in this category will be unassigned.`}
+		confirmLabel="Delete"
+		danger
+		onConfirm={doDeleteCategory}
+		onCancel={() => (confirmDelete = false)}
+	/>
+{/if}
 
 <style>
 	.page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
