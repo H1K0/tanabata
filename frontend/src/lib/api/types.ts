@@ -7,6 +7,7 @@ export type Pool = components['schemas']['Pool'];
 export type PoolFile = components['schemas']['PoolFile'];
 export type User = components['schemas']['User'];
 export type Session = components['schemas']['Session'];
+export type TokenPair = components['schemas']['TokenPair'];
 export type Permission = components['schemas']['Permission'];
 export type AuditEntry = components['schemas']['AuditLogEntry'];
 export type TagRule = components['schemas']['TagRule'];
