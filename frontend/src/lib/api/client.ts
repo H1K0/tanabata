@@ -89,6 +89,43 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 	return res.json();
 }
 
+/** Upload with XHR so we can track progress via onProgress(0–100). */
+export function uploadWithProgress<T>(
+	path: string,
+	formData: FormData,
+	onProgress: (pct: number) => void,
+): Promise<T> {
+	return new Promise((resolve, reject) => {
+		const token = get(authStore).accessToken;
+		const xhr = new XMLHttpRequest();
+		xhr.open('POST', BASE + path);
+		if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+		xhr.upload.onprogress = (e) => {
+			if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+		};
+
+		xhr.onload = () => {
+			if (xhr.status >= 200 && xhr.status < 300) {
+				try {
+					resolve(JSON.parse(xhr.responseText) as T);
+				} catch {
+					resolve(undefined as T);
+				}
+			} else {
+				let body: { code?: string; message?: string } = {};
+				try {
+					body = JSON.parse(xhr.responseText);
+				} catch { /* ignore */ }
+				reject(new ApiError(xhr.status, body.code ?? 'error', body.message ?? xhr.statusText));
+			}
+		};
+
+		xhr.onerror = () => reject(new ApiError(0, 'network_error', 'Network error'));
+		xhr.send(formData);
+	});
+}
+
 export const api = {
 	get: <T>(path: string) => request<T>(path),
 	post: <T>(path: string, body?: unknown) =>

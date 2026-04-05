@@ -4,6 +4,7 @@
 	import { api } from '$lib/api/client';
 	import { ApiError } from '$lib/api/client';
 	import FileCard from '$lib/components/file/FileCard.svelte';
+	import FileUpload from '$lib/components/file/FileUpload.svelte';
 	import FilterBar from '$lib/components/file/FilterBar.svelte';
 	import Header from '$lib/components/layout/Header.svelte';
 	import SelectionBar from '$lib/components/layout/SelectionBar.svelte';
@@ -12,6 +13,12 @@
 	import { selectionStore, selectionActive } from '$lib/stores/selection';
 	import { parseDslFilter } from '$lib/utils/dsl';
 	import type { File, FileCursorPage } from '$lib/api/types';
+
+	let uploader = $state<{ open: () => void } | undefined>();
+
+	function handleUploaded(file: File) {
+		files = [file, ...files];
+	}
 
 	const LIMIT = 50;
 
@@ -179,6 +186,7 @@
 		onSortChange={(s) => fileSorting.setSort(s as FileSortField)}
 		onOrderToggle={() => fileSorting.toggleOrder()}
 		onFilterToggle={() => (filterOpen = !filterOpen)}
+		onUpload={() => uploader?.open()}
 	/>
 
 	{#if filterOpen}
@@ -189,30 +197,32 @@
 		/>
 	{/if}
 
-	<main>
-		{#if error}
-			<p class="error" role="alert">{error}</p>
-		{/if}
+	<FileUpload bind:this={uploader} onUploaded={handleUploaded}>
+		<main>
+			{#if error}
+				<p class="error" role="alert">{error}</p>
+			{/if}
 
-		<div class="grid">
-			{#each files as file, i (file.id)}
-				<FileCard
-					{file}
-					index={i}
-					selected={$selectionStore.ids.has(file.id ?? '')}
-					selectionMode={$selectionActive}
-					onTap={(e) => handleTap(file, i, e)}
-					onLongPress={(pt) => handleLongPress(file, i, pt)}
-				/>
-			{/each}
-		</div>
+			<div class="grid">
+				{#each files as file, i (file.id)}
+					<FileCard
+						{file}
+						index={i}
+						selected={$selectionStore.ids.has(file.id ?? '')}
+						selectionMode={$selectionActive}
+						onTap={(e) => handleTap(file, i, e)}
+						onLongPress={(pt) => handleLongPress(file, i, pt)}
+					/>
+				{/each}
+			</div>
 
-		<InfiniteScroll {loading} {hasMore} onLoadMore={loadMore} />
+			<InfiniteScroll {loading} {hasMore} onLoadMore={loadMore} />
 
-		{#if !loading && !hasMore && files.length === 0}
-			<div class="empty">No files yet.</div>
-		{/if}
-	</main>
+			{#if !loading && !hasMore && files.length === 0}
+				<div class="empty">No files yet.</div>
+			{/if}
+		</main>
+	</FileUpload>
 </div>
 
 {#if $selectionActive}

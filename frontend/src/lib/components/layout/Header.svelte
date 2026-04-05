@@ -10,6 +10,7 @@
 		onSortChange: (sort: string) => void;
 		onOrderToggle: () => void;
 		onFilterToggle: () => void;
+		onUpload?: () => void;
 	}
 
 	let {
@@ -20,6 +21,7 @@
 		onSortChange,
 		onOrderToggle,
 		onFilterToggle,
+		onUpload,
 	}: Props = $props();
 </script>
 
@@ -31,6 +33,15 @@
 	>
 		{$selectionActive ? 'Cancel' : 'Select'}
 	</button>
+
+	{#if onUpload}
+		<button class="upload-btn icon-btn" onclick={onUpload} title="Upload files">
+			<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+				<path d="M8 2v9M4 6l4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+				<path d="M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+			</svg>
+		</button>
+	{/if}
 
 	<div class="controls">
 		<select

@@ -265,6 +265,38 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 200, getMockFile(id));
 				}
 
+				// POST /files  — upload (mock: drain body, return a new fake file)
+				if (method === 'POST' && path === '/files') {
+					// Drain the multipart body without parsing it
+					await new Promise<void>((resolve) => {
+						req.on('data', () => {});
+						req.on('end', resolve);
+					});
+					const idx = MOCK_FILES.length;
+					const id = `00000000-0000-7000-8000-${String(Date.now()).slice(-12)}`;
+					const ct = req.headers['content-type'] ?? '';
+					// Extract filename from Content-Disposition if present (best-effort)
+					const nameMatch = ct.match(/name="([^"]+)"/);
+					const newFile = {
+						id,
+						original_name: nameMatch ? nameMatch[1] : `upload-${idx + 1}.jpg`,
+						mime_type: 'image/jpeg',
+						mime_extension: 'jpg',
+						content_datetime: new Date().toISOString(),
+						notes: null,
+						metadata: null,
+						exif: {},
+						phash: null,
+						creator_id: 1,
+						creator_name: 'admin',
+						is_public: false,
+						is_deleted: false,
+						created_at: new Date().toISOString(),
+					};
+					MOCK_FILES.unshift(newFile);
+					return json(res, 201, newFile);
+				}
+
 				// GET /files (cursor pagination + anchor support)
 				if (method === 'GET' && path === '/files') {
 					const qs = new URLSearchParams(url.split('?')[1] ?? '');
