@@ -77,6 +77,9 @@
 		border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 15%, transparent);
 		gap: 6px;
 		flex-shrink: 0;
+		position: sticky;
+		top: 0;
+		z-index: 10;
 	}
 
 	.select-btn {

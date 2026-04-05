@@ -169,6 +169,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+		position: sticky;
+		top: 43px; /* header height */
+		z-index: 9;
 	}
 
 	.active {
