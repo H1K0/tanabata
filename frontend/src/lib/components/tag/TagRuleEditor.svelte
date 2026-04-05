@@ -62,13 +62,9 @@
 		busy = true;
 		error = '';
 		const thenTagId = rule.then_tag_id!;
-		const newActive = !rule.is_active;
 		try {
-			await api.delete(`/tags/${tagId}/rules/${thenTagId}`);
-			const updated = await api.post<TagRule>(`/tags/${tagId}/rules`, {
-				then_tag_id: thenTagId,
-				is_active: newActive,
-				apply_to_existing: false,
+			const updated = await api.patch<TagRule>(`/tags/${tagId}/rules/${thenTagId}`, {
+				is_active: !rule.is_active,
 			});
 			onRulesChange(rules.map((r) => r.then_tag_id === thenTagId ? updated : r));
 		} catch (e) {

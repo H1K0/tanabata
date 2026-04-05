@@ -402,6 +402,19 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 201, { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: isActive });
 				}
 
+				// PATCH /tags/{id}/rules/{then_id}  — activate / deactivate
+				const tagRulesPatchMatch = path.match(/^\/tags\/([^/]+)\/rules\/([^/]+)$/);
+				if (method === 'PATCH' && tagRulesPatchMatch) {
+					const [, tid, thenId] = tagRulesPatchMatch;
+					const body = (await readBody(req)) as Record<string, unknown>;
+					const isActive = body.is_active as boolean;
+					const ruleMap = tagRules.get(tid);
+					if (!ruleMap?.has(thenId)) return json(res, 404, { code: 'not_found', message: 'Rule not found' });
+					ruleMap.set(thenId, isActive);
+					const t = MOCK_TAGS.find((x) => x.id === thenId);
+					return json(res, 200, { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: isActive });
+				}
+
 				// DELETE /tags/{id}/rules/{then_id}
 				const tagRulesDelMatch = path.match(/^\/tags\/([^/]+)\/rules\/([^/]+)$/);
 				if (method === 'DELETE' && tagRulesDelMatch) {

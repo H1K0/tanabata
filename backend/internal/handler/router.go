@@ -93,6 +93,7 @@ func NewRouter(
 
 		tags.GET("/:tag_id/rules", tagHandler.ListRules)
 		tags.POST("/:tag_id/rules", tagHandler.CreateRule)
+		tags.PATCH("/:tag_id/rules/:then_tag_id", tagHandler.PatchRule)
 		tags.DELETE("/:tag_id/rules/:then_tag_id", tagHandler.DeleteRule)
 	}
 

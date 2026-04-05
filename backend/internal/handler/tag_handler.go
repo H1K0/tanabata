@@ -355,6 +355,39 @@ func (h *TagHandler) CreateRule(c *gin.Context) {
 }
 
 // ---------------------------------------------------------------------------
+// PATCH /tags/:tag_id/rules/:then_tag_id
+// ---------------------------------------------------------------------------
+
+func (h *TagHandler) PatchRule(c *gin.Context) {
+	whenTagID, ok := parseTagID(c)
+	if !ok {
+		return
+	}
+
+	thenTagID, err := uuid.Parse(c.Param("then_tag_id"))
+	if err != nil {
+		respondError(c, domain.ErrValidation)
+		return
+	}
+
+	var body struct {
+		IsActive *bool `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.IsActive == nil {
+		respondError(c, domain.ErrValidation)
+		return
+	}
+
+	rule, err := h.tagSvc.SetRuleActive(c.Request.Context(), whenTagID, thenTagID, *body.IsActive)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+
+	respondJSON(c, http.StatusOK, toTagRuleJSON(*rule))
+}
+
+// ---------------------------------------------------------------------------
 // DELETE /tags/:tag_id/rules/:then_tag_id
 // ---------------------------------------------------------------------------
 

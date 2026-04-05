@@ -825,6 +825,37 @@ paths:
                 $ref: '#/components/schemas/TagRule'
 
   /tags/{tag_id}/rules/{then_tag_id}:
+    patch:
+      tags: [Tags]
+      summary: Update a tag rule (activate / deactivate)
+      parameters:
+        - $ref: '#/components/parameters/tag_id'
+        - name: then_tag_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [is_active]
+              properties:
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagRule'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     delete:
       tags: [Tags]
       summary: Remove a tag rule

@@ -191,6 +191,23 @@ func (s *TagService) CreateRule(ctx context.Context, whenTagID, thenTagID uuid.U
 	})
 }
 
+// SetRuleActive toggles a rule's is_active flag and returns the updated rule.
+func (s *TagService) SetRuleActive(ctx context.Context, whenTagID, thenTagID uuid.UUID, active bool) (*domain.TagRule, error) {
+	if err := s.rules.SetActive(ctx, whenTagID, thenTagID, active); err != nil {
+		return nil, err
+	}
+	rules, err := s.rules.ListByTag(ctx, whenTagID)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rules {
+		if r.ThenTagID == thenTagID {
+			return &r, nil
+		}
+	}
+	return nil, domain.ErrNotFound
+}
+
 // DeleteRule removes a tag rule.
 func (s *TagService) DeleteRule(ctx context.Context, whenTagID, thenTagID uuid.UUID) error {
 	return s.rules.Delete(ctx, whenTagID, thenTagID)
