@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { FileSortField, SortOrder } from '$lib/stores/sorting';
+	import type { SortOrder } from '$lib/stores/sorting';
+	import { selectionStore, selectionActive } from '$lib/stores/selection';
 
 	interface Props {
 		sortOptions: { value: string; label: string }[];
@@ -23,6 +24,14 @@
 </script>
 
 <header>
+	<button
+		class="select-btn"
+		class:active={$selectionActive}
+		onclick={() => ($selectionActive ? selectionStore.exit() : selectionStore.enter())}
+	>
+		{$selectionActive ? 'Cancel' : 'Select'}
+	</button>
+
 	<div class="controls">
 		<select
 			class="sort-select"
@@ -68,6 +77,29 @@
 		border-bottom: 1px solid color-mix(in srgb, var(--color-accent) 15%, transparent);
 		gap: 6px;
 		flex-shrink: 0;
+	}
+
+	.select-btn {
+		height: 30px;
+		padding: 0 12px;
+		border-radius: 6px;
+		border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+		background-color: var(--color-bg-elevated);
+		color: var(--color-text-muted);
+		font-size: 0.85rem;
+		font-family: inherit;
+		cursor: pointer;
+	}
+
+	.select-btn:hover {
+		color: var(--color-text-primary);
+		border-color: var(--color-accent);
+	}
+
+	.select-btn.active {
+		background-color: color-mix(in srgb, var(--color-accent) 25%, var(--color-bg-elevated));
+		color: var(--color-accent);
+		border-color: var(--color-accent);
 	}
 
 	.controls {
