@@ -50,6 +50,56 @@ const ME = {
 	is_blocked: false,
 };
 
+type MockUser = {
+	id: number;
+	name: string;
+	is_admin: boolean;
+	can_create: boolean;
+	is_blocked: boolean;
+};
+
+const mockUsersArr: MockUser[] = [
+	{ id: 1, name: 'admin',   is_admin: true,  can_create: true,  is_blocked: false },
+	{ id: 2, name: 'alice',   is_admin: false, can_create: true,  is_blocked: false },
+	{ id: 3, name: 'bob',     is_admin: false, can_create: true,  is_blocked: false },
+	{ id: 4, name: 'charlie', is_admin: false, can_create: false, is_blocked: true  },
+	{ id: 5, name: 'diana',   is_admin: false, can_create: true,  is_blocked: false },
+];
+
+const AUDIT_ACTIONS = [
+	'file_create', 'file_edit', 'file_delete', 'file_tag_add', 'file_tag_remove',
+	'tag_create', 'tag_edit', 'tag_delete', 'pool_create', 'pool_edit', 'pool_delete',
+	'category_create', 'category_edit',
+];
+const AUDIT_OBJECT_TYPES = ['file', 'tag', 'pool', 'category'];
+
+type MockAuditEntry = {
+	id: number;
+	user_id: number;
+	user_name: string;
+	action: string;
+	object_type: string | null;
+	object_id: string | null;
+	details: Record<string, unknown> | null;
+	performed_at: string;
+};
+
+const mockAuditLog: MockAuditEntry[] = Array.from({ length: 80 }, (_, i) => {
+	const user = mockUsersArr[i % mockUsersArr.length];
+	const action = AUDIT_ACTIONS[i % AUDIT_ACTIONS.length];
+	const objType = AUDIT_OBJECT_TYPES[i % AUDIT_OBJECT_TYPES.length];
+	return {
+		id: i + 1,
+		user_id: user.id,
+		user_name: user.name,
+		action,
+		object_type: objType,
+		object_id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`,
+		details: null,
+		performed_at: new Date(Date.now() - i * 1_800_000).toISOString(),
+	};
+});
+
 const THUMB_COLORS = [
 	'#9592B5', '#4DC7ED', '#DB6060', '#F5E872', '#7ECBA1',
 	'#E08C5A', '#A67CB8', '#5A9ED4', '#C4A44A', '#6DB89E',
@@ -851,6 +901,82 @@ export function mockApiPlugin(): Plugin {
 					};
 					mockPoolsArr.unshift(newPool);
 					return json(res, 201, newPool);
+				}
+
+				// GET /users/{id}
+				const userGetMatch = path.match(/^\/users\/(\d+)$/);
+				if (method === 'GET' && userGetMatch) {
+					const u = mockUsersArr.find((x) => x.id === Number(userGetMatch[1]));
+					if (!u) return json(res, 404, { code: 'not_found', message: 'User not found' });
+					return json(res, 200, u);
+				}
+
+				// PATCH /users/{id}
+				const userPatchMatch = path.match(/^\/users\/(\d+)$/);
+				if (method === 'PATCH' && userPatchMatch) {
+					const u = mockUsersArr.find((x) => x.id === Number(userPatchMatch[1]));
+					if (!u) return json(res, 404, { code: 'not_found', message: 'User not found' });
+					const body = (await readBody(req)) as Partial<MockUser>;
+					Object.assign(u, body);
+					return json(res, 200, u);
+				}
+
+				// DELETE /users/{id}
+				const userDelMatch = path.match(/^\/users\/(\d+)$/);
+				if (method === 'DELETE' && userDelMatch) {
+					const idx = mockUsersArr.findIndex((x) => x.id === Number(userDelMatch[1]));
+					if (idx >= 0) mockUsersArr.splice(idx, 1);
+					return noContent(res);
+				}
+
+				// GET /users
+				if (method === 'GET' && path === '/users') {
+					const qs = new URLSearchParams(url.split('?')[1] ?? '');
+					const limit = Math.min(Number(qs.get('limit') ?? 50), 200);
+					const offset = Number(qs.get('offset') ?? 0);
+					const items = mockUsersArr.slice(offset, offset + limit);
+					return json(res, 200, { items, total: mockUsersArr.length, offset, limit });
+				}
+
+				// POST /users
+				if (method === 'POST' && path === '/users') {
+					const body = (await readBody(req)) as Partial<MockUser> & { password?: string };
+					const newUser: MockUser = {
+						id: Math.max(...mockUsersArr.map((u) => u.id)) + 1,
+						name: body.name ?? 'unnamed',
+						is_admin: body.is_admin ?? false,
+						can_create: body.can_create ?? false,
+						is_blocked: false,
+					};
+					mockUsersArr.push(newUser);
+					return json(res, 201, newUser);
+				}
+
+				// GET /audit
+				if (method === 'GET' && path === '/audit') {
+					const qs = new URLSearchParams(url.split('?')[1] ?? '');
+					const limit = Math.min(Number(qs.get('limit') ?? 50), 200);
+					const offset = Number(qs.get('offset') ?? 0);
+					const filterUserId = qs.get('user_id') ? Number(qs.get('user_id')) : null;
+					const filterAction = qs.get('action') ?? '';
+					const filterObjectType = qs.get('object_type') ?? '';
+					const filterObjectId = qs.get('object_id') ?? '';
+					const filterFrom = qs.get('from') ? new Date(qs.get('from')!).getTime() : null;
+					const filterTo = qs.get('to') ? new Date(qs.get('to')!).getTime() : null;
+
+					let filtered = mockAuditLog.filter((e) => {
+						if (filterUserId !== null && e.user_id !== filterUserId) return false;
+						if (filterAction && e.action !== filterAction) return false;
+						if (filterObjectType && e.object_type !== filterObjectType) return false;
+						if (filterObjectId && e.object_id !== filterObjectId) return false;
+						const t = new Date(e.performed_at).getTime();
+						if (filterFrom !== null && t < filterFrom) return false;
+						if (filterTo !== null && t > filterTo) return false;
+						return true;
+					});
+
+					const items = filtered.slice(offset, offset + limit);
+					return json(res, 200, { items, total: filtered.length, offset, limit });
 				}
 
 				// Fallback: 404
