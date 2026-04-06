@@ -12,6 +12,8 @@
   --color-info: #4DC7ED;
   --color-warning: #F5E872;
   --color-tag-default: #444455;
+  --color-nav-bg: rgba(0, 0, 0, 0.45);
+  --color-nav-active: rgba(52, 50, 73, 0.72);
 
   --font-sans: 'Epilogue', sans-serif;
 }
@@ -25,6 +27,8 @@
   --color-text-primary: #111118;
   --color-text-muted: #555566;
   --color-tag-default: #ccccdd;
+  --color-nav-bg: rgba(240, 240, 245, 0.85);
+  --color-nav-active: rgba(90, 87, 143, 0.22);
 }
 
 @font-face {

@@ -95,7 +95,7 @@
 		justify-content: space-between;
 		align-items: center;
 		padding: 10px;
-		background-color: rgba(0, 0, 0, 0.45);
+		background-color: var(--color-nav-bg);
 		backdrop-filter: blur(8px);
 		-webkit-backdrop-filter: blur(8px);
 		z-index: 100;
@@ -115,7 +115,7 @@
 
 	.nav:hover,
 	.nav.curr {
-		background-color: #343249;
+		background-color: var(--color-nav-active);
 		color: var(--color-text-primary);
 	}
 
