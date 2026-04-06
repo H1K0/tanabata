@@ -49,3 +49,10 @@ export const categorySorting = makeSortStore<CategorySortField>('sort:categories
 	sort: 'name',
 	order: 'asc',
 });
+
+export type PoolSortField = 'name' | 'created';
+
+export const poolSorting = makeSortStore<PoolSortField>('sort:pools', {
+	sort: 'created',
+	order: 'desc',
+});

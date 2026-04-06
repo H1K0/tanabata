@@ -190,6 +190,55 @@ const tagRules = new Map<string, Map<string, boolean>>();
 const fileOverrides = new Map<string, Partial<typeof MOCK_FILES[0]>>();
 const fileTags = new Map<string, Set<string>>(); // fileId → Set<tagId>
 
+type MockPool = {
+	id: string;
+	name: string;
+	notes: string | null;
+	is_public: boolean;
+	file_count: number;
+	creator_id: number;
+	creator_name: string;
+	created_at: string;
+};
+
+type PoolFile = {
+	id: string;
+	original_name: string;
+	mime_type: string;
+	mime_extension: string;
+	content_datetime: string;
+	notes: string | null;
+	metadata: null;
+	exif: Record<string, unknown>;
+	phash: null;
+	creator_id: number;
+	creator_name: string;
+	is_public: boolean;
+	is_deleted: boolean;
+	created_at: string;
+	position: number;
+};
+
+const mockPoolsArr: MockPool[] = [
+	{ id: '00000000-0000-7000-8003-000000000001', name: 'Best of 2024', notes: 'Top picks from last year', is_public: false, file_count: 0, creator_id: 1, creator_name: 'admin', created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
+	{ id: '00000000-0000-7000-8003-000000000002', name: 'Portfolio', notes: null, is_public: true, file_count: 0, creator_id: 1, creator_name: 'admin', created_at: new Date(Date.now() - 5 * 86400000).toISOString() },
+	{ id: '00000000-0000-7000-8003-000000000003', name: 'Work in Progress', notes: 'Drafts and experiments', is_public: false, file_count: 0, creator_id: 1, creator_name: 'admin', created_at: new Date(Date.now() - 2 * 86400000).toISOString() },
+];
+
+// Pool files: Map<poolId, PoolFile[]> ordered by position
+const poolFilesMap = new Map<string, PoolFile[]>();
+
+// Seed some files into first two pools
+function seedPoolFiles() {
+	const p1Files: PoolFile[] = MOCK_FILES.slice(0, 8).map((f, i) => ({ ...f, metadata: null, exif: {}, phash: null, position: i + 1 }));
+	const p2Files: PoolFile[] = MOCK_FILES.slice(5, 14).map((f, i) => ({ ...f, metadata: null, exif: {}, phash: null, position: i + 1 }));
+	poolFilesMap.set(mockPoolsArr[0].id, p1Files);
+	poolFilesMap.set(mockPoolsArr[1].id, p2Files);
+	mockPoolsArr[0].file_count = p1Files.length;
+	mockPoolsArr[1].file_count = p2Files.length;
+}
+seedPoolFiles();
+
 function getMockFile(id: string) {
 	const base = MOCK_FILES.find((f) => f.id === id);
 	if (!base) return null;
@@ -609,9 +658,152 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 201, newCat);
 				}
 
+				// GET /pools/{id}/files
+				const poolFilesGetMatch = path.match(/^\/pools\/([^/]+)\/files$/);
+				if (method === 'GET' && poolFilesGetMatch) {
+					const pid = poolFilesGetMatch[1];
+					if (!mockPoolsArr.find((p) => p.id === pid))
+						return json(res, 404, { code: 'not_found', message: 'Pool not found' });
+					const qs = new URLSearchParams(url.split('?')[1] ?? '');
+					const limit = Math.min(Number(qs.get('limit') ?? 50), 200);
+					const cursor = qs.get('cursor');
+					const files = poolFilesMap.get(pid) ?? [];
+					const offset = cursor ? Number(Buffer.from(cursor, 'base64').toString()) : 0;
+					const slice = files.slice(offset, offset + limit);
+					const nextOffset = offset + slice.length;
+					const next_cursor = nextOffset < files.length
+						? Buffer.from(String(nextOffset)).toString('base64') : null;
+					return json(res, 200, { items: slice, next_cursor, prev_cursor: null });
+				}
+
+				// POST /pools/{id}/files/remove
+				const poolFilesRemoveMatch = path.match(/^\/pools\/([^/]+)\/files\/remove$/);
+				if (method === 'POST' && poolFilesRemoveMatch) {
+					const pid = poolFilesRemoveMatch[1];
+					const pool = mockPoolsArr.find((p) => p.id === pid);
+					if (!pool) return json(res, 404, { code: 'not_found', message: 'Pool not found' });
+					const body = (await readBody(req)) as { file_ids?: string[] };
+					const toRemove = new Set(body.file_ids ?? []);
+					const files = poolFilesMap.get(pid) ?? [];
+					const updated = files.filter((f) => !toRemove.has(f.id));
+					// Reassign positions
+					updated.forEach((f, i) => { f.position = i + 1; });
+					poolFilesMap.set(pid, updated);
+					pool.file_count = updated.length;
+					return noContent(res);
+				}
+
+				// PUT /pools/{id}/files/reorder
+				const poolReorderMatch = path.match(/^\/pools\/([^/]+)\/files\/reorder$/);
+				if (method === 'PUT' && poolReorderMatch) {
+					const pid = poolReorderMatch[1];
+					const pool = mockPoolsArr.find((p) => p.id === pid);
+					if (!pool) return json(res, 404, { code: 'not_found', message: 'Pool not found' });
+					const body = (await readBody(req)) as { file_ids?: string[] };
+					const order = body.file_ids ?? [];
+					const files = poolFilesMap.get(pid) ?? [];
+					const byId = new Map(files.map((f) => [f.id, f]));
+					const reordered: PoolFile[] = [];
+					for (const id of order) {
+						const f = byId.get(id);
+						if (f) reordered.push(f);
+					}
+					reordered.forEach((f, i) => { f.position = i + 1; });
+					poolFilesMap.set(pid, reordered);
+					return noContent(res);
+				}
+
+				// POST /pools/{id}/files  — add files
+				const poolFilesAddMatch = path.match(/^\/pools\/([^/]+)\/files$/);
+				if (method === 'POST' && poolFilesAddMatch) {
+					const pid = poolFilesAddMatch[1];
+					const pool = mockPoolsArr.find((p) => p.id === pid);
+					if (!pool) return json(res, 404, { code: 'not_found', message: 'Pool not found' });
+					const body = (await readBody(req)) as { file_ids?: string[] };
+					const files = poolFilesMap.get(pid) ?? [];
+					const existing = new Set(files.map((f) => f.id));
+					let pos = files.length;
+					for (const fid of (body.file_ids ?? [])) {
+						if (existing.has(fid)) continue;
+						const base = MOCK_FILES.find((f) => f.id === fid);
+						if (!base) continue;
+						pos++;
+						files.push({ ...base, metadata: null, exif: {}, phash: null, position: pos });
+						existing.add(fid);
+					}
+					poolFilesMap.set(pid, files);
+					pool.file_count = files.length;
+					return noContent(res);
+				}
+
+				// GET /pools/{id}
+				const poolGetMatch = path.match(/^\/pools\/([^/]+)$/);
+				if (method === 'GET' && poolGetMatch) {
+					const pool = mockPoolsArr.find((p) => p.id === poolGetMatch[1]);
+					if (!pool) return json(res, 404, { code: 'not_found', message: 'Pool not found' });
+					return json(res, 200, pool);
+				}
+
+				// PATCH /pools/{id}
+				const poolPatchMatch = path.match(/^\/pools\/([^/]+)$/);
+				if (method === 'PATCH' && poolPatchMatch) {
+					const pool = mockPoolsArr.find((p) => p.id === poolPatchMatch[1]);
+					if (!pool) return json(res, 404, { code: 'not_found', message: 'Pool not found' });
+					const body = (await readBody(req)) as Partial<MockPool>;
+					Object.assign(pool, body);
+					return json(res, 200, pool);
+				}
+
+				// DELETE /pools/{id}
+				const poolDelMatch = path.match(/^\/pools\/([^/]+)$/);
+				if (method === 'DELETE' && poolDelMatch) {
+					const idx = mockPoolsArr.findIndex((p) => p.id === poolDelMatch[1]);
+					if (idx >= 0) {
+						poolFilesMap.delete(mockPoolsArr[idx].id);
+						mockPoolsArr.splice(idx, 1);
+					}
+					return noContent(res);
+				}
+
 				// GET /pools
 				if (method === 'GET' && path === '/pools') {
-					return json(res, 200, { items: [], total: 0, offset: 0, limit: 50 });
+					const qs = new URLSearchParams(url.split('?')[1] ?? '');
+					const search = qs.get('search')?.toLowerCase() ?? '';
+					const sort = qs.get('sort') ?? 'created';
+					const order = qs.get('order') ?? 'desc';
+					const limit = Math.min(Number(qs.get('limit') ?? 50), 200);
+					const offset = Number(qs.get('offset') ?? 0);
+
+					let filtered = search
+						? mockPoolsArr.filter((p) => p.name.toLowerCase().includes(search))
+						: [...mockPoolsArr];
+
+					filtered.sort((a, b) => {
+						const av = sort === 'name' ? a.name : a.created_at;
+						const bv = sort === 'name' ? b.name : b.created_at;
+						const cmp = av.localeCompare(bv);
+						return order === 'desc' ? -cmp : cmp;
+					});
+
+					const items = filtered.slice(offset, offset + limit);
+					return json(res, 200, { items, total: filtered.length, offset, limit });
+				}
+
+				// POST /pools
+				if (method === 'POST' && path === '/pools') {
+					const body = (await readBody(req)) as Partial<MockPool>;
+					const newPool: MockPool = {
+						id: `00000000-0000-7000-8003-${String(Date.now()).slice(-12)}`,
+						name: body.name ?? 'Unnamed',
+						notes: body.notes ?? null,
+						is_public: body.is_public ?? false,
+						file_count: 0,
+						creator_id: 1,
+						creator_name: 'admin',
+						created_at: new Date().toISOString(),
+					};
+					mockPoolsArr.unshift(newPool);
+					return json(res, 201, newPool);
 				}
 
 				// Fallback: 404

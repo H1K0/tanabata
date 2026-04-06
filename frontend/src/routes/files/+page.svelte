@@ -13,10 +13,49 @@
 	import { selectionStore, selectionActive } from '$lib/stores/selection';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { parseDslFilter } from '$lib/utils/dsl';
-	import type { File, FileCursorPage } from '$lib/api/types';
+	import type { File, FileCursorPage, Pool, PoolOffsetPage } from '$lib/api/types';
 
 	let uploader = $state<{ open: () => void } | undefined>();
 	let confirmDeleteFiles = $state(false);
+
+	// ---- Add to pool picker ----
+	let poolPickerOpen = $state(false);
+	let pools = $state<Pool[]>([]);
+	let poolsLoading = $state(false);
+	let poolPickerSearch = $state('');
+	let poolPickerError = $state('');
+
+	async function openPoolPicker() {
+		poolPickerOpen = true;
+		poolPickerError = '';
+		poolsLoading = true;
+		poolPickerSearch = '';
+		try {
+			const res = await api.get<PoolOffsetPage>('/pools?limit=200&sort=name&order=asc');
+			pools = res.items ?? [];
+		} catch {
+			poolPickerError = 'Failed to load pools';
+		} finally {
+			poolsLoading = false;
+		}
+	}
+
+	async function addToPool(poolId: string) {
+		const ids = [...$selectionStore.ids];
+		poolPickerOpen = false;
+		selectionStore.exit();
+		try {
+			await api.post(`/pools/${poolId}/files`, { file_ids: ids });
+		} catch {
+			// silently ignore
+		}
+	}
+
+	let filteredPools = $derived(
+		poolPickerSearch.trim()
+			? pools.filter((p) => p.name?.toLowerCase().includes(poolPickerSearch.toLowerCase()))
+			: pools
+	);
 
 	function handleUploaded(file: File) {
 		files = [file, ...files];
@@ -230,9 +269,51 @@
 {#if $selectionActive}
 	<SelectionBar
 		onEditTags={() => {/* TODO */}}
-		onAddToPool={() => {/* TODO */}}
+		onAddToPool={openPoolPicker}
 		onDelete={() => (confirmDeleteFiles = true)}
 	/>
+{/if}
+
+{#if poolPickerOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div class="picker-backdrop" role="presentation" onclick={() => (poolPickerOpen = false)}></div>
+	<div class="picker-sheet" role="dialog" aria-label="Add to pool">
+		<div class="picker-header">
+			<span class="picker-title">Add {$selectionStore.ids.size} file{$selectionStore.ids.size !== 1 ? 's' : ''} to pool</span>
+			<button class="picker-close" onclick={() => (poolPickerOpen = false)} aria-label="Close">
+				<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+					<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+				</svg>
+			</button>
+		</div>
+		<div class="picker-search-wrap">
+			<input
+				class="picker-search"
+				type="search"
+				placeholder="Search pools…"
+				bind:value={poolPickerSearch}
+				autocomplete="off"
+			/>
+		</div>
+		{#if poolPickerError}
+			<p class="picker-error">{poolPickerError}</p>
+		{:else if poolsLoading}
+			<p class="picker-empty">Loading…</p>
+		{:else if filteredPools.length === 0}
+			<p class="picker-empty">No pools found.</p>
+		{:else}
+			<ul class="picker-list">
+				{#each filteredPools as pool (pool.id)}
+					<li>
+						<button class="picker-item" onclick={() => pool.id && addToPool(pool.id)}>
+							<span class="picker-item-name">{pool.name}</span>
+							<span class="picker-item-count">{pool.file_count ?? 0} files</span>
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
 {/if}
 
 {#if confirmDeleteFiles}
@@ -295,5 +376,131 @@
 		color: var(--color-text-muted);
 		padding: 60px 20px;
 		font-size: 0.95rem;
+	}
+
+	/* ---- Pool picker ---- */
+	.picker-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 110;
+		background: rgba(0, 0, 0, 0.5);
+	}
+
+	.picker-sheet {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 111;
+		background-color: var(--color-bg-secondary);
+		border-radius: 14px 14px 0 0;
+		padding-bottom: env(safe-area-inset-bottom, 0px);
+		max-height: 70dvh;
+		display: flex;
+		flex-direction: column;
+		animation: slide-up 0.18s ease-out;
+	}
+
+	@keyframes slide-up {
+		from { transform: translateY(20px); opacity: 0; }
+		to   { transform: translateY(0);    opacity: 1; }
+	}
+
+	.picker-header {
+		display: flex;
+		align-items: center;
+		padding: 14px 16px 10px;
+		gap: 8px;
+	}
+
+	.picker-title {
+		flex: 1;
+		font-size: 0.95rem;
+		font-weight: 600;
+	}
+
+	.picker-close {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: var(--color-text-muted);
+		padding: 4px;
+		display: flex;
+		align-items: center;
+	}
+
+	.picker-close:hover {
+		color: var(--color-text-primary);
+	}
+
+	.picker-search-wrap {
+		padding: 0 14px 10px;
+	}
+
+	.picker-search {
+		width: 100%;
+		box-sizing: border-box;
+		height: 34px;
+		padding: 0 10px;
+		border-radius: 8px;
+		border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+		background-color: var(--color-bg-elevated);
+		color: var(--color-text-primary);
+		font-size: 0.9rem;
+		font-family: inherit;
+		outline: none;
+	}
+
+	.picker-search:focus {
+		border-color: var(--color-accent);
+	}
+
+	.picker-list {
+		list-style: none;
+		margin: 0;
+		padding: 0 8px 12px;
+		overflow-y: auto;
+		flex: 1;
+	}
+
+	.picker-item {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		text-align: left;
+		padding: 11px 10px;
+		border-radius: 8px;
+		background: none;
+		border: none;
+		cursor: pointer;
+		font-family: inherit;
+		gap: 8px;
+	}
+
+	.picker-item:hover {
+		background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+	}
+
+	.picker-item-name {
+		flex: 1;
+		font-size: 0.95rem;
+		color: var(--color-text-primary);
+	}
+
+	.picker-item-count {
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+	}
+
+	.picker-empty,
+	.picker-error {
+		text-align: center;
+		padding: 20px;
+		font-size: 0.9rem;
+		color: var(--color-text-muted);
+	}
+
+	.picker-error {
+		color: var(--color-danger);
 	}
 </style>
