@@ -300,6 +300,19 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 200, ME);
 				}
 
+				// PATCH /users/me
+				if (method === 'PATCH' && path === '/users/me') {
+					const body = (await readBody(req)) as { name?: string; password?: string };
+					if (body.name) ME.name = body.name;
+					return json(res, 200, ME);
+				}
+
+				// DELETE /auth/sessions/{id}
+				const sessionDelMatch = path.match(/^\/auth\/sessions\/(\d+)$/);
+				if (method === 'DELETE' && sessionDelMatch) {
+					return noContent(res);
+				}
+
 				// GET /files/{id}/thumbnail
 				const thumbMatch = path.match(/^\/files\/([^/]+)\/thumbnail$/);
 				if (method === 'GET' && thumbMatch) {
