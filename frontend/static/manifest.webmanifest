@@ -1,31 +1,55 @@
 {
-  "name": "Tanabata",
+  "name": "Tanabata File Manager",
   "short_name": "Tanabata",
+  "lang": "en-US",
   "description": "Multi-user tag-based file manager",
   "start_url": "/files",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
   "background_color": "#312F45",
   "theme_color": "#312F45",
   "icons": [
     {
-      "src": "/images/icon-192.png",
+      "src": "/images/android-icon-36x36.png",
+      "sizes": "36x36",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/android-icon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/android-icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/android-icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/android-icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/android-icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "src": "/images/apple-icon-180x180.png",
+      "sizes": "180x180",
+      "type": "image/png"
     },
     {
-      "src": "/images/icon-maskable-512.png",
-      "sizes": "512x512",
+      "src": "/images/ms-icon-310x310.png",
+      "sizes": "310x310",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }
