@@ -150,7 +150,7 @@
 
 {#if confirmDelete && user}
 	<ConfirmDialog
-		message="Delete user "{user.name}"? This cannot be undone."
+		message="Delete user &ldquo;{user.name}&rdquo;? This cannot be undone."
 		confirmLabel="Delete"
 		danger
 		onConfirm={doDelete}

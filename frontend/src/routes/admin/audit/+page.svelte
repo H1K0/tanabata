@@ -5,20 +5,43 @@
 	const LIMIT = 50;
 	const OBJECT_TYPES = ['file', 'tag', 'category', 'pool'];
 	const ACTION_LABELS: Record<string, string> = {
-		file_create:        'File uploaded',
-		file_edit:          'File edited',
-		file_delete:        'File deleted',
-		file_tag_add:       'Tag added to file',
-		file_tag_remove:    'Tag removed from file',
-		tag_create:         'Tag created',
-		tag_edit:           'Tag edited',
-		tag_delete:         'Tag deleted',
-		pool_create:        'Pool created',
-		pool_edit:          'Pool edited',
-		pool_delete:        'Pool deleted',
-		category_create:    'Category created',
-		category_edit:      'Category edited',
-		category_delete:    'Category deleted',
+		// Auth
+		user_login:             'User logged in',
+		user_logout:            'User logged out',
+		// Files
+		file_create:            'File uploaded',
+		file_edit:              'File edited',
+		file_delete:            'File deleted',
+		file_restore:           'File restored',
+		file_permanent_delete:  'File permanently deleted',
+		file_replace:           'File replaced',
+		// Tags
+		tag_create:             'Tag created',
+		tag_edit:               'Tag edited',
+		tag_delete:             'Tag deleted',
+		// Categories
+		category_create:        'Category created',
+		category_edit:          'Category edited',
+		category_delete:        'Category deleted',
+		// Pools
+		pool_create:            'Pool created',
+		pool_edit:              'Pool edited',
+		pool_delete:            'Pool deleted',
+		// Relations
+		file_tag_add:           'Tag added to file',
+		file_tag_remove:        'Tag removed from file',
+		file_pool_add:          'File added to pool',
+		file_pool_remove:       'File removed from pool',
+		// ACL
+		acl_change:             'ACL changed',
+		// Admin
+		user_create:            'User created',
+		user_delete:            'User deleted',
+		user_block:             'User blocked',
+		user_unblock:           'User unblocked',
+		user_role_change:       'User role changed',
+		// Sessions
+		session_terminate:      'Session terminated',
 	};
 
 	// ---- Filters ----
@@ -32,11 +55,12 @@
 	// ---- Data ----
 	let entries = $state<AuditEntry[]>([]);
 	let total = $state(0);
-	let offset = $state(0);
+	let page = $state(0);   // 0-based
 	let loading = $state(false);
 	let error = $state('');
-	let hasMore = $state(true);
 	let initialLoaded = $state(false);
+
+	let totalPages = $derived(Math.max(1, Math.ceil(total / LIMIT)));
 
 	// ---- Users for filter dropdown ----
 	let allUsers = $state<User[]>([]);
@@ -44,7 +68,7 @@
 		api.get<UserOffsetPage>('/users?limit=200').then((r) => { allUsers = r.items ?? []; }).catch(() => {});
 	});
 
-	// All distinct action types seen across entries (populated from data)
+	// Unknown action types not in ACTION_LABELS (server may add new ones)
 	let knownActions = $derived([...new Set(entries.map((e) => e.action).filter(Boolean))].sort() as string[]);
 
 	// ---- Reset on filter change ----
@@ -54,9 +78,7 @@
 	$effect(() => {
 		if (filterKey !== prevFilterKey) {
 			prevFilterKey = filterKey;
-			entries = [];
-			offset = 0;
-			hasMore = true;
+			page = 0;
 			initialLoaded = false;
 			error = '';
 		}
@@ -67,30 +89,33 @@
 	});
 
 	async function load() {
-		if (loading || !hasMore) return;
+		if (loading) return;
 		loading = true;
 		error = '';
 		try {
-			const params = new URLSearchParams({ limit: String(LIMIT), offset: String(offset) });
-			if (filterUserId)     params.set('user_id',     filterUserId);
-			if (filterAction)     params.set('action',      filterAction);
-			if (filterObjectType) params.set('object_type', filterObjectType);
-			if (filterObjectId.trim()) params.set('object_id', filterObjectId.trim());
-			if (filterFrom)       params.set('from', new Date(filterFrom).toISOString());
-			if (filterTo)         params.set('to',   new Date(filterTo).toISOString());
+			const params = new URLSearchParams({ limit: String(LIMIT), offset: String(page * LIMIT) });
+			if (filterUserId)          params.set('user_id',     filterUserId);
+			if (filterAction)          params.set('action',      filterAction);
+			if (filterObjectType)      params.set('object_type', filterObjectType);
+			if (filterObjectId.trim()) params.set('object_id',   filterObjectId.trim());
+			if (filterFrom)            params.set('from', new Date(filterFrom).toISOString());
+			if (filterTo)              params.set('to',   new Date(filterTo).toISOString());
 
 			const res = await api.get<AuditOffsetPage>(`/audit?${params}`);
-			const items = res.items ?? [];
-			entries = offset === 0 ? items : [...entries, ...items];
+			entries = res.items ?? [];
 			total = res.total ?? entries.length;
-			offset = entries.length;
-			hasMore = entries.length < total;
 		} catch (e) {
 			error = e instanceof ApiError ? e.message : 'Failed to load audit log';
 		} finally {
 			loading = false;
 			initialLoaded = true;
 		}
+	}
+
+	async function goToPage(p: number) {
+		if (p < 0 || p >= totalPages || p === page) return;
+		page = p;
+		initialLoaded = false;
 	}
 
 	function formatTs(iso: string | undefined | null): string {
@@ -185,6 +210,7 @@
 	{#if error}
 		<p class="msg error" role="alert">{error}</p>
 	{:else}
+		<div class="content-area">
 		<div class="table-wrap">
 			<table class="table">
 				<thead>
@@ -228,9 +254,18 @@
 			</table>
 		</div>
 
-		{#if hasMore && !loading}
-			<button class="load-more-btn" onclick={load}>Load more</button>
+		{#if totalPages > 1}
+			<div class="pagination">
+				<button class="page-btn" onclick={() => goToPage(page - 1)} disabled={page === 0 || loading}>
+					← Prev
+				</button>
+				<span class="page-info">Page {page + 1} of {totalPages}</span>
+				<button class="page-btn" onclick={() => goToPage(page + 1)} disabled={page >= totalPages - 1 || loading}>
+					Next →
+				</button>
+			</div>
 		{/if}
+		</div>
 	{/if}
 </div>
 
@@ -316,8 +351,17 @@
 	}
 
 	/* ---- Table ---- */
+	.content-area {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
 	.table-wrap {
 		flex: 1;
+		min-height: 0;
 		overflow-y: auto;
 		border-radius: 10px;
 		border: 1px solid color-mix(in srgb, var(--color-accent) 15%, transparent);
@@ -424,22 +468,41 @@
 
 	@keyframes spin { to { transform: rotate(360deg); } }
 
-	.load-more-btn {
-		align-self: center;
+	.pagination {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		flex-shrink: 0;
+	}
+
+	.page-btn {
 		height: 32px;
-		padding: 0 20px;
+		padding: 0 14px;
 		border-radius: 7px;
 		border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
 		background: none;
 		color: var(--color-text-muted);
-		font-size: 0.85rem;
+		font-size: 0.82rem;
 		font-family: inherit;
 		cursor: pointer;
 	}
 
-	.load-more-btn:hover {
+	.page-btn:hover:not(:disabled) {
 		border-color: var(--color-accent);
 		color: var(--color-accent);
+	}
+
+	.page-btn:disabled {
+		opacity: 0.35;
+		cursor: default;
+	}
+
+	.page-info {
+		font-size: 0.82rem;
+		color: var(--color-text-muted);
+		min-width: 100px;
+		text-align: center;
 	}
 
 	.msg.error {

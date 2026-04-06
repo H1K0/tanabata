@@ -34,11 +34,12 @@
 	];
 
 	const isLogin = $derived($page.url.pathname === '/login');
+	const isAdmin = $derived($page.url.pathname.startsWith('/admin'));
 </script>
 
 {@render children()}
 
-{#if !isLogin}
+{#if !isLogin && !isAdmin}
 	<footer>
 		{#each navItems as item}
 			{@const active = $page.url.pathname.startsWith(item.match)}

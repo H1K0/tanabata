@@ -172,7 +172,7 @@
 
 {#if confirmDeleteUser}
 	<ConfirmDialog
-		message="Delete user "{confirmDeleteUser.name}"? This cannot be undone."
+		message="Delete user &ldquo;{confirmDeleteUser.name}&rdquo;? This cannot be undone."
 		confirmLabel="Delete"
 		danger
 		onConfirm={() => deleteUser(confirmDeleteUser!)}
