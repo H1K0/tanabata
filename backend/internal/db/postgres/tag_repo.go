@@ -574,18 +574,45 @@ JOIN data.tags t ON t.id = ins.then_tag_id`
 	return &result, nil
 }
 
-func (r *TagRuleRepo) SetActive(ctx context.Context, whenTagID, thenTagID uuid.UUID, active bool) error {
-	const query = `
+func (r *TagRuleRepo) SetActive(ctx context.Context, whenTagID, thenTagID uuid.UUID, active, applyToExisting bool) error {
+	const updateQuery = `
 UPDATE data.tag_rules SET is_active = $3
 WHERE when_tag_id = $1 AND then_tag_id = $2`
 
 	q := connOrTx(ctx, r.pool)
-	ct, err := q.Exec(ctx, query, whenTagID, thenTagID, active)
+	ct, err := q.Exec(ctx, updateQuery, whenTagID, thenTagID, active)
 	if err != nil {
 		return fmt.Errorf("TagRuleRepo.SetActive: %w", err)
 	}
 	if ct.RowsAffected() == 0 {
 		return domain.ErrNotFound
+	}
+
+	if !active || !applyToExisting {
+		return nil
+	}
+
+	// Retroactively apply the full transitive expansion of thenTagID to all
+	// files that already carry whenTagID. The recursive CTE walks active rules
+	// starting from thenTagID (mirrors the Go expandTagSet BFS).
+	const retroQuery = `
+WITH RECURSIVE expansion(tag_id) AS (
+    SELECT $2::uuid
+    UNION
+    SELECT r.then_tag_id
+    FROM data.tag_rules r
+    JOIN expansion e ON r.when_tag_id = e.tag_id
+    WHERE r.is_active = true
+)
+INSERT INTO data.file_tag (file_id, tag_id)
+SELECT ft.file_id, e.tag_id
+FROM data.file_tag ft
+CROSS JOIN expansion e
+WHERE ft.tag_id = $1
+ON CONFLICT DO NOTHING`
+
+	if _, err := q.Exec(ctx, retroQuery, whenTagID, thenTagID); err != nil {
+		return fmt.Errorf("TagRuleRepo.SetActive retroactive apply: %w", err)
 	}
 	return nil
 }

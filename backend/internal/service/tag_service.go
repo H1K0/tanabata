@@ -192,8 +192,10 @@ func (s *TagService) CreateRule(ctx context.Context, whenTagID, thenTagID uuid.U
 }
 
 // SetRuleActive toggles a rule's is_active flag and returns the updated rule.
-func (s *TagService) SetRuleActive(ctx context.Context, whenTagID, thenTagID uuid.UUID, active bool) (*domain.TagRule, error) {
-	if err := s.rules.SetActive(ctx, whenTagID, thenTagID, active); err != nil {
+// When active and applyToExisting are both true, the full transitive expansion
+// of thenTagID is retroactively applied to files already carrying whenTagID.
+func (s *TagService) SetRuleActive(ctx context.Context, whenTagID, thenTagID uuid.UUID, active, applyToExisting bool) (*domain.TagRule, error) {
+	if err := s.rules.SetActive(ctx, whenTagID, thenTagID, active, applyToExisting); err != nil {
 		return nil, err
 	}
 	rules, err := s.rules.ListByTag(ctx, whenTagID)

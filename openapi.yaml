@@ -846,6 +846,10 @@ paths:
               properties:
                 is_active:
                   type: boolean
+                apply_to_existing:
+                  type: boolean
+                  default: false
+                  description: When activating, apply rule retroactively to files already tagged
       responses:
         '200':
           description: Rule updated

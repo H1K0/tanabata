@@ -552,6 +552,90 @@ func TestPoolReorder(t *testing.T) {
 	assert.Equal(t, id1, items2[1].(map[string]any)["id"])
 }
 
+// TestTagRuleActivateApplyToExisting verifies that activating a rule with
+// apply_to_existing=true retroactively tags existing files, including
+// transitive rules (A→B active+apply, B→C already active → file gets A,B,C).
+func TestTagRuleActivateApplyToExisting(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	tok := h.login("admin", "admin")
+
+	// Create three tags: A, B, C.
+	mkTag := func(name string) string {
+		resp := h.doJSON("POST", "/tags", map[string]any{"name": name}, tok)
+		require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+		var obj map[string]any
+		resp.decode(t, &obj)
+		return obj["id"].(string)
+	}
+	tagA := mkTag("animal")
+	tagB := mkTag("living-thing")
+	tagC := mkTag("organism")
+
+	// Rule A→B: created inactive so it does NOT fire on assign.
+	resp := h.doJSON("POST", "/tags/"+tagA+"/rules", map[string]any{
+		"then_tag_id": tagB,
+		"is_active":   false,
+	}, tok)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+
+	// Rule B→C: active, so it fires transitively when B is applied.
+	resp = h.doJSON("POST", "/tags/"+tagB+"/rules", map[string]any{
+		"then_tag_id": tagC,
+		"is_active":   true,
+	}, tok)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+
+	// Upload a file and assign only tag A. A→B is inactive so only A is set.
+	file := h.uploadJPEG(tok, "cat.jpg")
+	fileID := file["id"].(string)
+	resp = h.doJSON("PUT", "/files/"+fileID+"/tags", map[string]any{
+		"tag_ids": []string{tagA},
+	}, tok)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	tagNames := func() []string {
+		r := h.doJSON("GET", "/files/"+fileID+"/tags", nil, tok)
+		require.Equal(t, http.StatusOK, r.StatusCode)
+		var items []any
+		r.decode(t, &items)
+		names := make([]string, 0, len(items))
+		for _, it := range items {
+			names = append(names, it.(map[string]any)["name"].(string))
+		}
+		return names
+	}
+
+	// Before activation: file should only have tag A.
+	assert.ElementsMatch(t, []string{"animal"}, tagNames())
+
+	// Activate A→B WITHOUT apply_to_existing — existing file must not change.
+	resp = h.doJSON("PATCH", "/tags/"+tagA+"/rules/"+tagB, map[string]any{
+		"is_active":        true,
+		"apply_to_existing": false,
+	}, tok)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	assert.ElementsMatch(t, []string{"animal"}, tagNames(), "file should be unchanged when apply_to_existing=false")
+
+	// Deactivate again so we can test the positive case cleanly.
+	resp = h.doJSON("PATCH", "/tags/"+tagA+"/rules/"+tagB, map[string]any{
+		"is_active": false,
+	}, tok)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	// Activate A→B WITH apply_to_existing=true.
+	// Expectation: file gets B directly, and C transitively via the active B→C rule.
+	resp = h.doJSON("PATCH", "/tags/"+tagA+"/rules/"+tagB, map[string]any{
+		"is_active":        true,
+		"apply_to_existing": true,
+	}, tok)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	assert.ElementsMatch(t, []string{"animal", "living-thing", "organism"}, tagNames())
+}
+
 // TestTagAutoRule verifies that adding a tag automatically applies then_tags.
 func TestTagAutoRule(t *testing.T) {
 	if testing.Short() {

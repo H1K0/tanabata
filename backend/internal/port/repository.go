@@ -83,8 +83,10 @@ type TagRuleRepo interface {
 	// ListByTag returns all rules where WhenTagID == tagID.
 	ListByTag(ctx context.Context, tagID uuid.UUID) ([]domain.TagRule, error)
 	Create(ctx context.Context, r domain.TagRule) (*domain.TagRule, error)
-	// SetActive toggles a rule's is_active flag.
-	SetActive(ctx context.Context, whenTagID, thenTagID uuid.UUID, active bool) error
+	// SetActive toggles a rule's is_active flag. When active and applyToExisting
+	// are both true, the full transitive expansion of thenTagID is retroactively
+	// applied to all files that already carry whenTagID.
+	SetActive(ctx context.Context, whenTagID, thenTagID uuid.UUID, active, applyToExisting bool) error
 	Delete(ctx context.Context, whenTagID, thenTagID uuid.UUID) error
 }
 

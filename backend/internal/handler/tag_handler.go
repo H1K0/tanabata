@@ -371,14 +371,20 @@ func (h *TagHandler) PatchRule(c *gin.Context) {
 	}
 
 	var body struct {
-		IsActive *bool `json:"is_active"`
+		IsActive        *bool `json:"is_active"`
+		ApplyToExisting *bool `json:"apply_to_existing"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || body.IsActive == nil {
 		respondError(c, domain.ErrValidation)
 		return
 	}
 
-	rule, err := h.tagSvc.SetRuleActive(c.Request.Context(), whenTagID, thenTagID, *body.IsActive)
+	applyToExisting := false
+	if body.ApplyToExisting != nil {
+		applyToExisting = *body.ApplyToExisting
+	}
+
+	rule, err := h.tagSvc.SetRuleActive(c.Request.Context(), whenTagID, thenTagID, *body.IsActive, applyToExisting)
 	if err != nil {
 		respondError(c, err)
 		return
