@@ -15,6 +15,7 @@
 	import BulkTagEditor from '$lib/components/file/BulkTagEditor.svelte';
 	import { parseDslFilter } from '$lib/utils/dsl';
 	import type { File, FileCursorPage, Pool, PoolOffsetPage } from '$lib/api/types';
+	import { appSettings } from '$lib/stores/appSettings';
 
 	let uploader = $state<{ open: () => void } | undefined>();
 	let confirmDeleteFiles = $state(false);
@@ -65,7 +66,7 @@
 		files = [file, ...files];
 	}
 
-	const LIMIT = 50;
+	let LIMIT = $derived($appSettings.fileLoadLimit);
 
 	const FILE_SORT_OPTIONS = [
 		{ value: 'created', label: 'Created' },

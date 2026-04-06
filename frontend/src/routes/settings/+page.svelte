@@ -2,6 +2,7 @@
 	import { api, ApiError } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore, toggleTheme } from '$lib/stores/theme';
+	import { appSettings } from '$lib/stores/appSettings';
 	import type { User, Session, SessionList } from '$lib/api/types';
 
 	// ---- Profile ----
@@ -242,6 +243,47 @@
 		</div>
 	</section>
 
+	<!-- ====== App settings ====== -->
+	<section class="card">
+		<h2 class="section-title">Behaviour</h2>
+
+		<div class="field">
+			<label class="label" for="file-limit">Files per page</label>
+			<p class="hint-text">How many files to load in one batch when scrolling the file list.</p>
+			<input
+				id="file-limit"
+				class="input input-narrow"
+				type="number"
+				min="10"
+				max="500"
+				step="1"
+				value={$appSettings.fileLoadLimit}
+				oninput={(e) => {
+					const v = parseInt((e.currentTarget as HTMLInputElement).value, 10);
+					if (!isNaN(v) && v >= 10 && v <= 500)
+						appSettings.update((s) => ({ ...s, fileLoadLimit: v }));
+				}}
+			/>
+		</div>
+
+		<div class="toggle-row">
+			<div>
+				<span class="toggle-label">Apply activated tag rules to existing files</span>
+				<p class="hint-text">When a tag rule is activated, automatically add the implied tag to all files that already have the source tag.</p>
+			</div>
+			<button
+				class="toggle"
+				class:on={$appSettings.tagRuleApplyToExisting}
+				role="switch"
+				aria-checked={$appSettings.tagRuleApplyToExisting}
+				aria-label="Apply activated tag rules to existing files"
+				onclick={() => appSettings.update((s) => ({ ...s, tagRuleApplyToExisting: !s.tagRuleApplyToExisting }))}
+			>
+				<span class="thumb"></span>
+			</button>
+		</div>
+	</section>
+
 	<!-- ====== Sessions ====== -->
 	<section class="card">
 		<h2 class="section-title">
@@ -432,6 +474,43 @@
 	.theme-toggle:hover {
 		border-color: var(--color-accent);
 		color: var(--color-accent);
+	}
+
+	.input-narrow {
+		max-width: 100px;
+	}
+
+	/* On/off toggle switch */
+	.toggle {
+		flex-shrink: 0;
+		position: relative;
+		width: 42px;
+		height: 24px;
+		border-radius: 12px;
+		border: none;
+		background-color: color-mix(in srgb, var(--color-accent) 25%, var(--color-bg-primary));
+		cursor: pointer;
+		padding: 0;
+		transition: background-color 0.15s;
+	}
+
+	.toggle.on {
+		background-color: var(--color-accent);
+	}
+
+	.toggle .thumb {
+		position: absolute;
+		top: 3px;
+		left: 3px;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background-color: #fff;
+		transition: transform 0.15s;
+	}
+
+	.toggle.on .thumb {
+		transform: translateX(18px);
 	}
 
 	/* ---- PWA ---- */

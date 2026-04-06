@@ -2,6 +2,7 @@
 	import { api, ApiError } from '$lib/api/client';
 	import type { Tag, TagOffsetPage, TagRule } from '$lib/api/types';
 	import TagBadge from './TagBadge.svelte';
+	import { appSettings } from '$lib/stores/appSettings';
 
 	interface Props {
 		tagId: string;
@@ -62,10 +63,11 @@
 		busy = true;
 		error = '';
 		const thenTagId = rule.then_tag_id!;
+		const activating = !rule.is_active;
 		try {
-			const updated = await api.patch<TagRule>(`/tags/${tagId}/rules/${thenTagId}`, {
-				is_active: !rule.is_active,
-			});
+			const body: Record<string, unknown> = { is_active: activating };
+			if (activating) body.apply_to_existing = $appSettings.tagRuleApplyToExisting;
+			const updated = await api.patch<TagRule>(`/tags/${tagId}/rules/${thenTagId}`, body);
 			onRulesChange(rules.map((r) => r.then_tag_id === thenTagId ? updated : r));
 		} catch (e) {
 			error = e instanceof ApiError ? e.message : 'Failed to update rule';
