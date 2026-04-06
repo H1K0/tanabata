@@ -3,6 +3,7 @@
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore, toggleTheme } from '$lib/stores/theme';
 	import { appSettings } from '$lib/stores/appSettings';
+	import { resetPwa as doPwaReset } from '$lib/utils/pwa';
 	import type { User, Session, SessionList } from '$lib/api/types';
 
 	// ---- Profile ----
@@ -91,14 +92,7 @@
 		pwaResetting = true;
 		pwaSuccess = false;
 		try {
-			if ('serviceWorker' in navigator) {
-				const registrations = await navigator.serviceWorker.getRegistrations();
-				await Promise.all(registrations.map((r) => r.unregister()));
-			}
-			if ('caches' in window) {
-				const keys = await caches.keys();
-				await Promise.all(keys.map((k) => caches.delete(k)));
-			}
+			await doPwaReset();
 			pwaSuccess = true;
 			setTimeout(() => (pwaSuccess = false), 3000);
 		} finally {
