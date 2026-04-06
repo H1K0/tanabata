@@ -13,9 +13,12 @@
 	import { selectionStore, selectionActive } from '$lib/stores/selection';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import BulkTagEditor from '$lib/components/file/BulkTagEditor.svelte';
+	import { tick } from 'svelte';
 	import { parseDslFilter } from '$lib/utils/dsl';
 	import type { File, FileCursorPage, Pool, PoolOffsetPage } from '$lib/api/types';
 	import { appSettings } from '$lib/stores/appSettings';
+
+	let scrollContainer = $state<HTMLElement | undefined>();
 
 	let uploader = $state<{ open: () => void } | undefined>();
 	let confirmDeleteFiles = $state(false);
@@ -120,6 +123,12 @@
 			hasMore = false;
 		} finally {
 			loading = false;
+		}
+		// If the loaded content doesn't fill the viewport yet (no scrollbar),
+		// keep loading until it does or there's nothing left.
+		await tick();
+		if (hasMore && scrollContainer && scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+			void loadMore();
 		}
 	}
 
@@ -244,7 +253,7 @@
 	{/if}
 
 	<FileUpload bind:this={uploader} onUploaded={handleUploaded}>
-		<main>
+		<main bind:this={scrollContainer}>
 			{#if error}
 				<p class="error" role="alert">{error}</p>
 			{/if}
