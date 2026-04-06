@@ -114,6 +114,31 @@ function mockThumbSvg(id: string): string {
 </svg>`;
 }
 
+// Trash — pre-seeded with a few deleted files
+const MOCK_TRASH: MockFile[] = Array.from({ length: 6 }, (_, i) => {
+	const mimes = ['image/jpeg', 'image/png', 'image/webp'];
+	const exts  = ['jpg',        'png',       'webp'      ];
+	const mi = i % mimes.length;
+	const id = `00000000-0000-7000-8000-trash${String(i + 1).padStart(7, '0')}`;
+	return {
+		id,
+		original_name: `deleted-${String(i + 1).padStart(3, '0')}.${exts[mi]}`,
+		mime_type: mimes[mi],
+		mime_extension: exts[mi],
+		content_datetime: new Date(Date.now() - (i + 80) * 3_600_000).toISOString(),
+		notes: null,
+		metadata: null,
+		exif: {},
+		phash: null,
+		creator_id: 1,
+		creator_name: 'admin',
+		is_public: false,
+		is_deleted: true,
+		created_at: new Date(Date.now() - (i + 80) * 3_600_000).toISOString(),
+		position: 0,
+	};
+});
+
 const MOCK_FILES = Array.from({ length: 75 }, (_, i) => {
 	const mimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
 	const exts  = ['jpg',        'png',       'webp',       'mp4'      ];
@@ -463,13 +488,40 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 200, { applied_tag_ids: action === 'add' ? tagIds : [] });
 				}
 
-				// POST /files/bulk/delete  — soft delete (just remove from mock array)
+				// POST /files/bulk/delete  — soft delete (move to trash)
 				if (method === 'POST' && path === '/files/bulk/delete') {
 					const body = (await readBody(req)) as { file_ids?: string[] };
 					const ids = new Set(body.file_ids ?? []);
 					for (let i = MOCK_FILES.length - 1; i >= 0; i--) {
-						if (ids.has(MOCK_FILES[i].id)) MOCK_FILES.splice(i, 1);
+						if (ids.has(MOCK_FILES[i].id)) {
+							const [f] = MOCK_FILES.splice(i, 1);
+							MOCK_TRASH.unshift({ ...f, is_deleted: true });
+						}
 					}
+					return noContent(res);
+				}
+
+				// POST /files/{id}/restore
+				const fileRestoreMatch = path.match(/^\/files\/([^/]+)\/restore$/);
+				if (method === 'POST' && fileRestoreMatch) {
+					const id = fileRestoreMatch[1];
+					const idx = MOCK_TRASH.findIndex((f) => f.id === id);
+					if (idx < 0) return json(res, 404, { code: 'not_found', message: 'File not in trash' });
+					const [f] = MOCK_TRASH.splice(idx, 1);
+					const restored = { ...f, is_deleted: false };
+					MOCK_FILES.unshift(restored);
+					fileOverrides.delete(id);
+					return json(res, 200, restored);
+				}
+
+				// DELETE /files/{id}/permanent
+				const filePermMatch = path.match(/^\/files\/([^/]+)\/permanent$/);
+				if (method === 'DELETE' && filePermMatch) {
+					const id = filePermMatch[1];
+					const idx = MOCK_TRASH.findIndex((f) => f.id === id);
+					if (idx < 0) return json(res, 404, { code: 'not_found', message: 'File not in trash' });
+					MOCK_TRASH.splice(idx, 1);
+					fileOverrides.delete(id);
 					return noContent(res);
 				}
 
@@ -505,9 +557,20 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 201, newFile);
 				}
 
-				// GET /files (cursor pagination + anchor support)
+				// GET /files (cursor pagination + anchor support + trash)
 				if (method === 'GET' && path === '/files') {
 					const qs = new URLSearchParams(url.split('?')[1] ?? '');
+					const trashMode = qs.get('trash') === 'true';
+					if (trashMode) {
+						const cursor = qs.get('cursor');
+						const limit = Math.min(Number(qs.get('limit') ?? 50), 200);
+						const offset = cursor ? Number(Buffer.from(cursor, 'base64').toString()) : 0;
+						const slice = MOCK_TRASH.slice(offset, offset + limit);
+						const nextOffset = offset + slice.length;
+						const next_cursor = nextOffset < MOCK_TRASH.length
+							? Buffer.from(String(nextOffset)).toString('base64') : null;
+						return json(res, 200, { items: slice, next_cursor, prev_cursor: null });
+					}
 					const anchor = qs.get('anchor');
 					const cursor = qs.get('cursor');
 					const limit = Math.min(Number(qs.get('limit') ?? 50), 200);

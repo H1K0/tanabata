@@ -242,6 +242,7 @@
 		onOrderToggle={() => fileSorting.toggleOrder()}
 		onFilterToggle={() => (filterOpen = !filterOpen)}
 		onUpload={() => uploader?.open()}
+		onTrash={() => goto('/files/trash')}
 	/>
 
 	{#if filterOpen}
