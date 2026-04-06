@@ -366,6 +366,40 @@ export function mockApiPlugin(): Plugin {
 					return json(res, 200, getMockFile(id));
 				}
 
+				// POST /files/bulk/common-tags
+				if (method === 'POST' && path === '/files/bulk/common-tags') {
+					const body = (await readBody(req)) as { file_ids?: string[] };
+					const ids = body.file_ids ?? [];
+					if (ids.length === 0) return json(res, 200, { common_tag_ids: [], partial_tag_ids: [] });
+					const sets = ids.map((fid) => fileTags.get(fid) ?? new Set<string>());
+					const allTagIds = new Set<string>();
+					sets.forEach((s) => s.forEach((t) => allTagIds.add(t)));
+					const common: string[] = [];
+					const partial: string[] = [];
+					allTagIds.forEach((tid) => {
+						if (sets.every((s) => s.has(tid))) common.push(tid);
+						else partial.push(tid);
+					});
+					return json(res, 200, { common_tag_ids: common, partial_tag_ids: partial });
+				}
+
+				// POST /files/bulk/tags
+				if (method === 'POST' && path === '/files/bulk/tags') {
+					const body = (await readBody(req)) as { file_ids?: string[]; action?: string; tag_ids?: string[] };
+					const fileIds = body.file_ids ?? [];
+					const tagIds = body.tag_ids ?? [];
+					const action = body.action ?? 'add';
+					for (const fid of fileIds) {
+						if (!fileTags.has(fid)) fileTags.set(fid, new Set());
+						const set = fileTags.get(fid)!;
+						for (const tid of tagIds) {
+							if (action === 'add') set.add(tid);
+							else set.delete(tid);
+						}
+					}
+					return json(res, 200, { applied_tag_ids: action === 'add' ? tagIds : [] });
+				}
+
 				// POST /files/bulk/delete  — soft delete (just remove from mock array)
 				if (method === 'POST' && path === '/files/bulk/delete') {
 					const body = (await readBody(req)) as { file_ids?: string[] };

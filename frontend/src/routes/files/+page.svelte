@@ -12,11 +12,15 @@
 	import { fileSorting, type FileSortField } from '$lib/stores/sorting';
 	import { selectionStore, selectionActive } from '$lib/stores/selection';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+	import BulkTagEditor from '$lib/components/file/BulkTagEditor.svelte';
 	import { parseDslFilter } from '$lib/utils/dsl';
 	import type { File, FileCursorPage, Pool, PoolOffsetPage } from '$lib/api/types';
 
 	let uploader = $state<{ open: () => void } | undefined>();
 	let confirmDeleteFiles = $state(false);
+
+	// ---- Bulk tag editor ----
+	let tagEditorOpen = $state(false);
 
 	// ---- Add to pool picker ----
 	let poolPickerOpen = $state(false);
@@ -268,10 +272,28 @@
 
 {#if $selectionActive}
 	<SelectionBar
-		onEditTags={() => {/* TODO */}}
+		onEditTags={() => (tagEditorOpen = true)}
 		onAddToPool={openPoolPicker}
 		onDelete={() => (confirmDeleteFiles = true)}
 	/>
+{/if}
+
+{#if tagEditorOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div class="picker-backdrop" role="presentation" onclick={() => (tagEditorOpen = false)}></div>
+	<div class="picker-sheet tag-sheet" role="dialog" aria-label="Edit tags">
+		<div class="picker-header">
+			<span class="picker-title">Edit tags — {$selectionStore.ids.size} file{$selectionStore.ids.size !== 1 ? 's' : ''}</span>
+			<button class="picker-close" onclick={() => (tagEditorOpen = false)} aria-label="Close">
+				<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+					<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+				</svg>
+			</button>
+		</div>
+		<div class="tag-sheet-body">
+			<BulkTagEditor fileIds={[...$selectionStore.ids]} onDone={() => (tagEditorOpen = false)} />
+		</div>
+	</div>
 {/if}
 
 {#if poolPickerOpen}
@@ -376,6 +398,17 @@
 		color: var(--color-text-muted);
 		padding: 60px 20px;
 		font-size: 0.95rem;
+	}
+
+	/* ---- Tag editor sheet ---- */
+	.tag-sheet {
+		max-height: 80dvh;
+	}
+
+	.tag-sheet-body {
+		padding: 0 14px 16px;
+		overflow-y: auto;
+		flex: 1;
 	}
 
 	/* ---- Pool picker ---- */
