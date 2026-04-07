@@ -262,8 +262,8 @@
 
 		<div class="toggle-row">
 			<div>
-				<span class="toggle-label">Apply activated tag rules to existing files</span>
-				<p class="hint-text">When a tag rule is activated, automatically add the implied tag to all files that already have the source tag.</p>
+				<span class="toggle-label">Apply new tag rules to existing files</span>
+				<p class="hint-text">When a tag rule is created or activated, automatically add the implied tag to all files that already have the source tag.</p>
 			</div>
 			<button
 				class="toggle"

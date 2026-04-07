@@ -47,7 +47,7 @@
 			const rule = await api.post<TagRule>(`/tags/${tagId}/rules`, {
 				then_tag_id: thenTagId,
 				is_active: true,
-				apply_to_existing: false,
+				apply_to_existing: $appSettings.tagRuleApplyToExisting,
 			});
 			onRulesChange([...rules, rule]);
 			search = '';
