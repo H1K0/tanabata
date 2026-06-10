@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -46,8 +47,10 @@ func NewRouter(
 	// -------------------------------------------------------------------------
 	authGroup := v1.Group("/auth")
 	{
-		authGroup.POST("/login", authHandler.Login)
-		authGroup.POST("/refresh", authHandler.Refresh)
+		// Throttle credential endpoints per client IP to slow brute force.
+		authLimiter := newRateLimiter(10, time.Minute).Middleware()
+		authGroup.POST("/login", authLimiter, authHandler.Login)
+		authGroup.POST("/refresh", authLimiter, authHandler.Refresh)
 
 		protected := authGroup.Group("", auth.Handle())
 		{
