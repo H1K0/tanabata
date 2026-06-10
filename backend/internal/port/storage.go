@@ -21,6 +21,10 @@ type FileStorage interface {
 	// Delete removes the file content from storage.
 	Delete(ctx context.Context, id uuid.UUID) error
 
+	// InvalidateCache removes any cached thumbnail/preview for the file so they
+	// are regenerated from the current content on next request.
+	InvalidateCache(ctx context.Context, id uuid.UUID) error
+
 	// Thumbnail opens the pre-generated thumbnail (JPEG). Returns ErrNotFound
 	// if the thumbnail has not been generated yet.
 	Thumbnail(ctx context.Context, id uuid.UUID) (io.ReadCloser, error)

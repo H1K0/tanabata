@@ -345,6 +345,7 @@ func (s *FileService) PermanentDelete(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	_ = s.storage.Delete(ctx, id)
+	_ = s.storage.InvalidateCache(ctx, id)
 
 	objType := fileObjectType
 	_ = s.audit.Log(ctx, "file_permanent_delete", &objType, &id, nil)
@@ -383,6 +384,8 @@ func (s *FileService) Replace(ctx context.Context, id uuid.UUID, p UploadParams)
 	if _, err := s.storage.Save(ctx, id, bytes.NewReader(data)); err != nil {
 		return nil, fmt.Errorf("FileService.Replace: save to storage: %w", err)
 	}
+	// Drop stale thumbnail/preview so they regenerate from the new content.
+	_ = s.storage.InvalidateCache(ctx, id)
 
 	patch := &domain.File{
 		MIMEType:      mime.Name,

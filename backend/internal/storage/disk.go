@@ -109,6 +109,17 @@ func (s *DiskStorage) Delete(_ context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// InvalidateCache removes the cached thumbnail and preview for id, if present,
+// so they are regenerated from the current file content on the next request.
+func (s *DiskStorage) InvalidateCache(_ context.Context, id uuid.UUID) error {
+	for _, p := range []string{s.thumbCachePath(id), s.previewCachePath(id)} {
+		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("storage.InvalidateCache remove %q: %w", p, err)
+		}
+	}
+	return nil
+}
+
 // Thumbnail returns a JPEG that fits within the configured max width×height
 // (never upscaled, never cropped). Generated on first call and cached.
 // Video files are thumbnailed via ffmpeg; other non-image files get a placeholder.
