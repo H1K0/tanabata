@@ -23,6 +23,14 @@
 	let saving = $state(false);
 	let error = $state('');
 
+	// Tags are loaded lazily — the Tags section sits below a full-viewport
+	// preview, so fetching them on open just hammers the DB for data the user
+	// usually never scrolls to. We fetch only once the section comes into view.
+	let tagsVisible = $state(false);
+	let tagsLoading = $state(false);
+	let tagsLoadedFor = $state<string | null>(null);
+	let tagsLoaded = $derived(tagsLoadedFor === fileId);
+
 	// Editable fields (initialised on load)
 	let notes = $state('');
 	let contentDatetime = $state('');
@@ -48,13 +56,11 @@
 	async function loadPage(id: string) {
 		loading = true;
 		error = '';
+		// Drop the previous file's tags; they reload lazily when scrolled to.
+		fileTags = [];
 		try {
-			const [fileData, tags] = await Promise.all([
-				api.get<File>(`/files/${id}`),
-				api.get<Tag[]>(`/files/${id}/tags`),
-			]);
+			const fileData = await api.get<File>(`/files/${id}`);
 			file = fileData;
-			fileTags = tags;
 			notes = fileData.notes ?? '';
 			contentDatetime = fileData.content_datetime
 				? fileData.content_datetime.slice(0, 16) // YYYY-MM-DDTHH:mm
@@ -152,10 +158,52 @@
 		}
 	}
 
-	// ---- Tags ----
+	// ---- Tags (lazy) ----
+	// Fetch the current file's tags the first time the Tags section is visible.
+	// Re-runs when fileId changes while the section is still on-screen (e.g.
+	// keyboard paging while scrolled down).
+	$effect(() => {
+		const id = fileId;
+		if (id && tagsVisible && tagsLoadedFor !== id && !tagsLoading) {
+			void loadTags(id);
+		}
+	});
+
+	async function loadTags(id: string) {
+		tagsLoading = true;
+		try {
+			const tags = await api.get<Tag[]>(`/files/${id}/tags`);
+			if (page.params.id !== id) return; // user navigated on; ignore
+			fileTags = tags;
+			tagsLoadedFor = id;
+		} catch {
+			// non-critical — a later scroll into view retries
+		} finally {
+			tagsLoading = false;
+		}
+	}
+
+	// Svelte action: flips tagsVisible while the Tags section is in (or near) the
+	// viewport. rootMargin pre-loads just before it scrolls fully into view.
+	function tagsSentinel(node: HTMLElement) {
+		const observer = new IntersectionObserver(
+			(entries) => {
+				tagsVisible = entries[0]?.isIntersecting ?? false;
+			},
+			{ rootMargin: '200px' },
+		);
+		observer.observe(node);
+		return {
+			destroy() {
+				observer.disconnect();
+			},
+		};
+	}
+
 	async function addTag(tagId: string) {
 		const updated = await api.put<Tag[]>(`/files/${fileId}/tags/${tagId}`);
 		fileTags = updated;
+		tagsLoadedFor = fileId ?? null;
 	}
 
 	async function removeTag(tagId: string) {
@@ -307,10 +355,14 @@
 				{saving ? 'Saving…' : 'Save changes'}
 			</button>
 
-			<!-- Tags -->
-			<section class="section">
+			<!-- Tags (loaded lazily on scroll) -->
+			<section class="section" use:tagsSentinel>
 				<div class="field-label">Tags</div>
-				<TagPicker {fileTags} onAdd={addTag} onRemove={removeTag} />
+				{#if tagsLoaded}
+					<TagPicker {fileTags} onAdd={addTag} onRemove={removeTag} />
+				{:else}
+					<p class="tags-loading">Loading tags…</p>
+				{/if}
 			</section>
 
 			<!-- EXIF -->
@@ -583,6 +635,14 @@
 	.save-btn:disabled {
 		opacity: 0.4;
 		cursor: default;
+	}
+
+	/* ---- Tags ---- */
+	.tags-loading {
+		margin: 0;
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		opacity: 0.7;
 	}
 
 	/* ---- EXIF ---- */
