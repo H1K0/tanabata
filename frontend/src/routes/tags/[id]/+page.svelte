@@ -172,7 +172,7 @@
 			<!-- Tag rules -->
 			<section class="section">
 				<h2 class="section-title">Implied tags</h2>
-				<TagRuleEditor {tagId} {rules} onRulesChange={(r) => (rules = r)} />
+				<TagRuleEditor tagId={tagId ?? ''} {rules} onRulesChange={(r) => (rules = r)} />
 			</section>
 
 		{/if}

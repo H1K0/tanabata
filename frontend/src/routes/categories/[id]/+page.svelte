@@ -48,7 +48,8 @@
 		void loadTags(id, 0);
 	});
 
-	async function loadTags(id: string, startOffset: number) {
+	async function loadTags(id: string | undefined, startOffset: number) {
+		if (!id) return;
 		tagsLoading = true;
 		try {
 			const params = new URLSearchParams({

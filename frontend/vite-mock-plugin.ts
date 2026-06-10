@@ -114,6 +114,24 @@ function mockThumbSvg(id: string): string {
 </svg>`;
 }
 
+type MockFile = {
+	id: string;
+	original_name: string;
+	mime_type: string;
+	mime_extension: string;
+	content_datetime: string;
+	notes: string | null;
+	metadata: unknown;
+	exif: Record<string, unknown>;
+	phash: number | null;
+	creator_id: number;
+	creator_name: string;
+	is_public: boolean;
+	is_deleted: boolean;
+	created_at: string;
+	position?: number;
+};
+
 // Trash — pre-seeded with a few deleted files
 const MOCK_TRASH: MockFile[] = Array.from({ length: 6 }, (_, i) => {
 	const mimes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -139,7 +157,7 @@ const MOCK_TRASH: MockFile[] = Array.from({ length: 6 }, (_, i) => {
 	};
 });
 
-const MOCK_FILES = Array.from({ length: 75 }, (_, i) => {
+const MOCK_FILES: MockFile[] = Array.from({ length: 75 }, (_, i) => {
 	const mimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
 	const exts  = ['jpg',        'png',       'webp',       'mp4'      ];
 	const mi = i % mimes.length;
