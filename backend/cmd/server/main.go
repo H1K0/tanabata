@@ -94,6 +94,12 @@ func main() {
 	)
 	userSvc := service.NewUserService(userRepo, auditSvc)
 
+	// Bootstrap the initial administrator (idempotent).
+	if err := userSvc.EnsureAdmin(context.Background(), cfg.AdminUsername, cfg.AdminPassword); err != nil {
+		slog.Error("failed to bootstrap admin user", "err", err)
+		os.Exit(1)
+	}
+
 	// Handlers
 	authMiddleware  := handler.NewAuthMiddleware(authSvc)
 	authHandler     := handler.NewAuthHandler(authSvc)

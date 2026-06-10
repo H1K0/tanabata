@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
@@ -19,6 +20,36 @@ type UserService struct {
 // NewUserService creates a UserService.
 func NewUserService(users port.UserRepo, audit *AuditService) *UserService {
 	return &UserService{users: users, audit: audit}
+}
+
+// EnsureAdmin creates the initial administrator account if it does not already
+// exist. It is idempotent and never overwrites an existing user's password, so
+// an operator who has changed the admin password keeps it across restarts.
+func (s *UserService) EnsureAdmin(ctx context.Context, username, password string) error {
+	if username == "" || password == "" {
+		return fmt.Errorf("EnsureAdmin: username and password must be set")
+	}
+
+	if _, err := s.users.GetByName(ctx, username); err == nil {
+		return nil // already exists
+	} else if !errors.Is(err, domain.ErrNotFound) {
+		return fmt.Errorf("EnsureAdmin: lookup: %w", err)
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("EnsureAdmin: hash: %w", err)
+	}
+	_, err = s.users.Create(ctx, &domain.User{
+		Name:      username,
+		Password:  string(hash),
+		IsAdmin:   true,
+		CanCreate: true,
+	})
+	if err != nil {
+		return fmt.Errorf("EnsureAdmin: create: %w", err)
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------

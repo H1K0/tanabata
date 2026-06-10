@@ -133,6 +133,10 @@ func setupSuite(t *testing.T) *harness {
 	fileSvc     := service.NewFileService(fileRepo, mimeRepo, diskStorage, aclSvc, auditSvc, tagSvc, transactor, filesDir)
 	userSvc     := service.NewUserService(userRepo, auditSvc)
 
+	// Bootstrap the admin account the suite logs in with (replaces the old
+	// hardcoded seed credentials).
+	require.NoError(t, userSvc.EnsureAdmin(ctx, "admin", "admin"))
+
 	// --- Handlers ------------------------------------------------------------
 	authMiddleware  := handler.NewAuthMiddleware(authSvc)
 	authHandler     := handler.NewAuthHandler(authSvc)

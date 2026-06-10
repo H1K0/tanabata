@@ -38,12 +38,12 @@ INSERT INTO activity.action_types (name) VALUES
     -- Sessions
     ('session_terminate');
 
-INSERT INTO core.users (name, password, is_admin, can_create) VALUES
-    ('admin', '$2a$10$zk.VTFjRRxbkTE7cKfc7KOWeZfByk1VEkbkgZMJggI1fFf.yDEHZy', true, true);
+-- The initial administrator is created at application startup from the
+-- ADMIN_USERNAME / ADMIN_PASSWORD environment variables (see UserService.
+-- EnsureAdmin), so no default credentials are seeded here.
 
 -- +goose Down
 
-DELETE FROM core.users WHERE name = 'admin';
 DELETE FROM activity.action_types;
 DELETE FROM core.object_types;
 DELETE FROM core.mime_types;

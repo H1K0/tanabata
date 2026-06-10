@@ -18,6 +18,10 @@ type Config struct {
 	JWTAccessTTL  time.Duration
 	JWTRefreshTTL time.Duration
 
+	// Initial admin bootstrap (applied on startup if the user does not exist)
+	AdminUsername string
+	AdminPassword string
+
 	// Database
 	DatabaseURL string
 
@@ -86,6 +90,9 @@ func Load() (*Config, error) {
 		JWTSecret:     requireStr("JWT_SECRET"),
 		JWTAccessTTL:  parseDuration("JWT_ACCESS_TTL", "15m"),
 		JWTRefreshTTL: parseDuration("JWT_REFRESH_TTL", "720h"),
+
+		AdminUsername: defaultStr("ADMIN_USERNAME", "admin"),
+		AdminPassword: requireStr("ADMIN_PASSWORD"),
 
 		DatabaseURL: requireStr("DATABASE_URL"),
 
