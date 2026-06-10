@@ -157,7 +157,7 @@ const MOCK_TRASH: MockFile[] = Array.from({ length: 6 }, (_, i) => {
 	};
 });
 
-const MOCK_FILES: MockFile[] = Array.from({ length: 75 }, (_, i) => {
+const MOCK_FILES: MockFile[] = Array.from({ length: 500 }, (_, i) => {
 	const mimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
 	const exts  = ['jpg',        'png',       'webp',       'mp4'      ];
 	const mi = i % mimes.length;
