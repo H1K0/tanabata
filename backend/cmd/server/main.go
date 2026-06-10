@@ -92,7 +92,7 @@ func main() {
 		transactor,
 		cfg.ImportPath,
 	)
-	userSvc := service.NewUserService(userRepo, auditSvc)
+	userSvc := service.NewUserService(userRepo, sessionRepo, auditSvc)
 
 	// Bootstrap the initial administrator (idempotent).
 	if err := userSvc.EnsureAdmin(context.Background(), cfg.AdminUsername, cfg.AdminPassword); err != nil {

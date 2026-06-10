@@ -214,14 +214,20 @@ func (s *AuthService) TerminateSession(ctx context.Context, callerID int16, isAd
 	return nil
 }
 
-// ParseAccessToken parses and validates an access token, returning its claims.
-// A refresh token presented here is rejected (wrong token type).
-func (s *AuthService) ParseAccessToken(tokenStr string) (*Claims, error) {
+// ValidateAccessToken parses and validates an access token, returning its
+// claims. A refresh token is rejected (wrong type), and the token's session
+// must still be active — so logout, session termination, an admin block, or a
+// refresh rotation revoke any outstanding access tokens immediately rather than
+// only at expiry.
+func (s *AuthService) ValidateAccessToken(ctx context.Context, tokenStr string) (*Claims, error) {
 	claims, err := s.parseToken(tokenStr)
 	if err != nil {
 		return nil, domain.ErrUnauthorized
 	}
 	if claims.TokenType != tokenTypeAccess {
+		return nil, domain.ErrUnauthorized
+	}
+	if _, err := s.sessions.GetByID(ctx, claims.SessionID); err != nil {
 		return nil, domain.ErrUnauthorized
 	}
 	return claims, nil

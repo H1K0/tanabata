@@ -13,13 +13,14 @@ import (
 
 // UserService handles user CRUD and profile management.
 type UserService struct {
-	users port.UserRepo
-	audit *AuditService
+	users    port.UserRepo
+	sessions port.SessionRepo
+	audit    *AuditService
 }
 
 // NewUserService creates a UserService.
-func NewUserService(users port.UserRepo, audit *AuditService) *UserService {
-	return &UserService{users: users, audit: audit}
+func NewUserService(users port.UserRepo, sessions port.SessionRepo, audit *AuditService) *UserService {
+	return &UserService{users: users, sessions: sessions, audit: audit}
 }
 
 // EnsureAdmin creates the initial administrator account if it does not already
@@ -166,11 +167,15 @@ func (s *UserService) UpdateAdmin(ctx context.Context, id int16, p UpdateAdminPa
 		return nil, err
 	}
 
-	// Log block/unblock specifically.
+	// Log block/unblock specifically, and revoke all sessions on block so the
+	// user's outstanding access tokens stop working immediately.
 	if p.IsBlocked != nil {
 		action := "user_unblock"
 		if *p.IsBlocked {
 			action = "user_block"
+			if err := s.sessions.DeleteByUserID(ctx, id); err != nil {
+				return nil, fmt.Errorf("UserService.UpdateAdmin revoke sessions: %w", err)
+			}
 		}
 		_ = s.audit.Log(ctx, action, nil, nil, map[string]any{"target_user_id": id})
 	}

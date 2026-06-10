@@ -35,7 +35,7 @@ func (m *AuthMiddleware) Handle() gin.HandlerFunc {
 		}
 		token := strings.TrimPrefix(raw, "Bearer ")
 
-		claims, err := m.authSvc.ParseAccessToken(token)
+		claims, err := m.authSvc.ValidateAccessToken(c.Request.Context(), token)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, errorBody{
 				Code:    domain.ErrUnauthorized.Code(),

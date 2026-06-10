@@ -132,6 +132,9 @@ type UserRepo interface {
 type SessionRepo interface {
 	// ListByUser returns all active sessions for a user.
 	ListByUser(ctx context.Context, userID int16) (*domain.SessionList, error)
+	// GetByID returns an active session by its ID, or ErrNotFound if it does not
+	// exist or has been deactivated.
+	GetByID(ctx context.Context, id int) (*domain.Session, error)
 	// GetByTokenHash looks up a session by the hashed refresh token.
 	GetByTokenHash(ctx context.Context, hash string) (*domain.Session, error)
 	Create(ctx context.Context, s *domain.Session) (*domain.Session, error)

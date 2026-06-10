@@ -131,7 +131,7 @@ func setupSuite(t *testing.T) *harness {
 	categorySvc := service.NewCategoryService(categoryRepo, tagRepo, aclSvc, auditSvc)
 	poolSvc     := service.NewPoolService(poolRepo, aclSvc, auditSvc)
 	fileSvc     := service.NewFileService(fileRepo, mimeRepo, diskStorage, aclSvc, auditSvc, tagSvc, transactor, filesDir)
-	userSvc     := service.NewUserService(userRepo, auditSvc)
+	userSvc     := service.NewUserService(userRepo, sessionRepo, auditSvc)
 
 	// Bootstrap the admin account the suite logs in with (replaces the old
 	// hardcoded seed credentials).

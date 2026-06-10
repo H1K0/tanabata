@@ -74,6 +74,28 @@ func (r *SessionRepo) Create(ctx context.Context, s *domain.Session) (*domain.Se
 	return &created, nil
 }
 
+func (r *SessionRepo) GetByID(ctx context.Context, id int) (*domain.Session, error) {
+	const sql = `
+		SELECT id, token_hash, user_id, user_agent, started_at, expires_at, last_activity
+		FROM activity.sessions
+		WHERE id = $1 AND is_active = true`
+
+	q := connOrTx(ctx, r.pool)
+	rows, err := q.Query(ctx, sql, id)
+	if err != nil {
+		return nil, fmt.Errorf("SessionRepo.GetByID: %w", err)
+	}
+	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[sessionRow])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, fmt.Errorf("SessionRepo.GetByID scan: %w", err)
+	}
+	s := toSession(row)
+	return &s, nil
+}
+
 func (r *SessionRepo) GetByTokenHash(ctx context.Context, hash string) (*domain.Session, error) {
 	const sql = `
 		SELECT id, token_hash, user_id, user_agent, started_at, expires_at, last_activity
