@@ -430,6 +430,11 @@ func (h *TagHandler) FileListTags(c *gin.Context) {
 		return
 	}
 
+	if err := h.fileSvc.AuthorizeView(c.Request.Context(), fileID); err != nil {
+		respondError(c, err)
+		return
+	}
+
 	tags, err := h.tagSvc.ListFileTags(c.Request.Context(), fileID)
 	if err != nil {
 		respondError(c, err)
@@ -465,6 +470,11 @@ func (h *TagHandler) FileSetTags(c *gin.Context) {
 		return
 	}
 
+	if err := h.fileSvc.AuthorizeEdit(c.Request.Context(), fileID); err != nil {
+		respondError(c, err)
+		return
+	}
+
 	tags, err := h.tagSvc.SetFileTags(c.Request.Context(), fileID, tagIDs)
 	if err != nil {
 		respondError(c, err)
@@ -491,6 +501,11 @@ func (h *TagHandler) FileAddTag(c *gin.Context) {
 		return
 	}
 
+	if err := h.fileSvc.AuthorizeEdit(c.Request.Context(), fileID); err != nil {
+		respondError(c, err)
+		return
+	}
+
 	tags, err := h.tagSvc.AddFileTag(c.Request.Context(), fileID, tagID)
 	if err != nil {
 		respondError(c, err)
@@ -514,6 +529,11 @@ func (h *TagHandler) FileRemoveTag(c *gin.Context) {
 	tagID, err := uuid.Parse(c.Param("tag_id"))
 	if err != nil {
 		respondError(c, domain.ErrValidation)
+		return
+	}
+
+	if err := h.fileSvc.AuthorizeEdit(c.Request.Context(), fileID); err != nil {
+		respondError(c, err)
 		return
 	}
 

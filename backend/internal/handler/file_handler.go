@@ -613,6 +613,12 @@ func (h *FileHandler) CommonTags(c *gin.Context) {
 // ---------------------------------------------------------------------------
 
 func (h *FileHandler) Import(c *gin.Context) {
+	// Server-side directory import reads arbitrary paths on the host; restrict
+	// it to administrators.
+	if !requireAdmin(c) {
+		return
+	}
+
 	var body struct {
 		Path string `json:"path"`
 	}

@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gabriel-vasile/mimetype"
@@ -407,6 +408,32 @@ func (s *FileService) List(ctx context.Context, params domain.FileListParams) (*
 	return s.files.List(ctx, params)
 }
 
+// AuthorizeView ensures the caller may view the file. Returns ErrNotFound if the
+// file does not exist or ErrForbidden if the caller lacks view access.
+func (s *FileService) AuthorizeView(ctx context.Context, id uuid.UUID) error {
+	_, err := s.Get(ctx, id)
+	return err
+}
+
+// AuthorizeEdit ensures the caller may edit the file. Returns ErrNotFound if the
+// file does not exist or ErrForbidden if the caller lacks edit access.
+func (s *FileService) AuthorizeEdit(ctx context.Context, id uuid.UUID) error {
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+
+	f, err := s.files.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	ok, err := s.acl.CanEdit(ctx, userID, isAdmin, f.CreatorID, fileObjectTypeID, id)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return domain.ErrForbidden
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Content / thumbnail / preview streaming
 // ---------------------------------------------------------------------------
@@ -468,12 +495,19 @@ func (s *FileService) BulkDelete(ctx context.Context, fileIDs []uuid.UUID) error
 // Import scans a server-side directory and uploads all supported files.
 // If path is empty, the configured default import path is used.
 func (s *FileService) Import(ctx context.Context, path string) (*ImportResult, error) {
-	dir := path
-	if dir == "" {
-		dir = s.importPath
-	}
-	if dir == "" {
+	if s.importPath == "" {
 		return nil, domain.ErrValidation
+	}
+
+	dir := s.importPath
+	if path != "" {
+		// Confine caller-supplied paths to the configured import directory so a
+		// directory-traversal value cannot read arbitrary host files.
+		confined, err := confineToBase(s.importPath, path)
+		if err != nil {
+			return nil, err
+		}
+		dir = confined
 	}
 
 	entries, err := os.ReadDir(dir)
@@ -549,6 +583,28 @@ func (s *FileService) Import(ctx context.Context, path string) (*ImportResult, e
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+// confineToBase resolves target and verifies it does not escape base (after
+// cleaning and resolving "..") so a caller cannot read files outside the
+// configured import directory. Returns the cleaned absolute path on success.
+func confineToBase(base, target string) (string, error) {
+	absBase, err := filepath.Abs(base)
+	if err != nil {
+		return "", domain.ErrValidation
+	}
+	absTarget, err := filepath.Abs(target)
+	if err != nil {
+		return "", domain.ErrValidation
+	}
+	rel, err := filepath.Rel(absBase, absTarget)
+	if err != nil {
+		return "", domain.ErrValidation
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		return "", domain.ErrForbidden
+	}
+	return absTarget, nil
+}
 
 // extractEXIFWithDatetime parses EXIF from raw bytes, returning both the JSON
 // representation and the DateTimeOriginal (if present). Both may be nil.
