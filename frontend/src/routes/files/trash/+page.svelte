@@ -1,15 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api, ApiError } from '$lib/api/client';
-	import { tick } from 'svelte';
 	import FileCard from '$lib/components/file/FileCard.svelte';
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { selectionStore, selectionActive, selectionCount } from '$lib/stores/selection';
 	import { appSettings } from '$lib/stores/appSettings';
 	import type { File, FileCursorPage } from '$lib/api/types';
-
-	let scrollContainer = $state<HTMLElement | undefined>();
 
 	let LIMIT = $derived($appSettings.fileLoadLimit);
 
@@ -46,10 +43,6 @@
 		} finally {
 			loading = false;
 			initialLoaded = true;
-		}
-		await tick();
-		if (hasMore && scrollContainer && scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
-			void loadMore();
 		}
 	}
 
@@ -165,7 +158,7 @@
 		</button>
 	</header>
 
-	<main bind:this={scrollContainer}>
+	<main>
 		{#if error}
 			<p class="error" role="alert">{error}</p>
 		{/if}

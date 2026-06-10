@@ -203,12 +203,9 @@
 		} finally {
 			loading = false;
 		}
-		// If the loaded content doesn't fill the viewport yet (no scrollbar),
-		// keep loading until it does or there's nothing left.
-		await tick();
-		if (hasMore && scrollContainer && scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
-			void loadMore();
-		}
+		// Viewport filling is handled by InfiniteScroll, which re-checks after each
+		// load — no manual recursion (which over-fetched here because <main> isn't
+		// the scroller, so its scrollHeight never exceeds its clientHeight).
 	}
 
 	function applyFilter(filter: string | null) {

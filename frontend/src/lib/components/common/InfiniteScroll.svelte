@@ -7,22 +7,43 @@
 
 	let { loading = false, hasMore = true, onLoadMore }: Props = $props();
 
+	// Lookahead distance below the viewport at which we start loading.
+	const MARGIN = 300;
+
 	let sentinel = $state<HTMLDivElement | undefined>();
 
+	// Fire onLoadMore while the sentinel is within MARGIN px of the viewport
+	// bottom. Measuring the sentinel's viewport rect (rather than a scroll
+	// container's scrollHeight/clientHeight) makes this correct whether the page
+	// scrolls on <main> or on the window — and it loads exactly enough pages to
+	// reach past the viewport, instead of eagerly loading everything.
+	function maybeLoad() {
+		if (loading || !hasMore || !sentinel) return;
+		const rect = sentinel.getBoundingClientRect();
+		if (rect.top <= window.innerHeight + MARGIN) {
+			onLoadMore();
+		}
+	}
+
+	// Load on scroll: the observer notifies us when the sentinel nears the viewport.
 	$effect(() => {
 		if (!sentinel) return;
-
 		const observer = new IntersectionObserver(
 			(entries) => {
-				if (entries[0].isIntersecting && !loading && hasMore) {
-					onLoadMore();
-				}
+				if (entries[0].isIntersecting) maybeLoad();
 			},
-			{ rootMargin: '300px' },
+			{ rootMargin: `${MARGIN}px` },
 		);
-
 		observer.observe(sentinel);
 		return () => observer.disconnect();
+	});
+
+	// After each load settles (loading → false), re-check synchronously: if the
+	// freshly appended content still didn't push the sentinel past the viewport,
+	// load again. This fills short pages without the throttled observer lagging
+	// and over-fetching.
+	$effect(() => {
+		if (!loading) maybeLoad();
 	});
 </script>
 

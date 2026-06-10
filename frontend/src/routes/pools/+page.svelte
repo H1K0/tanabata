@@ -3,7 +3,6 @@
 	import { api, ApiError } from '$lib/api/client';
 	import { poolSorting, type PoolSortField } from '$lib/stores/sorting';
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
-	import { tick } from 'svelte';
 	import type { Pool, PoolOffsetPage } from '$lib/api/types';
 
 	const LIMIT = 50;
@@ -14,7 +13,6 @@
 	];
 
 	let pools = $state<Pool[]>([]);
-	let scrollContainer = $state<HTMLElement | undefined>();
 	let total = $state(0);
 	let offset = $state(0);
 	let loading = $state(false);
@@ -62,12 +60,6 @@
 		} finally {
 			loading = false;
 			initialLoaded = true;
-		}
-		// Keep loading until the content fills the viewport so the infinite-scroll
-		// sentinel ends up below the fold; then stop.
-		await tick();
-		if (hasMore && scrollContainer && scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
-			void load();
 		}
 	}
 
@@ -137,7 +129,7 @@
 		</div>
 	</div>
 
-	<main bind:this={scrollContainer}>
+	<main>
 		{#if error}
 			<p class="error" role="alert">{error}</p>
 		{/if}

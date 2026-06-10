@@ -4,7 +4,6 @@
 	import { tagSorting, type TagSortField } from '$lib/stores/sorting';
 	import TagBadge from '$lib/components/tag/TagBadge.svelte';
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
-	import { tick } from 'svelte';
 	import type { Tag, TagOffsetPage } from '$lib/api/types';
 
 	const LIMIT = 100;
@@ -17,7 +16,6 @@
 	];
 
 	let tags = $state<Tag[]>([]);
-	let scrollContainer = $state<HTMLElement | undefined>();
 	let total = $state(0);
 	let offset = $state(0);
 	let loading = $state(false);
@@ -68,12 +66,6 @@
 		} finally {
 			loading = false;
 			initialLoaded = true;
-		}
-		// Keep loading until the content fills the viewport so the infinite-scroll
-		// sentinel ends up below the fold; then stop.
-		await tick();
-		if (hasMore && scrollContainer && scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
-			void load();
 		}
 	}
 
@@ -145,7 +137,7 @@
 		</div>
 	</div>
 
-	<main bind:this={scrollContainer}>
+	<main>
 		{#if error}
 			<p class="error" role="alert">{error}</p>
 		{/if}
