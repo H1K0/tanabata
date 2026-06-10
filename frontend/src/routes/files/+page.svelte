@@ -14,7 +14,7 @@
 	import { selectionStore, selectionActive } from '$lib/stores/selection';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import BulkTagEditor from '$lib/components/file/BulkTagEditor.svelte';
-	import { tick } from 'svelte';
+	import { tick, flushSync } from 'svelte';
 	import { parseDslFilter } from '$lib/utils/dsl';
 	import type { File, FileCursorPage, Pool, PoolOffsetPage } from '$lib/api/types';
 	import { appSettings } from '$lib/stores/appSettings';
@@ -81,8 +81,15 @@
 
 	let files = $state<File[]>([]);
 	let nextCursor = $state<string | null>(null);
-	let loading = $state(false);
+	// Start busy when arriving with an ?anchor so the InfiniteScroll sentinels
+	// can't fire a stray page-1 loadMore before loadAroundAnchor takes over (their
+	// effects run before this component's reset effect on mount).
+	let loading = $state(Boolean(page.url.searchParams.get('anchor')));
 	let hasMore = $state(true);
+	// Backward pagination — only active after an anchored return, where the grid
+	// starts in the middle of the list and can grow upward as well as downward.
+	let prevCursor = $state<string | null>(null);
+	let hasPrev = $state(false);
 	let error = $state('');
 	let filterOpen = $state(false);
 
@@ -106,9 +113,13 @@
 		files = [];
 		nextCursor = null;
 		hasMore = true;
+		// A plain list starts at the top, so there is nothing before it.
+		prevCursor = null;
+		hasPrev = false;
 		error = '';
 		// Deep-link return carrying a position anchor but no loaded grid: load a
-		// window starting at the anchor instead of page 1, so we can scroll to it.
+		// window centred on the anchor instead of page 1, so we can scroll to it
+		// and grow the grid in both directions.
 		if (firstRun && anchorParam) {
 			void loadAroundAnchor(anchorParam);
 		}
@@ -130,7 +141,7 @@
 	// frames because the cards may not be laid out yet right after a restore.
 	function scrollToFile(anchorId: string | null) {
 		if (!anchorId) return;
-		const attempt = (tries: number) => {
+		const tryScroll = () => {
 			const idx = files.findIndex((f) => f.id === anchorId);
 			const card =
 				idx >= 0 && scrollContainer
@@ -138,11 +149,19 @@
 					: null;
 			if (card) {
 				card.scrollIntoView({ block: 'center' });
-				return;
+				return true;
 			}
-			if (tries > 0) requestAnimationFrame(() => attempt(tries - 1));
+			return false;
 		};
-		requestAnimationFrame(() => attempt(10));
+		// Centre immediately if the card is already laid out (it is, right after the
+		// anchored load's tick) so it's pinned before any scroll sentinel fires.
+		if (tryScroll()) return;
+		let tries = 10;
+		const loop = () => {
+			if (tryScroll() || tries-- <= 0) return;
+			requestAnimationFrame(loop);
+		};
+		requestAnimationFrame(loop);
 	}
 
 	// Drop the ?anchor= param once consumed so it doesn't linger in the URL or
@@ -154,23 +173,60 @@
 		replaceState(`${url.pathname}${url.search}`, page.state);
 	}
 
-	// Fallback for a deep link / hard reload that has an anchor but no cached grid:
-	// fetch a page anchored at that file so we can scroll to it.
+	// How many pages to pre-load on each side of the anchor so the viewport is
+	// covered and the scroll sentinels start out of range (no mount-time storm).
+	const ANCHOR_PREFILL_PAGES = 3;
+
+	function baseListParams(): URLSearchParams {
+		const p = new URLSearchParams({
+			limit: String(LIMIT),
+			sort: sortState.sort,
+			order: sortState.order,
+		});
+		if (filterParam) p.set('filter', filterParam);
+		return p;
+	}
+
+	// Deep link / hard reload with an anchor but no loaded grid: fetch a window
+	// centred on that file and pre-fill a few pages each way, all sequentially, so
+	// the grid is filled around the anchor before we centre on it. The prev/next
+	// cursors then let it keep growing in both directions as the user scrolls.
 	async function loadAroundAnchor(anchor: string) {
 		loading = true;
 		error = '';
 		try {
-			const params = new URLSearchParams({
-				anchor,
-				limit: String(LIMIT),
-				sort: sortState.sort,
-				order: sortState.order,
-			});
-			if (filterParam) params.set('filter', filterParam);
-			const res = await api.get<FileCursorPage>(`/files?${params}`);
+			const a = baseListParams();
+			a.set('anchor', anchor);
+			const res = await api.get<FileCursorPage>(`/files?${a}`);
 			files = res.items ?? [];
 			nextCursor = res.next_cursor ?? null;
 			hasMore = !!res.next_cursor;
+			prevCursor = res.prev_cursor ?? null;
+			hasPrev = !!res.prev_cursor;
+
+			for (let i = 0; i < ANCHOR_PREFILL_PAGES && hasMore && nextCursor; i++) {
+				const p = baseListParams();
+				p.set('cursor', nextCursor);
+				const r = await api.get<FileCursorPage>(`/files?${p}`);
+				files = [...files, ...(r.items ?? [])];
+				nextCursor = r.next_cursor ?? null;
+				hasMore = !!r.next_cursor;
+			}
+			for (let i = 0; i < ANCHOR_PREFILL_PAGES && hasPrev && prevCursor; i++) {
+				const p = baseListParams();
+				p.set('cursor', prevCursor);
+				p.set('direction', 'backward');
+				const r = await api.get<FileCursorPage>(`/files?${p}`);
+				const items = r.items ?? [];
+				if (items.length === 0) {
+					hasPrev = false;
+					break;
+				}
+				files = [...items, ...files];
+				prevCursor = r.prev_cursor ?? null;
+				hasPrev = !!r.prev_cursor;
+			}
+
 			await tick();
 			scrollToFile(anchor);
 			consumeAnchor();
@@ -181,18 +237,65 @@
 		}
 	}
 
+	// Load the previous page (scrolling up) and prepend it. Content inserted above
+	// the viewport would push everything down, so we shift the scroll down by
+	// exactly the added height — applied synchronously (flushSync, no paint in
+	// between) so there's no visible jump. Shares the `loading` guard with loadMore
+	// so the two never mutate files concurrently.
+	async function loadPrev() {
+		if (loading || !hasPrev || !prevCursor) return;
+		loading = true;
+		try {
+			const params = baseListParams();
+			params.set('cursor', prevCursor);
+			params.set('direction', 'backward');
+			const res = await api.get<FileCursorPage>(`/files?${params}`);
+			const items = res.items ?? [];
+			if (items.length === 0) {
+				hasPrev = false;
+				return;
+			}
+
+			// Capture scroll state just before mutating (after the request, so the
+			// user's scrolling during it doesn't skew the offset).
+			const scroller = getScroller();
+			const beforeTop = scroller.scrollTop;
+			const beforeHeight = scroller.scrollHeight;
+
+			files = [...items, ...files];
+			prevCursor = res.prev_cursor ?? null;
+			hasPrev = !!res.prev_cursor;
+
+			flushSync(); // apply the prepend now, before the browser paints
+			scroller.scrollTop = beforeTop + (scroller.scrollHeight - beforeHeight);
+		} catch {
+			hasPrev = false;
+		} finally {
+			loading = false;
+		}
+	}
+
+	// The element that actually scrolls the grid: the nearest scrollable ancestor,
+	// or the document scroller (the grid's <main> doesn't scroll on its own here).
+	function getScroller(): HTMLElement {
+		let el: HTMLElement | null = scrollContainer ?? null;
+		while (el) {
+			const oy = getComputedStyle(el).overflowY;
+			if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight) {
+				return el;
+			}
+			el = el.parentElement;
+		}
+		return (document.scrollingElement as HTMLElement | null) ?? document.documentElement;
+	}
+
 	async function loadMore() {
 		if (loading || !hasMore) return;
 		loading = true;
 		error = '';
 		try {
-			const params = new URLSearchParams({
-				limit: String(LIMIT),
-				sort: sortState.sort,
-				order: sortState.order,
-			});
+			const params = baseListParams();
 			if (nextCursor) params.set('cursor', nextCursor);
-			if (filterParam) params.set('filter', filterParam);
 			const res = await api.get<FileCursorPage>(`/files?${params}`);
 			files = [...files, ...(res.items ?? [])];
 			nextCursor = res.next_cursor ?? null;
@@ -377,6 +480,10 @@
 		<main bind:this={scrollContainer}>
 			{#if error}
 				<p class="error" role="alert">{error}</p>
+			{/if}
+
+			{#if hasPrev}
+				<InfiniteScroll {loading} hasMore={hasPrev} onLoadMore={loadPrev} edge="top" />
 			{/if}
 
 			<div class="grid">

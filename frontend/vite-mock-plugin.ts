@@ -606,12 +606,25 @@ export function mockApiPlugin(): Plugin {
 						return json(res, 200, { items: slice, next_cursor, prev_cursor });
 					}
 
+					const direction = qs.get('direction') ?? 'forward';
+					if (direction === 'backward' && cursor) {
+						// Cursor marks the current top boundary; return the page before it.
+						const end = Number(Buffer.from(cursor, 'base64').toString());
+						const start = Math.max(0, end - limit);
+						const slice = MOCK_FILES.slice(start, end);
+						const prev_cursor = start > 0
+							? Buffer.from(String(start)).toString('base64') : null;
+						const next_cursor = Buffer.from(String(end)).toString('base64');
+						return json(res, 200, { items: slice, next_cursor, prev_cursor });
+					}
 					const offset = cursor ? Number(Buffer.from(cursor, 'base64').toString()) : 0;
 					const slice = MOCK_FILES.slice(offset, offset + limit);
 					const nextOffset = offset + slice.length;
 					const next_cursor = nextOffset < MOCK_FILES.length
 						? Buffer.from(String(nextOffset)).toString('base64') : null;
-					return json(res, 200, { items: slice, next_cursor, prev_cursor: null });
+					const prev_cursor = offset > 0
+						? Buffer.from(String(offset)).toString('base64') : null;
+					return json(res, 200, { items: slice, next_cursor, prev_cursor });
 				}
 
 				// GET /tags/{id}/rules

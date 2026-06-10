@@ -3,26 +3,32 @@
 		loading?: boolean;
 		hasMore?: boolean;
 		onLoadMore: () => void;
+		/** Which edge to watch: 'bottom' loads on scroll down, 'top' on scroll up. */
+		edge?: 'top' | 'bottom';
 	}
 
-	let { loading = false, hasMore = true, onLoadMore }: Props = $props();
+	let { loading = false, hasMore = true, onLoadMore, edge = 'bottom' }: Props = $props();
 
-	// Lookahead distance below the viewport at which we start loading.
+	// Lookahead distance past the viewport edge at which we start loading.
 	const MARGIN = 300;
 
 	let sentinel = $state<HTMLDivElement | undefined>();
 
-	// Fire onLoadMore while the sentinel is within MARGIN px of the viewport
-	// bottom. Measuring the sentinel's viewport rect (rather than a scroll
-	// container's scrollHeight/clientHeight) makes this correct whether the page
-	// scrolls on <main> or on the window — and it loads exactly enough pages to
-	// reach past the viewport, instead of eagerly loading everything.
+	// True while the sentinel is within MARGIN px of the watched viewport edge.
+	// Measuring the sentinel's viewport rect (rather than a scroll container's
+	// scrollHeight/clientHeight) makes this correct whether the page scrolls on
+	// <main> or on the window, and loads only enough to reach past the viewport.
+	function nearViewport(): boolean {
+		if (!sentinel) return false;
+		const rect = sentinel.getBoundingClientRect();
+		return edge === 'bottom'
+			? rect.top <= window.innerHeight + MARGIN
+			: rect.bottom >= -MARGIN;
+	}
+
 	function maybeLoad() {
 		if (loading || !hasMore || !sentinel) return;
-		const rect = sentinel.getBoundingClientRect();
-		if (rect.top <= window.innerHeight + MARGIN) {
-			onLoadMore();
-		}
+		if (nearViewport()) onLoadMore();
 	}
 
 	// Load on scroll: the observer notifies us when the sentinel nears the viewport.
@@ -39,9 +45,8 @@
 	});
 
 	// After each load settles (loading → false), re-check synchronously: if the
-	// freshly appended content still didn't push the sentinel past the viewport,
-	// load again. This fills short pages without the throttled observer lagging
-	// and over-fetching.
+	// freshly added content still didn't push the sentinel past the viewport, load
+	// again. This fills short pages without the throttled observer lagging.
 	$effect(() => {
 		if (!loading) maybeLoad();
 	});
