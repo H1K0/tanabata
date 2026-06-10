@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -117,8 +119,17 @@ func main() {
 		userHandler, aclHandler, auditHandler,
 	)
 
+	// ReadHeaderTimeout bounds slow-header (Slowloris) attacks; body read/write
+	// are left unbounded so large file uploads and downloads can stream.
+	srv := &http.Server{
+		Addr:              cfg.ListenAddr,
+		Handler:           r,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
 	slog.Info("starting server", "addr", cfg.ListenAddr)
-	if err := r.Run(cfg.ListenAddr); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		slog.Error("server error", "err", err)
 		os.Exit(1)
 	}
