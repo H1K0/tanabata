@@ -382,6 +382,7 @@ func (h *FileHandler) GetContent(c *gin.Context) {
 	defer res.Body.Close()
 
 	c.Header("Content-Type", res.MIMEType)
+	c.Header("Cache-Control", "private, max-age=3600")
 	if res.OriginalName != nil {
 		c.Header("Content-Disposition",
 			fmt.Sprintf("attachment; filename=%q", *res.OriginalName))
@@ -457,6 +458,7 @@ func (h *FileHandler) GetThumbnail(c *gin.Context) {
 	defer rc.Close()
 
 	c.Header("Content-Type", "image/jpeg")
+	c.Header("Cache-Control", "private, max-age=3600")
 	c.Status(http.StatusOK)
 	io.Copy(c.Writer, rc) //nolint:errcheck
 }
@@ -479,6 +481,7 @@ func (h *FileHandler) GetPreview(c *gin.Context) {
 	defer rc.Close()
 
 	c.Header("Content-Type", "image/jpeg")
+	c.Header("Cache-Control", "private, max-age=3600")
 	c.Status(http.StatusOK)
 	io.Copy(c.Writer, rc) //nolint:errcheck
 }
