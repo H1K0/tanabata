@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { afterNavigate, goto, replaceState } from '$app/navigation';
+	import { afterNavigate, goto, pushState, replaceState } from '$app/navigation';
 	import { api } from '$lib/api/client';
 	import { ApiError } from '$lib/api/client';
 	import FileCard from '$lib/components/file/FileCard.svelte';
+	import FileViewer from '$lib/components/file/FileViewer.svelte';
 	import FileUpload from '$lib/components/file/FileUpload.svelte';
 	import FilterBar from '$lib/components/file/FilterBar.svelte';
 	import Header from '$lib/components/layout/Header.svelte';
@@ -17,11 +18,6 @@
 	import { parseDslFilter } from '$lib/utils/dsl';
 	import type { File, FileCursorPage, Pool, PoolOffsetPage } from '$lib/api/types';
 	import { appSettings } from '$lib/stores/appSettings';
-	import {
-		saveFilesSnapshot,
-		peekFilesSnapshot,
-		queryKey,
-	} from '$lib/stores/filesCache';
 
 	let scrollContainer = $state<HTMLElement | undefined>();
 
@@ -98,49 +94,34 @@
 	let resetKey = $derived(`${sortState.sort}|${sortState.order}|${filterParam ?? ''}`);
 	let prevKey = $state('');
 
-	// Restore the grid DATA on entry. Scroll restoration is handled separately in
-	// afterNavigate (below), which runs after SvelteKit's own scroll reset.
+	// Reset + reload when the query (sort/order/filter) changes or on first mount.
+	// The viewer opens as an overlay now (the list is never unmounted), so there's
+	// no snapshot to restore — except a deep-link return carrying an anchor.
 	$effect(() => {
 		const key = resetKey;
 		if (key === prevKey) return;
 		const firstRun = prevKey === '';
 		prevKey = key;
 
-		// On entry, restore the grid the user left when opening a file (same
-		// sort/order/filter) so back-navigation keeps their place. A later change
-		// means the query itself changed → reset and reload from the top.
-		const snap = peekFilesSnapshot();
-		if (firstRun && snap && queryKey(snap.query) === key) {
-			files = snap.files;
-			nextCursor = snap.nextCursor;
-			hasMore = snap.hasMore;
-		} else {
-			files = [];
-			nextCursor = null;
-			hasMore = true;
-			error = '';
-			// Deep link / reload carrying a position anchor but no cached grid:
-			// load a window starting at the anchor so we have something to scroll to.
-			if (firstRun && anchorParam) {
-				void loadAroundAnchor(anchorParam);
-			}
+		files = [];
+		nextCursor = null;
+		hasMore = true;
+		error = '';
+		// Deep-link return carrying a position anchor but no loaded grid: load a
+		// window starting at the anchor instead of page 1, so we can scroll to it.
+		if (firstRun && anchorParam) {
+			void loadAroundAnchor(anchorParam);
 		}
 	});
 
-	// Scroll restoration runs here because afterNavigate fires AFTER SvelteKit has
-	// applied its own scroll handling, so our position wins instead of being reset
-	// to the top. The anchor (last-viewed file) is read from the URL.
-	afterNavigate((nav) => {
+	// Scroll to an ?anchor= file on a deep-link return. Runs in afterNavigate
+	// because it fires AFTER SvelteKit's own scroll handling, so our position wins
+	// instead of being reset to the top.
+	afterNavigate(() => {
 		const anchor = page.url.searchParams.get('anchor');
 		if (anchor) {
 			scrollToFile(anchor);
 			consumeAnchor();
-			return;
-		}
-		// Plain entry/reload (no explicit anchor): fall back to the snapshot's
-		// last-opened file so a refresh still lands near where the user was.
-		if (nav.type === 'enter') {
-			scrollToFile(peekFilesSnapshot()?.lastOpenedId ?? null);
 		}
 	});
 
@@ -243,20 +224,50 @@
 
 	function openFile(file: File) {
 		if (!file.id) return;
-		// Snapshot the grid so returning from the viewer restores this exact list
-		// and scroll position instead of reloading page 1 from the top.
-		saveFilesSnapshot({
-			query: { sort: sortState.sort, order: sortState.order, filter: filterParam },
-			// Only the filter — never the transient ?anchor — defines the list URL
-			// to return to.
-			listSearch: filterParam ? `?filter=${encodeURIComponent(filterParam)}` : '',
-			files,
-			nextCursor,
-			hasMore,
-			scrollTop: scrollContainer?.scrollTop ?? 0,
-			lastOpenedId: file.id,
-		});
-		goto(`/files/${file.id}`);
+		// Open the viewer as an overlay on top of the still-mounted grid via
+		// shallow routing: the URL becomes /files/<id> and the browser back button
+		// closes it, but the list is never torn down or reloaded.
+		pushState(`/files/${file.id}`, { fileId: file.id });
+	}
+
+	// ---- Viewer overlay (shallow routing) ----
+	let activeFileId = $derived(page.state.fileId);
+	let activeIdx = $derived(activeFileId ? files.findIndex((f) => f.id === activeFileId) : -1);
+	let viewerPrevId = $derived(activeIdx > 0 ? (files[activeIdx - 1]?.id ?? null) : null);
+	let viewerNextId = $derived(
+		activeIdx >= 0 && activeIdx < files.length - 1 ? (files[activeIdx + 1]?.id ?? null) : null,
+	);
+
+	// Paging near the end of the loaded grid: pull the next page by cursor so the
+	// viewer keeps advancing past what was loaded.
+	$effect(() => {
+		if (activeIdx >= 0 && activeIdx >= files.length - 3 && hasMore && !loading) {
+			void loadMore();
+		}
+	});
+
+	// When the overlay closes (back / Escape / close button), bring the grid to
+	// the last-viewed file. The list was never unmounted, so this is instant.
+	let lastOverlayId: string | null = null;
+	$effect(() => {
+		const id = activeFileId;
+		if (id) {
+			lastOverlayId = id;
+		} else if (lastOverlayId) {
+			const target = lastOverlayId;
+			lastOverlayId = null;
+			scrollToFile(target);
+		}
+	});
+
+	function pageTo(id: string) {
+		// Replace (not push) so a single back press returns to the grid rather than
+		// stepping back through every file paged.
+		replaceState(`/files/${id}`, { fileId: id });
+	}
+
+	function closeViewer() {
+		history.back();
 	}
 
 	// ---- Selection logic ----
@@ -393,6 +404,20 @@
 	</FileUpload>
 </div>
 
+<!-- File viewer overlay (shallow routing): renders on top of the still-mounted
+     grid, so closing it reveals the list untouched. -->
+{#if activeFileId}
+	<div class="viewer-overlay">
+		<FileViewer
+			fileId={activeFileId}
+			prevId={viewerPrevId}
+			nextId={viewerNextId}
+			onNavigate={pageTo}
+			onClose={closeViewer}
+		/>
+	</div>
+{/if}
+
 {#if $selectionActive}
 	<SelectionBar
 		onEditTags={() => (tagEditorOpen = true)}
@@ -487,6 +512,16 @@
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
+	}
+
+	/* Full-screen overlay covering the grid and the bottom navbar (z 100). */
+	.viewer-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 200;
+		background-color: var(--color-bg-primary);
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	main {
