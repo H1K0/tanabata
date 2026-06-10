@@ -656,10 +656,54 @@ func (r *PoolRepo) RemoveFiles(ctx context.Context, poolID uuid.UUID, fileIDs []
 // Reorder
 // ---------------------------------------------------------------------------
 
-// Reorder replaces the full ordered sequence with positions 1000, 2000, …
-// Only file IDs already in the pool are allowed; unknown IDs are silently
-// skipped to avoid integrity violations.
+// Reorder applies the requested order to the pool. Files actually in the pool
+// are placed in the given order; any pool members the request omitted are kept
+// and appended in their current order. This makes a partial request (e.g. a
+// paginated client that only loaded the first pages) reorder the visible prefix
+// without deleting the rest. Unknown IDs are ignored.
 func (r *PoolRepo) Reorder(ctx context.Context, poolID uuid.UUID, fileIDs []uuid.UUID) error {
 	q := connOrTx(ctx, r.pool)
-	return r.reassignPositions(ctx, q, poolID, fileIDs)
+
+	// Current membership, in position order.
+	rows, err := q.Query(ctx,
+		`SELECT file_id FROM data.file_pool WHERE pool_id = $1 ORDER BY position ASC, file_id ASC`, poolID)
+	if err != nil {
+		return fmt.Errorf("PoolRepo.Reorder fetch: %w", err)
+	}
+	var current []uuid.UUID
+	for rows.Next() {
+		var fid uuid.UUID
+		if err := rows.Scan(&fid); err != nil {
+			rows.Close()
+			return fmt.Errorf("PoolRepo.Reorder scan: %w", err)
+		}
+		current = append(current, fid)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("PoolRepo.Reorder rows: %w", err)
+	}
+
+	inPool := make(map[uuid.UUID]bool, len(current))
+	for _, fid := range current {
+		inPool[fid] = true
+	}
+
+	ordered := make([]uuid.UUID, 0, len(current))
+	placed := make(map[uuid.UUID]bool, len(current))
+	for _, fid := range fileIDs {
+		if inPool[fid] && !placed[fid] {
+			ordered = append(ordered, fid)
+			placed[fid] = true
+		}
+	}
+	// Preserve any members the request did not mention.
+	for _, fid := range current {
+		if !placed[fid] {
+			ordered = append(ordered, fid)
+			placed[fid] = true
+		}
+	}
+
+	return r.reassignPositions(ctx, q, poolID, ordered)
 }
