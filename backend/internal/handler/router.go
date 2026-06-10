@@ -6,6 +6,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// securityHeaders sets conservative response headers on every response: prevent
+// MIME sniffing of served file content, forbid framing, and suppress the
+// Referer header on outbound navigations.
+func securityHeaders() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		h := c.Writer.Header()
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Referrer-Policy", "no-referrer")
+		c.Next()
+	}
+}
+
 // NewRouter builds and returns a configured Gin engine.
 func NewRouter(
 	auth *AuthMiddleware,
@@ -19,7 +32,7 @@ func NewRouter(
 	auditHandler *AuditHandler,
 ) *gin.Engine {
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(gin.Logger(), gin.Recovery(), securityHeaders())
 
 	// Health check — no auth required.
 	r.GET("/health", func(c *gin.Context) {
