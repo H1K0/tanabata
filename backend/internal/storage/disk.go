@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/disintegration/imaging"
 	"github.com/google/uuid"
@@ -149,11 +150,11 @@ func (s *DiskStorage) serveGenerated(ctx context.Context, id uuid.UUID, cachePat
 		return nil, fmt.Errorf("storage: stat %q: %w", srcPath, err)
 	}
 
-	// 1. Try still-image decode (JPEG/PNG/GIF).
+	// 1. Try still-image decode (JPEG/PNG/GIF), rejecting decompression bombs.
 	// 2. Try video frame extraction via ffmpeg.
 	// 3. Fall back to placeholder.
 	var img image.Image
-	if decoded, err := imaging.Open(srcPath, imaging.AutoOrientation(true)); err == nil {
+	if decoded, err := decodeImageLimited(srcPath); err == nil {
 		img = imaging.Thumbnail(decoded, maxW, maxH, imaging.Lanczos)
 	} else if frame, err := extractVideoFrame(ctx, srcPath); err == nil {
 		img = imaging.Thumbnail(frame, maxW, maxH, imaging.Lanczos)
@@ -206,12 +207,44 @@ func writeCache(cachePath string, img image.Image) (io.ReadCloser, error) {
 	return f, nil
 }
 
+// maxDecodePixels caps the pixel count of an image we are willing to decode
+// into memory, bounding the cost of a decompression bomb (a tiny file that
+// expands to an enormous raster). 64 Mpx is ~ an 8192×8192 image.
+const maxDecodePixels = 64 << 20
+
+// decodeImageLimited decodes the image at path after first inspecting its header
+// dimensions via image.DecodeConfig (which does not allocate the raster), and
+// refuses images whose pixel count exceeds maxDecodePixels.
+func decodeImageLimited(path string) (image.Image, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return nil, err
+	}
+	if int64(cfg.Width)*int64(cfg.Height) > maxDecodePixels {
+		return nil, fmt.Errorf("image too large to decode: %dx%d", cfg.Width, cfg.Height)
+	}
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	return imaging.Decode(f, imaging.AutoOrientation(true))
+}
+
 // extractVideoFrame uses ffmpeg to extract a single frame from a video file.
 // It seeks 1 second in (keyframe-accurate fast seek) and pipes the frame out
 // as PNG. If the video is shorter than 1 s the seek is silently ignored by
 // ffmpeg and the first available frame is returned instead.
-// Returns an error if ffmpeg is not installed or produces no output.
+// Returns an error if ffmpeg is not installed or produces no output. The run is
+// bounded by a timeout so a malformed file cannot hang the request indefinitely.
 func extractVideoFrame(ctx context.Context, srcPath string) (image.Image, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	var out bytes.Buffer
 	cmd := exec.CommandContext(ctx, "ffmpeg",
 		"-ss", "1", // fast input seek; ignored gracefully on short files
