@@ -17,6 +17,12 @@
 	import { parseDslFilter } from '$lib/utils/dsl';
 	import type { File, FileCursorPage, Pool, PoolOffsetPage } from '$lib/api/types';
 	import { appSettings } from '$lib/stores/appSettings';
+	import {
+		saveFilesSnapshot,
+		peekFilesSnapshot,
+		queryKey,
+		type FilesSnapshot,
+	} from '$lib/stores/filesCache';
 
 	let scrollContainer = $state<HTMLElement | undefined>();
 
@@ -93,14 +99,42 @@
 	let prevKey = $state('');
 
 	$effect(() => {
-		if (resetKey !== prevKey) {
-			prevKey = resetKey;
+		const key = resetKey;
+		if (key === prevKey) return;
+		const firstRun = prevKey === '';
+		prevKey = key;
+
+		// On the first mount, restore the grid the user left when opening a file
+		// (same sort/order/filter) so back-navigation keeps their place. Any later
+		// change means the query itself changed → reset and reload from the top.
+		const snap = peekFilesSnapshot();
+		if (firstRun && snap && queryKey(snap.query) === key) {
+			files = snap.files;
+			nextCursor = snap.nextCursor;
+			hasMore = snap.hasMore;
+			void tick().then(() => restoreScroll(snap));
+		} else {
 			files = [];
 			nextCursor = null;
 			hasMore = true;
 			error = '';
 		}
 	});
+
+	// Scroll the grid so the last-opened file is centred; fall back to the saved
+	// scroll offset if that card isn't present (e.g. nothing was opened).
+	function restoreScroll(snap: FilesSnapshot) {
+		if (!scrollContainer) return;
+		const idx = snap.lastOpenedId ? files.findIndex((f) => f.id === snap.lastOpenedId) : -1;
+		if (idx >= 0) {
+			const card = scrollContainer.querySelector<HTMLElement>(`[data-file-index="${idx}"]`);
+			if (card) {
+				card.scrollIntoView({ block: 'center' });
+				return;
+			}
+		}
+		scrollContainer.scrollTop = snap.scrollTop;
+	}
 
 	async function loadMore() {
 		if (loading || !hasMore) return;
@@ -144,7 +178,18 @@
 	}
 
 	function openFile(file: File) {
-		if (file.id) goto(`/files/${file.id}`);
+		if (!file.id) return;
+		// Snapshot the grid so returning from the viewer restores this exact list
+		// and scroll position instead of reloading page 1 from the top.
+		saveFilesSnapshot({
+			query: { sort: sortState.sort, order: sortState.order, filter: filterParam },
+			files,
+			nextCursor,
+			hasMore,
+			scrollTop: scrollContainer?.scrollTop ?? 0,
+			lastOpenedId: file.id,
+		});
+		goto(`/files/${file.id}`);
 	}
 
 	// ---- Selection logic ----

@@ -6,6 +6,8 @@
 	import { api, ApiError } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
 	import { fileSorting } from '$lib/stores/sorting';
+	import { appSettings } from '$lib/stores/appSettings';
+	import { peekFilesSnapshot, setLastOpened, loadMoreIntoSnapshot } from '$lib/stores/filesCache';
 	import TagPicker from '$lib/components/file/TagPicker.svelte';
 	import type { File, Tag, FileCursorPage } from '$lib/api/types';
 
@@ -61,7 +63,7 @@
 			dirty = false;
 
 			void fetchPreview(id);
-			void loadNeighbors(id);
+			resolveNeighbors(id);
 		} catch (e) {
 			error = e instanceof ApiError ? e.message : 'Failed to load file';
 		} finally {
@@ -84,7 +86,32 @@
 		}
 	}
 
-	async function loadNeighbors(id: string) {
+	// Derive prev/next from the shared grid snapshot so paging is symmetric and
+	// instant and matches the order the user was browsing. As we approach the end
+	// of the cached list, prefetch the next page into the snapshot so forward
+	// paging continues and the grid restores correctly on return.
+	function resolveNeighbors(id: string) {
+		const snap = peekFilesSnapshot();
+		const idx = snap ? snap.files.findIndex((f) => f.id === id) : -1;
+		if (snap && idx >= 0) {
+			prevFile = idx > 0 ? snap.files[idx - 1] : null;
+			nextFile = idx < snap.files.length - 1 ? snap.files[idx + 1] : null;
+			if (idx >= snap.files.length - 3 && snap.hasMore) {
+				void loadMoreIntoSnapshot(get(appSettings).fileLoadLimit).then(() => {
+					if (page.params.id !== id) return; // user navigated on; ignore
+					const s2 = peekFilesSnapshot();
+					const i2 = s2 ? s2.files.findIndex((f) => f.id === id) : -1;
+					if (s2 && i2 >= 0) nextFile = i2 < s2.files.length - 1 ? s2.files[i2 + 1] : null;
+				});
+			}
+			return;
+		}
+		// No cached grid (e.g. a deep link straight to this file) — fall back to
+		// an anchored window from the API.
+		void loadNeighborsAnchor(id);
+	}
+
+	async function loadNeighborsAnchor(id: string) {
 		const sort = get(fileSorting);
 		const params = new URLSearchParams({
 			anchor: id,
@@ -138,7 +165,10 @@
 
 	// ---- Navigation ----
 	function navigateTo(f: File | null) {
-		if (f?.id) goto(`/files/${f.id}`);
+		if (!f?.id) return;
+		// Remember where we paged to, so returning to the grid lands here.
+		setLastOpened(f.id);
+		goto(`/files/${f.id}`);
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
