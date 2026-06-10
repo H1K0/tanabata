@@ -219,11 +219,23 @@
 		goto(`/files/${f.id}`);
 	}
 
+	// Return to the list the user came from, passing the current file as an
+	// ?anchor=<id> so the grid scrolls back to it (the position is carried in the
+	// URL — survives reload and doesn't depend on hidden in-memory state).
+	// noScroll stops SvelteKit from jumping the list to the top first.
+	function backToList() {
+		const snap = peekFilesSnapshot();
+		const params = new URLSearchParams(snap?.listSearch ?? '');
+		if (fileId) params.set('anchor', fileId);
+		const qs = params.toString();
+		goto('/files' + (qs ? `?${qs}` : ''), { noScroll: true });
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 		if (e.key === 'ArrowLeft') navigateTo(prevFile);
 		if (e.key === 'ArrowRight') navigateTo(nextFile);
-		if (e.key === 'Escape') goto('/files');
+		if (e.key === 'Escape') backToList();
 	}
 
 	// ---- Helpers ----
@@ -252,7 +264,7 @@
 <div class="viewer-page">
 	<!-- Top bar -->
 	<div class="top-bar">
-		<button class="back-btn" onclick={() => goto('/files')} aria-label="Back to files">
+		<button class="back-btn" onclick={backToList} aria-label="Back to files">
 			<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
 				<path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { afterNavigate, goto, replaceState } from '$app/navigation';
 	import { api } from '$lib/api/client';
 	import { ApiError } from '$lib/api/client';
 	import FileCard from '$lib/components/file/FileCard.svelte';
@@ -21,7 +21,6 @@
 		saveFilesSnapshot,
 		peekFilesSnapshot,
 		queryKey,
-		type FilesSnapshot,
 	} from '$lib/stores/filesCache';
 
 	let scrollContainer = $state<HTMLElement | undefined>();
@@ -92,48 +91,113 @@
 	let filterOpen = $state(false);
 
 	let filterParam = $derived(page.url.searchParams.get('filter'));
+	let anchorParam = $derived(page.url.searchParams.get('anchor'));
 	let activeTokens = $derived(parseDslFilter(filterParam));
 	let sortState = $derived($fileSorting);
 
 	let resetKey = $derived(`${sortState.sort}|${sortState.order}|${filterParam ?? ''}`);
 	let prevKey = $state('');
 
+	// Restore the grid DATA on entry. Scroll restoration is handled separately in
+	// afterNavigate (below), which runs after SvelteKit's own scroll reset.
 	$effect(() => {
 		const key = resetKey;
 		if (key === prevKey) return;
 		const firstRun = prevKey === '';
 		prevKey = key;
 
-		// On the first mount, restore the grid the user left when opening a file
-		// (same sort/order/filter) so back-navigation keeps their place. Any later
-		// change means the query itself changed → reset and reload from the top.
+		// On entry, restore the grid the user left when opening a file (same
+		// sort/order/filter) so back-navigation keeps their place. A later change
+		// means the query itself changed → reset and reload from the top.
 		const snap = peekFilesSnapshot();
 		if (firstRun && snap && queryKey(snap.query) === key) {
 			files = snap.files;
 			nextCursor = snap.nextCursor;
 			hasMore = snap.hasMore;
-			void tick().then(() => restoreScroll(snap));
 		} else {
 			files = [];
 			nextCursor = null;
 			hasMore = true;
 			error = '';
+			// Deep link / reload carrying a position anchor but no cached grid:
+			// load a window starting at the anchor so we have something to scroll to.
+			if (firstRun && anchorParam) {
+				void loadAroundAnchor(anchorParam);
+			}
 		}
 	});
 
-	// Scroll the grid so the last-opened file is centred; fall back to the saved
-	// scroll offset if that card isn't present (e.g. nothing was opened).
-	function restoreScroll(snap: FilesSnapshot) {
-		if (!scrollContainer) return;
-		const idx = snap.lastOpenedId ? files.findIndex((f) => f.id === snap.lastOpenedId) : -1;
-		if (idx >= 0) {
-			const card = scrollContainer.querySelector<HTMLElement>(`[data-file-index="${idx}"]`);
+	// Scroll restoration runs here because afterNavigate fires AFTER SvelteKit has
+	// applied its own scroll handling, so our position wins instead of being reset
+	// to the top. The anchor (last-viewed file) is read from the URL.
+	afterNavigate((nav) => {
+		const anchor = page.url.searchParams.get('anchor');
+		if (anchor) {
+			scrollToFile(anchor);
+			consumeAnchor();
+			return;
+		}
+		// Plain entry/reload (no explicit anchor): fall back to the snapshot's
+		// last-opened file so a refresh still lands near where the user was.
+		if (nav.type === 'enter') {
+			scrollToFile(peekFilesSnapshot()?.lastOpenedId ?? null);
+		}
+	});
+
+	// Scroll the grid so the given file is centred. Uses scrollIntoView (works
+	// whether the actual scroller is <main> or the window) and retries across
+	// frames because the cards may not be laid out yet right after a restore.
+	function scrollToFile(anchorId: string | null) {
+		if (!anchorId) return;
+		const attempt = (tries: number) => {
+			const idx = files.findIndex((f) => f.id === anchorId);
+			const card =
+				idx >= 0 && scrollContainer
+					? scrollContainer.querySelector<HTMLElement>(`[data-file-index="${idx}"]`)
+					: null;
 			if (card) {
 				card.scrollIntoView({ block: 'center' });
 				return;
 			}
+			if (tries > 0) requestAnimationFrame(() => attempt(tries - 1));
+		};
+		requestAnimationFrame(() => attempt(10));
+	}
+
+	// Drop the ?anchor= param once consumed so it doesn't linger in the URL or
+	// re-fire on later interactions. Shallow update — no navigation, no scroll.
+	function consumeAnchor() {
+		const url = new URL(page.url);
+		if (!url.searchParams.has('anchor')) return;
+		url.searchParams.delete('anchor');
+		replaceState(`${url.pathname}${url.search}`, page.state);
+	}
+
+	// Fallback for a deep link / hard reload that has an anchor but no cached grid:
+	// fetch a page anchored at that file so we can scroll to it.
+	async function loadAroundAnchor(anchor: string) {
+		loading = true;
+		error = '';
+		try {
+			const params = new URLSearchParams({
+				anchor,
+				limit: String(LIMIT),
+				sort: sortState.sort,
+				order: sortState.order,
+			});
+			if (filterParam) params.set('filter', filterParam);
+			const res = await api.get<FileCursorPage>(`/files?${params}`);
+			files = res.items ?? [];
+			nextCursor = res.next_cursor ?? null;
+			hasMore = !!res.next_cursor;
+			await tick();
+			scrollToFile(anchor);
+			consumeAnchor();
+		} catch (err) {
+			error = err instanceof ApiError ? err.message : 'Failed to load files';
+		} finally {
+			loading = false;
 		}
-		scrollContainer.scrollTop = snap.scrollTop;
 	}
 
 	async function loadMore() {
@@ -183,6 +247,9 @@
 		// and scroll position instead of reloading page 1 from the top.
 		saveFilesSnapshot({
 			query: { sort: sortState.sort, order: sortState.order, filter: filterParam },
+			// Only the filter — never the transient ?anchor — defines the list URL
+			// to return to.
+			listSearch: filterParam ? `?filter=${encodeURIComponent(filterParam)}` : '',
 			files,
 			nextCursor,
 			hasMore,
