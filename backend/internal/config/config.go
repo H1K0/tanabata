@@ -28,6 +28,7 @@ type Config struct {
 	// Storage
 	FilesPath       string
 	ThumbsCachePath string
+	MaxUploadBytes  int64 // reject uploads larger than this (bytes)
 
 	// Thumbnails
 	ThumbWidth    int
@@ -85,6 +86,19 @@ func Load() (*Config, error) {
 		return n
 	}
 
+	parseInt64 := func(key string, def int64) int64 {
+		raw := os.Getenv(key)
+		if raw == "" {
+			return def
+		}
+		n, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("%s: invalid integer %q: %w", key, raw, err))
+			return def
+		}
+		return n
+	}
+
 	cfg := &Config{
 		ListenAddr:    defaultStr("LISTEN_ADDR", ":8080"),
 		JWTSecret:     requireStr("JWT_SECRET"),
@@ -98,6 +112,7 @@ func Load() (*Config, error) {
 
 		FilesPath:       requireStr("FILES_PATH"),
 		ThumbsCachePath: requireStr("THUMBS_CACHE_PATH"),
+		MaxUploadBytes:  parseInt64("MAX_UPLOAD_BYTES", 500<<20), // 500 MiB
 
 		ThumbWidth:    parseInt("THUMB_WIDTH", 160),
 		ThumbHeight:   parseInt("THUMB_HEIGHT", 160),

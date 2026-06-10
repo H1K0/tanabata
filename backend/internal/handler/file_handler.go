@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,13 +20,35 @@ import (
 
 // FileHandler handles all /files endpoints.
 type FileHandler struct {
-	fileSvc *service.FileService
-	tagSvc  *service.TagService
+	fileSvc        *service.FileService
+	tagSvc         *service.TagService
+	maxUploadBytes int64
 }
 
-// NewFileHandler creates a FileHandler.
-func NewFileHandler(fileSvc *service.FileService, tagSvc *service.TagService) *FileHandler {
-	return &FileHandler{fileSvc: fileSvc, tagSvc: tagSvc}
+// NewFileHandler creates a FileHandler. maxUploadBytes caps the size of an
+// uploaded or replacement file.
+func NewFileHandler(fileSvc *service.FileService, tagSvc *service.TagService, maxUploadBytes int64) *FileHandler {
+	return &FileHandler{fileSvc: fileSvc, tagSvc: tagSvc, maxUploadBytes: maxUploadBytes}
+}
+
+// formFileLimited reads the "file" multipart field while bounding how many bytes
+// are read from the request body, then rejects files larger than the configured
+// cap. The body limit guards against a dishonest Content-Length; the Size check
+// gives a clear rejection for an honestly-declared oversized file.
+func (h *FileHandler) formFileLimited(c *gin.Context) (*multipart.FileHeader, bool) {
+	// Allow a little slack above the file cap for multipart framing overhead.
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, h.maxUploadBytes+(1<<20))
+
+	fh, err := c.FormFile("file")
+	if err != nil {
+		respondError(c, domain.ErrValidation)
+		return nil, false
+	}
+	if fh.Size > h.maxUploadBytes {
+		respondError(c, domain.ErrValidation)
+		return nil, false
+	}
+	return fh, true
 }
 
 // ---------------------------------------------------------------------------
@@ -186,9 +209,8 @@ func (h *FileHandler) List(c *gin.Context) {
 // ---------------------------------------------------------------------------
 
 func (h *FileHandler) Upload(c *gin.Context) {
-	fh, err := c.FormFile("file")
-	if err != nil {
-		respondError(c, domain.ErrValidation)
+	fh, ok := h.formFileLimited(c)
+	if !ok {
 		return
 	}
 
@@ -378,9 +400,8 @@ func (h *FileHandler) ReplaceContent(c *gin.Context) {
 		return
 	}
 
-	fh, err := c.FormFile("file")
-	if err != nil {
-		respondError(c, domain.ErrValidation)
+	fh, ok := h.formFileLimited(c)
+	if !ok {
 		return
 	}
 

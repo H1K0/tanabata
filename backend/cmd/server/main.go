@@ -103,7 +103,7 @@ func main() {
 	// Handlers
 	authMiddleware  := handler.NewAuthMiddleware(authSvc)
 	authHandler     := handler.NewAuthHandler(authSvc)
-	fileHandler     := handler.NewFileHandler(fileSvc, tagSvc)
+	fileHandler     := handler.NewFileHandler(fileSvc, tagSvc, cfg.MaxUploadBytes)
 	tagHandler      := handler.NewTagHandler(tagSvc, fileSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 	poolHandler     := handler.NewPoolHandler(poolSvc)
