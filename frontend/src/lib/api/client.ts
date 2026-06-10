@@ -1,7 +1,17 @@
 import { get } from 'svelte/store';
+import { goto } from '$app/navigation';
+import { browser } from '$app/environment';
 import { authStore } from '$lib/stores/auth';
 
 const BASE = '/api/v1';
+
+/** Clear the session and bounce to the login screen. Called when the refresh
+ *  token is missing or rejected, so an expired session doesn't strand the user
+ *  on a page that only shows errors. */
+function endSession(): void {
+	authStore.set({ accessToken: null, refreshToken: null, user: null });
+	if (browser) void goto('/login');
+}
 
 export class ApiError extends Error {
 	constructor(
@@ -21,7 +31,7 @@ let refreshPromise: Promise<void> | null = null;
 async function refreshTokens(): Promise<void> {
 	const { refreshToken } = get(authStore);
 	if (!refreshToken) {
-		authStore.set({ accessToken: null, refreshToken: null, user: null });
+		endSession();
 		throw new ApiError(401, 'unauthorized', 'Session expired');
 	}
 
@@ -32,7 +42,7 @@ async function refreshTokens(): Promise<void> {
 	});
 
 	if (!res.ok) {
-		authStore.set({ accessToken: null, refreshToken: null, user: null });
+		endSession();
 		throw new ApiError(401, 'unauthorized', 'Session expired');
 	}
 
