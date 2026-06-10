@@ -77,7 +77,7 @@ func main() {
 		cfg.JWTAccessTTL,
 		cfg.JWTRefreshTTL,
 	)
-	aclSvc      := service.NewACLService(aclRepo)
+	aclSvc      := service.NewACLService(aclRepo, fileRepo, tagRepo, categoryRepo, poolRepo, transactor)
 	auditSvc    := service.NewAuditService(auditRepo)
 	tagSvc      := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
 	categorySvc := service.NewCategoryService(categoryRepo, tagRepo, aclSvc, auditSvc)

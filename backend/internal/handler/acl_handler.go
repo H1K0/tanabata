@@ -80,7 +80,8 @@ func (h *ACLHandler) GetPermissions(c *gin.Context) {
 		return
 	}
 
-	perms, err := h.aclSvc.GetPermissions(c.Request.Context(), objectTypeID, objectID)
+	userID, isAdmin, _ := domain.UserFromContext(c.Request.Context())
+	perms, err := h.aclSvc.GetPermissions(c.Request.Context(), userID, isAdmin, objectTypeID, objectID)
 	if err != nil {
 		respondError(c, err)
 		return
@@ -124,13 +125,14 @@ func (h *ACLHandler) SetPermissions(c *gin.Context) {
 		}
 	}
 
-	if err := h.aclSvc.SetPermissions(c.Request.Context(), objectTypeID, objectID, perms); err != nil {
+	userID, isAdmin, _ := domain.UserFromContext(c.Request.Context())
+	if err := h.aclSvc.SetPermissions(c.Request.Context(), userID, isAdmin, objectTypeID, objectID, perms); err != nil {
 		respondError(c, err)
 		return
 	}
 
 	// Re-read to return the stored permissions (with UserName denormalized).
-	stored, err := h.aclSvc.GetPermissions(c.Request.Context(), objectTypeID, objectID)
+	stored, err := h.aclSvc.GetPermissions(c.Request.Context(), userID, isAdmin, objectTypeID, objectID)
 	if err != nil {
 		respondError(c, err)
 		return

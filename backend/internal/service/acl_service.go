@@ -12,11 +12,32 @@ import (
 
 // ACLService handles access control checks and permission management.
 type ACLService struct {
-	aclRepo port.ACLRepo
+	aclRepo    port.ACLRepo
+	files      port.FileRepo
+	tags       port.TagRepo
+	categories port.CategoryRepo
+	pools      port.PoolRepo
+	tx         port.Transactor
 }
 
-func NewACLService(aclRepo port.ACLRepo) *ACLService {
-	return &ACLService{aclRepo: aclRepo}
+// NewACLService creates an ACLService. The object repositories are used to
+// resolve an object's owner when authorizing permission management.
+func NewACLService(
+	aclRepo port.ACLRepo,
+	files port.FileRepo,
+	tags port.TagRepo,
+	categories port.CategoryRepo,
+	pools port.PoolRepo,
+	tx port.Transactor,
+) *ACLService {
+	return &ACLService{
+		aclRepo:    aclRepo,
+		files:      files,
+		tags:       tags,
+		categories: categories,
+		pools:      pools,
+		tx:         tx,
+	}
 }
 
 // CanView returns true if the user may view the object.
@@ -70,12 +91,86 @@ func (s *ACLService) CanEdit(
 	return perm.CanEdit, nil
 }
 
-// GetPermissions returns all explicit ACL entries for an object.
-func (s *ACLService) GetPermissions(ctx context.Context, objectTypeID int16, objectID uuid.UUID) ([]domain.Permission, error) {
+// GetPermissions returns all explicit ACL entries for an object. Only the
+// object's owner or an admin may inspect its permission list.
+func (s *ACLService) GetPermissions(
+	ctx context.Context,
+	userID int16, isAdmin bool,
+	objectTypeID int16, objectID uuid.UUID,
+) ([]domain.Permission, error) {
+	if err := s.authorizeManage(ctx, userID, isAdmin, objectTypeID, objectID); err != nil {
+		return nil, err
+	}
 	return s.aclRepo.List(ctx, objectTypeID, objectID)
 }
 
 // SetPermissions replaces all ACL entries for an object (full replace semantics).
-func (s *ACLService) SetPermissions(ctx context.Context, objectTypeID int16, objectID uuid.UUID, perms []domain.Permission) error {
-	return s.aclRepo.Set(ctx, objectTypeID, objectID, perms)
+// Only the object's owner or an admin may change its permissions. The replace is
+// performed atomically inside a single transaction.
+func (s *ACLService) SetPermissions(
+	ctx context.Context,
+	userID int16, isAdmin bool,
+	objectTypeID int16, objectID uuid.UUID,
+	perms []domain.Permission,
+) error {
+	if err := s.authorizeManage(ctx, userID, isAdmin, objectTypeID, objectID); err != nil {
+		return err
+	}
+	return s.tx.WithTx(ctx, func(ctx context.Context) error {
+		return s.aclRepo.Set(ctx, objectTypeID, objectID, perms)
+	})
+}
+
+// authorizeManage returns nil if the user may manage the object's ACL
+// (admin or owner), ErrForbidden otherwise, or a propagated lookup error
+// (including ErrNotFound when the object does not exist).
+func (s *ACLService) authorizeManage(
+	ctx context.Context,
+	userID int16, isAdmin bool,
+	objectTypeID int16, objectID uuid.UUID,
+) error {
+	if isAdmin {
+		return nil
+	}
+	owner, err := s.objectOwner(ctx, objectTypeID, objectID)
+	if err != nil {
+		return err
+	}
+	if owner != userID {
+		return domain.ErrForbidden
+	}
+	return nil
+}
+
+// objectOwner resolves the creator ID of the object identified by
+// (objectTypeID, objectID). Returns ErrNotFound if the object does not exist.
+func (s *ACLService) objectOwner(ctx context.Context, objectTypeID int16, objectID uuid.UUID) (int16, error) {
+	switch objectTypeID {
+	case fileObjectTypeID:
+		obj, err := s.files.GetByID(ctx, objectID)
+		if err != nil {
+			return 0, err
+		}
+		return obj.CreatorID, nil
+	case tagObjectTypeID:
+		obj, err := s.tags.GetByID(ctx, objectID)
+		if err != nil {
+			return 0, err
+		}
+		return obj.CreatorID, nil
+	case categoryObjectTypeID:
+		obj, err := s.categories.GetByID(ctx, objectID)
+		if err != nil {
+			return 0, err
+		}
+		return obj.CreatorID, nil
+	case poolObjectTypeID:
+		obj, err := s.pools.GetByID(ctx, objectID)
+		if err != nil {
+			return 0, err
+		}
+		return obj.CreatorID, nil
+	default:
+		return 0, domain.ErrValidation
+	}
 }

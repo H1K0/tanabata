@@ -125,7 +125,7 @@ func setupSuite(t *testing.T) *harness {
 
 	// --- Services ------------------------------------------------------------
 	authSvc     := service.NewAuthService(userRepo, sessionRepo, "test-secret", 15*time.Minute, 720*time.Hour)
-	aclSvc      := service.NewACLService(aclRepo)
+	aclSvc      := service.NewACLService(aclRepo, fileRepo, tagRepo, categoryRepo, poolRepo, transactor)
 	auditSvc    := service.NewAuditService(auditRepo)
 	tagSvc      := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
 	categorySvc := service.NewCategoryService(categoryRepo, tagRepo, aclSvc, auditSvc)
