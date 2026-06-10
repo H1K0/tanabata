@@ -116,6 +116,12 @@ func (r *CategoryRepo) List(ctx context.Context, params port.OffsetParams) (*dom
 		args = append(args, "%"+params.Search+"%")
 		n++
 	}
+	// Restrict to categories the viewer may see (private-by-default), unless admin.
+	if !params.ViewerIsAdmin {
+		var aclCond string
+		aclCond, n, args = aclVisibilityCond("c", objTypeCategory, params.ViewerID, n, args)
+		conditions = append(conditions, aclCond)
+	}
 
 	where := ""
 	if len(conditions) > 0 {

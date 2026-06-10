@@ -607,6 +607,13 @@ func (r *FileRepo) List(ctx context.Context, params domain.FileListParams) (*dom
 		}
 	}
 
+	// Restrict to files the viewer may see (private-by-default), unless admin.
+	if !params.ViewerIsAdmin {
+		var aclCond string
+		aclCond, n, args = aclVisibilityCond("f", objTypeFile, params.ViewerID, n, args)
+		conds = append(conds, aclCond)
+	}
+
 	var orderBy string
 	if hasCursor {
 		ksWhere, ksOrder, nextN, ksArgs := buildKeysetCond(

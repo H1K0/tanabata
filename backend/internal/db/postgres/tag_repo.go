@@ -169,6 +169,12 @@ func (r *TagRepo) listTags(ctx context.Context, params port.OffsetParams, catego
 		args = append(args, *categoryID)
 		n++
 	}
+	// Restrict to tags the viewer may see (private-by-default), unless admin.
+	if !params.ViewerIsAdmin {
+		var aclCond string
+		aclCond, n, args = aclVisibilityCond("t", objTypeTag, params.ViewerID, n, args)
+		conditions = append(conditions, aclCond)
+	}
 
 	where := ""
 	if len(conditions) > 0 {

@@ -54,14 +54,27 @@ func NewTagService(
 // Tag CRUD
 // ---------------------------------------------------------------------------
 
-// List returns a paginated, optionally filtered list of tags.
+// List returns a paginated, optionally filtered list of tags the caller may see.
 func (s *TagService) List(ctx context.Context, params port.OffsetParams) (*domain.TagOffsetPage, error) {
+	params.ViewerID, params.ViewerIsAdmin, _ = domain.UserFromContext(ctx)
 	return s.tags.List(ctx, params)
 }
 
-// Get returns a tag by ID.
+// Get returns a tag by ID, enforcing view ACL.
 func (s *TagService) Get(ctx context.Context, id uuid.UUID) (*domain.Tag, error) {
-	return s.tags.GetByID(ctx, id)
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+	t, err := s.tags.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	ok, err := s.acl.CanView(ctx, userID, isAdmin, t.CreatorID, t.IsPublic, tagObjectTypeID, id)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, domain.ErrForbidden
+	}
+	return t, nil
 }
 
 // Create inserts a new tag record.

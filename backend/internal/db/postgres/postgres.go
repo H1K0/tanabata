@@ -65,3 +65,29 @@ func connOrTx(ctx context.Context, pool *pgxpool.Pool) db.Querier {
 	}
 	return pool
 }
+
+// Object type IDs as seeded in core.object_types (007_seed_data.sql).
+const (
+	objTypeFile     int16 = 1
+	objTypeTag      int16 = 2
+	objTypeCategory int16 = 3
+	objTypePool     int16 = 4
+)
+
+// aclVisibilityCond returns a SQL boolean fragment that is true when the viewer
+// may see the row at <alias>.id of the given object type under the
+// private-by-default model: the row is public, the viewer created it, or the
+// viewer holds an explicit can_view grant. objectTypeID is a trusted constant
+// and is inlined; viewerID is bound as $n (referenced twice). Returns the
+// fragment, the next free parameter index, and the extended args.
+//
+// Callers skip this entirely for admins (who bypass ACL).
+func aclVisibilityCond(alias string, objectTypeID int16, viewerID int16, n int, args []any) (string, int, []any) {
+	cond := fmt.Sprintf(
+		"(%[1]s.is_public OR %[1]s.creator_id = $%[2]d OR EXISTS ("+
+			"SELECT 1 FROM acl.permissions p "+
+			"WHERE p.object_type_id = %[3]d AND p.object_id = %[1]s.id "+
+			"AND p.user_id = $%[2]d AND p.can_view))",
+		alias, n, objectTypeID)
+	return cond, n + 1, append(args, viewerID)
+}

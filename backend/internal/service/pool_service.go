@@ -41,14 +41,63 @@ func NewPoolService(
 // CRUD
 // ---------------------------------------------------------------------------
 
-// List returns a paginated list of pools.
+// List returns a paginated list of pools the caller may see.
 func (s *PoolService) List(ctx context.Context, params port.OffsetParams) (*domain.PoolOffsetPage, error) {
+	params.ViewerID, params.ViewerIsAdmin, _ = domain.UserFromContext(ctx)
 	return s.pools.List(ctx, params)
 }
 
-// Get returns a pool by ID.
+// Get returns a pool by ID, enforcing view ACL.
 func (s *PoolService) Get(ctx context.Context, id uuid.UUID) (*domain.Pool, error) {
-	return s.pools.GetByID(ctx, id)
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+	p, err := s.pools.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	ok, err := s.acl.CanView(ctx, userID, isAdmin, p.CreatorID, p.IsPublic, poolObjectTypeID, id)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, domain.ErrForbidden
+	}
+	return p, nil
+}
+
+// authorizeView returns nil if the caller may view the pool, else ErrForbidden
+// (or ErrNotFound if the pool does not exist).
+func (s *PoolService) authorizeView(ctx context.Context, poolID uuid.UUID) error {
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+	p, err := s.pools.GetByID(ctx, poolID)
+	if err != nil {
+		return err
+	}
+	ok, err := s.acl.CanView(ctx, userID, isAdmin, p.CreatorID, p.IsPublic, poolObjectTypeID, poolID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return domain.ErrForbidden
+	}
+	return nil
+}
+
+// authorizeEdit returns nil if the caller may edit the pool, else ErrForbidden
+// (or ErrNotFound if the pool does not exist).
+func (s *PoolService) authorizeEdit(ctx context.Context, poolID uuid.UUID) error {
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+	p, err := s.pools.GetByID(ctx, poolID)
+	if err != nil {
+		return err
+	}
+	ok, err := s.acl.CanEdit(ctx, userID, isAdmin, p.CreatorID, poolObjectTypeID, poolID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return domain.ErrForbidden
+	}
+	return nil
 }
 
 // Create inserts a new pool.
@@ -146,13 +195,21 @@ func (s *PoolService) Delete(ctx context.Context, id uuid.UUID) error {
 // Pool–file operations
 // ---------------------------------------------------------------------------
 
-// ListFiles returns cursor-paginated files within a pool ordered by position.
+// ListFiles returns cursor-paginated files within a pool ordered by position,
+// enforcing view ACL on the pool.
 func (s *PoolService) ListFiles(ctx context.Context, poolID uuid.UUID, params port.PoolFileListParams) (*domain.PoolFilePage, error) {
+	if err := s.authorizeView(ctx, poolID); err != nil {
+		return nil, err
+	}
 	return s.pools.ListFiles(ctx, poolID, params)
 }
 
-// AddFiles adds files to a pool at the given position (nil = append).
+// AddFiles adds files to a pool at the given position (nil = append), enforcing
+// edit ACL on the pool.
 func (s *PoolService) AddFiles(ctx context.Context, poolID uuid.UUID, fileIDs []uuid.UUID, position *int) error {
+	if err := s.authorizeEdit(ctx, poolID); err != nil {
+		return err
+	}
 	if err := s.pools.AddFiles(ctx, poolID, fileIDs, position); err != nil {
 		return err
 	}
@@ -161,8 +218,11 @@ func (s *PoolService) AddFiles(ctx context.Context, poolID uuid.UUID, fileIDs []
 	return nil
 }
 
-// RemoveFiles removes files from a pool.
+// RemoveFiles removes files from a pool, enforcing edit ACL on the pool.
 func (s *PoolService) RemoveFiles(ctx context.Context, poolID uuid.UUID, fileIDs []uuid.UUID) error {
+	if err := s.authorizeEdit(ctx, poolID); err != nil {
+		return err
+	}
 	if err := s.pools.RemoveFiles(ctx, poolID, fileIDs); err != nil {
 		return err
 	}
@@ -171,7 +231,11 @@ func (s *PoolService) RemoveFiles(ctx context.Context, poolID uuid.UUID, fileIDs
 	return nil
 }
 
-// Reorder sets the full ordered sequence of file IDs within a pool.
+// Reorder sets the ordered sequence of file IDs within a pool, enforcing edit
+// ACL on the pool.
 func (s *PoolService) Reorder(ctx context.Context, poolID uuid.UUID, fileIDs []uuid.UUID) error {
+	if err := s.authorizeEdit(ctx, poolID); err != nil {
+		return err
+	}
 	return s.pools.Reorder(ctx, poolID, fileIDs)
 }

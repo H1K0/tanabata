@@ -49,14 +49,27 @@ func NewCategoryService(
 // CRUD
 // ---------------------------------------------------------------------------
 
-// List returns a paginated, optionally filtered list of categories.
+// List returns a paginated list of categories the caller may see.
 func (s *CategoryService) List(ctx context.Context, params port.OffsetParams) (*domain.CategoryOffsetPage, error) {
+	params.ViewerID, params.ViewerIsAdmin, _ = domain.UserFromContext(ctx)
 	return s.categories.List(ctx, params)
 }
 
-// Get returns a category by ID.
+// Get returns a category by ID, enforcing view ACL.
 func (s *CategoryService) Get(ctx context.Context, id uuid.UUID) (*domain.Category, error) {
-	return s.categories.GetByID(ctx, id)
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+	c, err := s.categories.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	ok, err := s.acl.CanView(ctx, userID, isAdmin, c.CreatorID, c.IsPublic, categoryObjectTypeID, id)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, domain.ErrForbidden
+	}
+	return c, nil
 }
 
 // Create inserts a new category record.
@@ -158,7 +171,9 @@ func (s *CategoryService) Delete(ctx context.Context, id uuid.UUID) error {
 // Tags in category
 // ---------------------------------------------------------------------------
 
-// ListTags returns a paginated list of tags belonging to this category.
+// ListTags returns a paginated list of tags in this category that the caller
+// may see.
 func (s *CategoryService) ListTags(ctx context.Context, categoryID uuid.UUID, params port.OffsetParams) (*domain.TagOffsetPage, error) {
+	params.ViewerID, params.ViewerIsAdmin, _ = domain.UserFromContext(ctx)
 	return s.tags.ListByCategory(ctx, categoryID, params)
 }

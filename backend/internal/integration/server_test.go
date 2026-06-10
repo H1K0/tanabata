@@ -828,6 +828,121 @@ func TestBlockRevokesActiveSessions(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, resp.String())
 }
 
+// fileListIDs returns the set of file IDs visible to token via GET /files.
+func (h *harness) fileListIDs(token string) map[string]bool {
+	h.t.Helper()
+	resp := h.doJSON("GET", "/files", nil, token)
+	require.Equal(h.t, http.StatusOK, resp.StatusCode, resp.String())
+	var page map[string]any
+	resp.decode(h.t, &page)
+	ids := map[string]bool{}
+	if items, ok := page["items"].([]any); ok {
+		for _, it := range items {
+			if m, ok := it.(map[string]any); ok {
+				if id, ok := m["id"].(string); ok {
+					ids[id] = true
+				}
+			}
+		}
+	}
+	return ids
+}
+
+// TestPrivateByDefaultVisibility verifies that listings only return rows the
+// caller may see: private files are hidden from non-owners, public files are
+// visible to all, an explicit grant reveals a private file, and admins see all.
+func TestPrivateByDefaultVisibility(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	resp := h.doJSON("POST", "/users", map[string]any{"name": "alice", "password": "alicepass"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	resp = h.doJSON("POST", "/users", map[string]any{"name": "bob", "password": "bobpass"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var bob map[string]any
+	resp.decode(t, &bob)
+	bobID := bob["id"].(float64)
+
+	aliceToken := h.login("alice", "alicepass")
+	bobToken := h.login("bob", "bobpass")
+
+	file := h.uploadJPEG(aliceToken, "alice-secret.jpg")
+	fileID := file["id"].(string)
+
+	// Owner and admin see it; the unrelated user does not.
+	assert.True(t, h.fileListIDs(aliceToken)[fileID], "owner should see own file")
+	assert.True(t, h.fileListIDs(adminToken)[fileID], "admin should see all files")
+	assert.False(t, h.fileListIDs(bobToken)[fileID], "private file must not appear for a non-owner")
+
+	// Making it public reveals it to everyone.
+	resp = h.doJSON("PATCH", "/files/"+fileID, map[string]any{"is_public": true}, aliceToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	assert.True(t, h.fileListIDs(bobToken)[fileID], "public file should be visible to all")
+
+	// Private again → hidden; an explicit view grant reveals it.
+	resp = h.doJSON("PATCH", "/files/"+fileID, map[string]any{"is_public": false}, aliceToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	assert.False(t, h.fileListIDs(bobToken)[fileID])
+
+	resp = h.doJSON("PUT", "/acl/file/"+fileID, map[string]any{
+		"permissions": []map[string]any{{"user_id": bobID, "can_view": true, "can_edit": false}},
+	}, aliceToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	assert.True(t, h.fileListIDs(bobToken)[fileID], "granted file should be visible in the listing")
+}
+
+// TestPoolOperationsRequireACL verifies that a non-owner cannot view or modify
+// another user's private pool's contents.
+func TestPoolOperationsRequireACL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	resp := h.doJSON("POST", "/users", map[string]any{"name": "alice", "password": "alicepass"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	resp = h.doJSON("POST", "/users", map[string]any{"name": "bob", "password": "bobpass"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+
+	aliceToken := h.login("alice", "alicepass")
+	bobToken := h.login("bob", "bobpass")
+
+	file := h.uploadJPEG(aliceToken, "f.jpg")
+	fileID := file["id"].(string)
+
+	resp = h.doJSON("POST", "/pools", map[string]any{"name": "alice pool", "is_public": false}, aliceToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var pool map[string]any
+	resp.decode(t, &pool)
+	poolID := pool["id"].(string)
+
+	resp = h.doJSON("POST", "/pools/"+poolID+"/files", map[string]any{"file_ids": []string{fileID}}, aliceToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+
+	// Bob cannot view the pool, list its files, or mutate its membership.
+	for _, c := range []struct {
+		method, path string
+		body         any
+	}{
+		{"GET", "/pools/" + poolID, nil},
+		{"GET", "/pools/" + poolID + "/files", nil},
+		{"POST", "/pools/" + poolID + "/files", map[string]any{"file_ids": []string{fileID}}},
+		{"POST", "/pools/" + poolID + "/files/remove", map[string]any{"file_ids": []string{fileID}}},
+		{"PUT", "/pools/" + poolID + "/files/reorder", map[string]any{"file_ids": []string{fileID}}},
+	} {
+		resp = h.doJSON(c.method, c.path, c.body, bobToken)
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode, "%s %s: %s", c.method, c.path, resp)
+	}
+
+	// The owner can still list the pool's files.
+	resp = h.doJSON("GET", "/pools/"+poolID+"/files", nil, aliceToken)
+	assert.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+}
+
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------

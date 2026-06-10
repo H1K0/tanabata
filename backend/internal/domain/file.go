@@ -49,6 +49,12 @@ type FileListParams struct {
 	Filter string // filter DSL expression
 	Search string // substring match on original_name
 	Trash  bool   // if true, return only soft-deleted files
+
+	// Visibility — populated by the service from the request context. When
+	// ViewerIsAdmin is false the repository restricts results to files the
+	// viewer may see (public, owned, or explicitly granted).
+	ViewerID      int16
+	ViewerIsAdmin bool
 }
 
 // FilePage is the result of a cursor-based file listing.

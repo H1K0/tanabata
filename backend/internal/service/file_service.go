@@ -406,8 +406,10 @@ func (s *FileService) Replace(ctx context.Context, id uuid.UUID, p UploadParams)
 	return updated, nil
 }
 
-// List delegates to FileRepo with the given params.
+// List delegates to FileRepo with the given params, restricting results to
+// files the caller may see (unless they are an admin).
 func (s *FileService) List(ctx context.Context, params domain.FileListParams) (*domain.FilePage, error) {
+	params.ViewerID, params.ViewerIsAdmin, _ = domain.UserFromContext(ctx)
 	return s.files.List(ctx, params)
 }
 

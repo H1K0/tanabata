@@ -22,6 +22,13 @@ type OffsetParams struct {
 	Search string
 	Offset int
 	Limit  int
+
+	// Visibility — populated by the service from the request context. When
+	// ViewerIsAdmin is false the repository restricts results to rows the viewer
+	// may see (public, owned, or explicitly granted). Ignored by user listing,
+	// which is admin-only.
+	ViewerID      int16
+	ViewerIsAdmin bool
 }
 
 // PoolFileListParams holds parameters for listing files inside a pool.
