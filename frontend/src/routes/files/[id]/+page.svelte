@@ -183,6 +183,14 @@
 		if (!iso) return '—';
 		return new Date(iso).toLocaleString();
 	}
+
+	// EXIF values may be nested arrays/objects (e.g. rationals, GPS); render those
+	// as JSON instead of the useless "[object Object]".
+	function formatExifValue(val: unknown): string {
+		if (val === null || val === undefined) return '—';
+		if (typeof val === 'object') return JSON.stringify(val);
+		return String(val);
+	}
 </script>
 
 <svelte:head>
@@ -312,7 +320,7 @@
 					<dl class="exif">
 						{#each exifEntries as [key, val]}
 							<dt>{key}</dt>
-							<dd>{String(val)}</dd>
+							<dd>{formatExifValue(val)}</dd>
 						{/each}
 					</dl>
 				</section>
