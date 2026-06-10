@@ -3,6 +3,8 @@
 	import { api, ApiError } from '$lib/api/client';
 	import { tagSorting, type TagSortField } from '$lib/stores/sorting';
 	import TagBadge from '$lib/components/tag/TagBadge.svelte';
+	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
+	import { tick } from 'svelte';
 	import type { Tag, TagOffsetPage } from '$lib/api/types';
 
 	const LIMIT = 100;
@@ -15,6 +17,7 @@
 	];
 
 	let tags = $state<Tag[]>([]);
+	let scrollContainer = $state<HTMLElement | undefined>();
 	let total = $state(0);
 	let offset = $state(0);
 	let loading = $state(false);
@@ -65,6 +68,12 @@
 		} finally {
 			loading = false;
 			initialLoaded = true;
+		}
+		// Keep loading until the content fills the viewport so the infinite-scroll
+		// sentinel ends up below the fold; then stop.
+		await tick();
+		if (hasMore && scrollContainer && scrollContainer.scrollHeight <= scrollContainer.clientHeight) {
+			void load();
 		}
 	}
 
@@ -136,7 +145,7 @@
 		</div>
 	</div>
 
-	<main>
+	<main bind:this={scrollContainer}>
 		{#if error}
 			<p class="error" role="alert">{error}</p>
 		{/if}
@@ -147,15 +156,7 @@
 			{/each}
 		</div>
 
-		{#if loading}
-			<div class="loading-row">
-				<span class="spinner" role="status" aria-label="Loading"></span>
-			</div>
-		{/if}
-
-		{#if hasMore && !loading}
-			<button class="load-more" onclick={load}>Load more</button>
-		{/if}
+		<InfiniteScroll {loading} {hasMore} onLoadMore={load} />
 
 		{#if !loading && tags.length === 0}
 			<div class="empty">
@@ -313,41 +314,6 @@
 		flex-wrap: wrap;
 		gap: 8px;
 		align-content: flex-start;
-	}
-
-	.loading-row {
-		display: flex;
-		justify-content: center;
-		padding: 20px;
-	}
-
-	.spinner {
-		display: block;
-		width: 28px;
-		height: 28px;
-		border: 3px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
-		border-top-color: var(--color-accent);
-		border-radius: 50%;
-		animation: spin 0.7s linear infinite;
-	}
-
-	@keyframes spin { to { transform: rotate(360deg); } }
-
-	.load-more {
-		display: block;
-		margin: 16px auto 0;
-		padding: 8px 24px;
-		border-radius: 6px;
-		border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
-		background: none;
-		color: var(--color-accent);
-		font-family: inherit;
-		font-size: 0.85rem;
-		cursor: pointer;
-	}
-
-	.load-more:hover {
-		background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
 	}
 
 	.error {
