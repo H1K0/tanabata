@@ -291,7 +291,7 @@
 		try {
 			const params = new URLSearchParams({ limit: String(LIMIT), sort: 'created', order: 'desc' });
 			if (addNextCursor) params.set('cursor', addNextCursor);
-			if (addSearch.trim()) params.set('filter', `{n~%${addSearch.trim()}%}`);
+			if (addSearch.trim()) params.set('search', addSearch.trim());
 			const res = await api.get<FileCursorPage>(`/files?${params}`);
 			addFiles = [...addFiles, ...(res.items ?? [])];
 			addNextCursor = res.next_cursor ?? null;
