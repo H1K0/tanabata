@@ -690,6 +690,145 @@ func TestTagAutoRule(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Security regression tests
+// ---------------------------------------------------------------------------
+
+// loginPair logs in and returns the full access/refresh token pair.
+func (h *harness) loginPair(name, password string) (access, refresh string) {
+	h.t.Helper()
+	resp := h.doJSON("POST", "/auth/login", map[string]string{"name": name, "password": password}, "")
+	require.Equal(h.t, http.StatusOK, resp.StatusCode, "login failed: %s", resp)
+	var out struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	resp.decode(h.t, &out)
+	require.NotEmpty(h.t, out.AccessToken)
+	require.NotEmpty(h.t, out.RefreshToken)
+	return out.AccessToken, out.RefreshToken
+}
+
+// TestRefreshTokenFlow verifies that refresh tokens work (regression for the
+// stored-hash mismatch that made /refresh always 401), that a refresh token is
+// rejected as a bearer access token, and that rotating a session revokes the
+// pre-rotation access token.
+func TestRefreshTokenFlow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	h := setupSuite(t)
+
+	access, refresh := h.loginPair("admin", "admin")
+
+	// A refresh token must not be accepted as a bearer access token.
+	resp := h.doJSON("GET", "/users/me", nil, refresh)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, resp.String())
+
+	// Refreshing yields a working new pair.
+	resp = h.doJSON("POST", "/auth/refresh", map[string]string{"refresh_token": refresh}, "")
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	var pair struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	resp.decode(t, &pair)
+	require.NotEmpty(t, pair.AccessToken)
+
+	resp = h.doJSON("GET", "/users/me", nil, pair.AccessToken)
+	assert.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	// The pre-rotation access token is now revoked (its session was rotated away).
+	resp = h.doJSON("GET", "/users/me", nil, access)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, resp.String())
+}
+
+// TestNonOwnerAccessControl verifies that a non-owner, non-admin user cannot
+// read or change another user's object ACL, cannot view or tag another user's
+// private file, and cannot trigger a server-side import.
+func TestNonOwnerAccessControl(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	mkUser := func(name, pass string) {
+		resp := h.doJSON("POST", "/users", map[string]any{
+			"name": name, "password": pass, "can_create": true,
+		}, adminToken)
+		require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	}
+	mkUser("alice", "alicepass")
+	mkUser("bob", "bobpass")
+
+	aliceToken := h.login("alice", "alicepass")
+	bobToken := h.login("bob", "bobpass")
+
+	// Alice uploads a private file.
+	file := h.uploadJPEG(aliceToken, "secret.jpg")
+	fileID := file["id"].(string)
+
+	// Bob cannot read the file's ACL...
+	resp := h.doJSON("GET", "/acl/file/"+fileID, nil, bobToken)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode, resp.String())
+
+	// ...nor grant himself access.
+	resp = h.doJSON("PUT", "/acl/file/"+fileID, map[string]any{
+		"permissions": []map[string]any{{"user_id": 2, "can_view": true, "can_edit": true}},
+	}, bobToken)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode, resp.String())
+
+	// ...and still cannot view it.
+	resp = h.doJSON("GET", "/files/"+fileID, nil, bobToken)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode, resp.String())
+
+	// Bob cannot list or modify tags on Alice's private file.
+	resp = h.doJSON("GET", "/files/"+fileID+"/tags", nil, bobToken)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode, resp.String())
+
+	resp = h.doJSON("PUT", "/files/"+fileID+"/tags", map[string]any{
+		"tag_ids": []string{"11111111-1111-1111-1111-111111111111"},
+	}, bobToken)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode, resp.String())
+
+	// A non-admin cannot trigger a server-side import.
+	resp = h.doJSON("POST", "/files/import", map[string]any{}, bobToken)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode, resp.String())
+
+	// The owner can still manage her own file's ACL.
+	resp = h.doJSON("GET", "/acl/file/"+fileID, nil, aliceToken)
+	assert.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+}
+
+// TestBlockRevokesActiveSessions verifies that blocking a user immediately
+// invalidates their outstanding access tokens.
+func TestBlockRevokesActiveSessions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	resp := h.doJSON("POST", "/users", map[string]any{"name": "dave", "password": "davepass"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var dave map[string]any
+	resp.decode(t, &dave)
+	daveID := dave["id"].(float64)
+
+	daveToken := h.login("dave", "davepass")
+	resp = h.doJSON("GET", "/users/me", nil, daveToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	// Block dave.
+	resp = h.doJSON("PATCH", fmt.Sprintf("/users/%.0f", daveID), map[string]any{"is_blocked": true}, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	// Dave's previously-issued access token is now rejected.
+	resp = h.doJSON("GET", "/users/me", nil, daveToken)
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, resp.String())
+}
+
+// ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
 
