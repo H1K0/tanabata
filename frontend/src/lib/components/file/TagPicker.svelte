@@ -109,6 +109,12 @@
 				void handleRemove(tag.id);
 				assignedFocusIdx = Math.min(assignedFocusIdx, filteredAssigned.length - 2);
 			}
+		} else if (e.key === 'Escape') {
+			// Let the keyboard leave the field: blur back to the page so arrow keys
+			// and Escape reach the viewer again (e.g. a second Esc closes it).
+			e.preventDefault();
+			assignedFocusIdx = -1;
+			(e.currentTarget as HTMLInputElement).blur();
 		}
 	}
 </script>

@@ -49,7 +49,7 @@
 				['& | ! ( )', 'Insert an operator (filter only)'],
 				['Ctrl+Enter', 'Apply the filter'],
 				['Ctrl+Backspace', 'Reset the filter'],
-				['Esc', 'Close']
+				['Esc', 'Leave the field / close']
 			]
 		}
 	];
