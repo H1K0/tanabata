@@ -174,6 +174,10 @@
 		flex-shrink: 0;
 		user-select: none;
 		-webkit-user-select: none;
+		/* Keyboard scrollIntoView leaves room for the sticky header above and the
+		   fixed bottom navbar below, so the focused card never hides under them. */
+		scroll-margin-top: 52px;
+		scroll-margin-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 	}
 
 	.thumb {

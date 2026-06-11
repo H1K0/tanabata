@@ -71,29 +71,16 @@
 		focusedId = files[next]?.id ?? null;
 		if (next >= files.length - gridCols() * 2 && hasMore && !loading) void loadMore();
 		const id = focusedId;
-		requestAnimationFrame(() => keepFocusedInView(id));
-	}
-
-	// Keep the focused card within the scroller, leaving a margin at the bottom for
-	// the fixed navbar (which overlaps the scroll area and otherwise hides the row
-	// the focus moves onto). scrollIntoView can't account for that overlay.
-	const FOCUS_MARGIN_TOP = 8;
-	const FOCUS_MARGIN_BOTTOM = 72; // ~navbar height + gap
-
-	function keepFocusedInView(id: string | null) {
-		if (!id || !scrollContainer) return;
-		const idx = files.findIndex((f) => f.id === id);
-		const card = scrollContainer.querySelector<HTMLElement>(`[data-file-index="${idx}"]`);
-		if (!card) return;
-		const cardRect = card.getBoundingClientRect();
-		const scRect = scrollContainer.getBoundingClientRect();
-		const top = cardRect.top - scRect.top;
-		const bottom = cardRect.bottom - scRect.top;
-		if (top < FOCUS_MARGIN_TOP) {
-			scrollContainer.scrollTop += top - FOCUS_MARGIN_TOP;
-		} else if (bottom > scRect.height - FOCUS_MARGIN_BOTTOM) {
-			scrollContainer.scrollTop += bottom - (scRect.height - FOCUS_MARGIN_BOTTOM);
-		}
+		// scrollIntoView scrolls whichever element actually scrolls (the window
+		// here, not <main>), so the grid follows the focus. The card's
+		// scroll-margin-bottom leaves room for the fixed navbar so it doesn't slide
+		// underneath.
+		requestAnimationFrame(() => {
+			const idx = files.findIndex((f) => f.id === id);
+			scrollContainer
+				?.querySelector<HTMLElement>(`[data-file-index="${idx}"]`)
+				?.scrollIntoView({ block: 'nearest' });
+		});
 	}
 
 	// Action keys operate on the selection; with nothing selected they fall back to
