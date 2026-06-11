@@ -119,9 +119,13 @@
 		error = '';
 		// Deep-link return carrying a position anchor but no loaded grid: load a
 		// window centred on the anchor instead of page 1, so we can scroll to it
-		// and grow the grid in both directions.
+		// and grow the grid in both directions. Otherwise (first mount, or a sort/
+		// filter change) load page 1 right here — the list isn't remounted on a
+		// query change, so InfiniteScroll won't re-trigger on its own.
 		if (firstRun && anchorParam) {
 			void loadAroundAnchor(anchorParam);
+		} else {
+			void loadMore();
 		}
 	});
 
