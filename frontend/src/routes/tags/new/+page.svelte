@@ -6,6 +6,10 @@
 
 	let name = $state('');
 	let notes = $state('');
+	// A native <input type="color"> always holds a value, so a separate flag tracks
+	// whether the tag should have a color at all. Off by default → no colour unless
+	// the user opts in (otherwise the tag falls back to its category / the default).
+	let hasColor = $state(false);
 	let color = $state('#444455');
 	let categoryId = $state('');
 	let isPublic = $state(false);
@@ -27,7 +31,7 @@
 			await api.post('/tags', {
 				name: name.trim(),
 				notes: notes.trim() || null,
-				color: color.slice(1), // strip #
+				color: hasColor ? color.slice(1) : null, // strip #; null = no colour
 				category_id: categoryId || null,
 				is_public: isPublic
 			});
@@ -86,8 +90,18 @@
 					/>
 				</div>
 				<div class="field color-field">
-					<label class="label" for="color">Color</label>
-					<input id="color" class="color-input" type="color" bind:value={color} />
+					<label class="label color-label">
+						<input type="checkbox" class="color-check" bind:checked={hasColor} />
+						Color
+					</label>
+					<input
+						id="color"
+						class="color-input"
+						type="color"
+						bind:value={color}
+						disabled={!hasColor}
+						aria-label="Tag color"
+					/>
 				</div>
 			</div>
 
@@ -235,6 +249,18 @@
 		border-color: var(--color-accent);
 	}
 
+	.color-label {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		cursor: pointer;
+	}
+
+	.color-check {
+		cursor: pointer;
+		accent-color: var(--color-accent);
+	}
+
 	.color-input {
 		width: 50px;
 		height: 36px;
@@ -243,6 +269,11 @@
 		border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
 		background-color: var(--color-bg-elevated);
 		cursor: pointer;
+	}
+
+	.color-input:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
 	}
 
 	.textarea {
