@@ -13,7 +13,6 @@ import (
 
 	"github.com/gabriel-vasile/mimetype"
 	"github.com/google/uuid"
-	"github.com/rwcarlsen/goexif/exif"
 
 	"tanabata/backend/internal/domain"
 	"tanabata/backend/internal/port"
@@ -112,7 +111,7 @@ func NewFileService(
 
 // Upload validates the MIME type, saves the file to storage, creates the DB
 // record, and applies any initial tags — all within a single transaction.
-// If ContentDatetime is nil and EXIF DateTimeOriginal is present, it is used.
+// If ContentDatetime is nil and the metadata carries a capture date, it is used.
 func (s *FileService) Upload(ctx context.Context, p UploadParams) (*domain.File, error) {
 	userID, _, _ := domain.UserFromContext(ctx)
 
@@ -129,10 +128,14 @@ func (s *FileService) Upload(ctx context.Context, p UploadParams) (*domain.File,
 	}
 	data := buf.Bytes()
 
-	// Extract EXIF metadata (best-effort; non-image files will error silently).
-	exifData, exifDatetime := extractEXIFWithDatetime(data)
+	// Extract rich metadata (best-effort; covers images, video and audio).
+	var origName string
+	if p.OriginalName != nil {
+		origName = *p.OriginalName
+	}
+	exifData, exifDatetime := extractMetadata(data, origName, p.ContentDatetimeFallback)
 
-	// Resolve content datetime: explicit > EXIF > fallback (e.g. import mtime) > zero.
+	// Resolve content datetime: explicit > metadata date > fallback (e.g. import mtime) > zero.
 	var contentDatetime time.Time
 	if p.ContentDatetime != nil {
 		contentDatetime = *p.ContentDatetime
@@ -405,7 +408,11 @@ func (s *FileService) Replace(ctx context.Context, id uuid.UUID, p UploadParams)
 		return nil, fmt.Errorf("FileService.Replace: read body: %w", err)
 	}
 	data := buf.Bytes()
-	exifData, _ := extractEXIFWithDatetime(data)
+	var origName string
+	if p.OriginalName != nil {
+		origName = *p.OriginalName
+	}
+	exifData, _ := extractMetadata(data, origName, nil)
 
 	if _, err := s.storage.Save(ctx, id, bytes.NewReader(data)); err != nil {
 		return nil, fmt.Errorf("FileService.Replace: save to storage: %w", err)
@@ -655,22 +662,4 @@ func confineToBase(base, target string) (string, error) {
 		return "", domain.ErrForbidden
 	}
 	return absTarget, nil
-}
-
-// extractEXIFWithDatetime parses EXIF from raw bytes, returning both the JSON
-// representation and the DateTimeOriginal (if present). Both may be nil.
-func extractEXIFWithDatetime(data []byte) (json.RawMessage, *time.Time) {
-	x, err := exif.Decode(bytes.NewReader(data))
-	if err != nil {
-		return nil, nil
-	}
-	b, err := x.MarshalJSON()
-	if err != nil {
-		return nil, nil
-	}
-	var dt *time.Time
-	if t, err := x.DateTime(); err == nil {
-		dt = &t
-	}
-	return json.RawMessage(b), dt
 }
