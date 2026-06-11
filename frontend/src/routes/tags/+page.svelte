@@ -1,9 +1,12 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, beforeNavigate, afterNavigate } from '$app/navigation';
+	import { get } from 'svelte/store';
 	import { api, ApiError } from '$lib/api/client';
 	import { tagSorting, type TagSortField } from '$lib/stores/sorting';
 	import TagBadge from '$lib/components/tag/TagBadge.svelte';
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
+	import { saveSection, takeSection, type OffsetListSnapshot } from '$lib/stores/sectionCache';
+	import { restoreListScroll } from '$lib/stores/listScroll';
 	import type { Tag, TagOffsetPage } from '$lib/api/types';
 
 	const LIMIT = 100;
@@ -29,6 +32,45 @@
 	// Reset + reload on sort or search change
 	let resetKey = $derived(`${sortState.sort}|${sortState.order}|${search}`);
 	let prevKey = $state('');
+
+	let scrollEl = $state<HTMLElement>();
+	let pendingScroll: number | null = null;
+
+	// Returning from another section: rehydrate the loaded list, search and scroll
+	// from the cache instead of refetching, as long as the snapshot was taken under
+	// the same sort/order/search. Done during init (before the effects below run)
+	// so the matching prevKey/initialLoaded suppress the reset + initial load.
+	const cached = takeSection<OffsetListSnapshot<Tag>>('tags');
+	if (cached) {
+		const s0 = get(tagSorting);
+		const wouldKey = `${s0.sort}|${s0.order}|${cached.data.search}`;
+		if (wouldKey === cached.data.resetKey && cached.data.items.length > 0) {
+			search = cached.data.search;
+			tags = cached.data.items;
+			total = cached.data.total;
+			offset = cached.data.offset;
+			initialLoaded = true;
+			prevKey = wouldKey;
+			pendingScroll = cached.scrollTop;
+		}
+	}
+
+	beforeNavigate(() => {
+		if (tags.length === 0) return;
+		saveSection<OffsetListSnapshot<Tag>>('tags', scrollEl?.scrollTop ?? 0, {
+			resetKey,
+			search,
+			items: tags,
+			total,
+			offset
+		});
+	});
+
+	afterNavigate(() => {
+		if (pendingScroll == null) return;
+		restoreListScroll(() => scrollEl, pendingScroll);
+		pendingScroll = null;
+	});
 
 	$effect(() => {
 		if (resetKey !== prevKey) {
@@ -155,7 +197,7 @@
 		</div>
 	</div>
 
-	<main>
+	<main bind:this={scrollEl}>
 		{#if error}
 			<p class="error" role="alert">{error}</p>
 		{/if}

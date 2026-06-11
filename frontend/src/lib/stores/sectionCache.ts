@@ -10,6 +10,16 @@
 
 export type SectionKey = 'files' | 'tags' | 'categories' | 'pools';
 
+/** Snapshot shape shared by the offset-paginated lists (tags/categories/pools). */
+export interface OffsetListSnapshot<T> {
+	/** sort|order|search at capture — guards against restoring a different query. */
+	resetKey: string;
+	search: string;
+	items: T[];
+	total: number;
+	offset: number;
+}
+
 interface Snapshot<T> {
 	/** Scroll offset of the list's scroller at capture time. */
 	scrollTop: number;

@@ -2,8 +2,25 @@ import { get } from 'svelte/store';
 import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
 import { authStore } from '$lib/stores/auth';
+import { clearSection, type SectionKey } from '$lib/stores/sectionCache';
 
 const BASE = '/api/v1';
+
+// The tags/categories/pools lists are edited on their own detail/new pages, so a
+// cached list snapshot goes stale after a write there. Drop the matching
+// section's snapshot on any successful mutation so the list refetches on return.
+// (Files isn't included — its grid keeps itself consistent via optimistic
+// updates, and over-invalidating would needlessly lose the scroll position.)
+function invalidateSectionCache(path: string, method: string): void {
+	if (method === 'GET') return;
+	const sections: SectionKey[] = ['tags', 'categories', 'pools'];
+	for (const s of sections) {
+		if (path === `/${s}` || path.startsWith(`/${s}/`) || path.startsWith(`/${s}?`)) {
+			clearSection(s);
+			return;
+		}
+	}
+}
 
 /** Clear the session and bounce to the login screen. Called when the refresh
  *  token is missing or rejected, so an expired session doesn't strand the user
@@ -103,6 +120,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 			body.details
 		);
 	}
+
+	invalidateSectionCache(path, (init?.method ?? 'GET').toUpperCase());
 
 	if (res.status === 204) return undefined as T;
 	return res.json();

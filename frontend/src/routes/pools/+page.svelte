@@ -1,8 +1,11 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, beforeNavigate, afterNavigate } from '$app/navigation';
+	import { get } from 'svelte/store';
 	import { api, ApiError } from '$lib/api/client';
 	import { poolSorting, type PoolSortField } from '$lib/stores/sorting';
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
+	import { saveSection, takeSection, type OffsetListSnapshot } from '$lib/stores/sectionCache';
+	import { restoreListScroll } from '$lib/stores/listScroll';
 	import type { Pool, PoolOffsetPage } from '$lib/api/types';
 
 	const LIMIT = 50;
@@ -24,6 +27,44 @@
 
 	let resetKey = $derived(`${sortState.sort}|${sortState.order}|${search}`);
 	let prevKey = $state('');
+
+	let scrollEl = $state<HTMLElement>();
+	let pendingScroll: number | null = null;
+
+	// Rehydrate the loaded list, search and scroll from the cache on return (same
+	// sort/order/search), during init so the matching prevKey/initialLoaded
+	// suppress the reset + initial load below.
+	const cached = takeSection<OffsetListSnapshot<Pool>>('pools');
+	if (cached) {
+		const s0 = get(poolSorting);
+		const wouldKey = `${s0.sort}|${s0.order}|${cached.data.search}`;
+		if (wouldKey === cached.data.resetKey && cached.data.items.length > 0) {
+			search = cached.data.search;
+			pools = cached.data.items;
+			total = cached.data.total;
+			offset = cached.data.offset;
+			initialLoaded = true;
+			prevKey = wouldKey;
+			pendingScroll = cached.scrollTop;
+		}
+	}
+
+	beforeNavigate(() => {
+		if (pools.length === 0) return;
+		saveSection<OffsetListSnapshot<Pool>>('pools', scrollEl?.scrollTop ?? 0, {
+			resetKey,
+			search,
+			items: pools,
+			total,
+			offset
+		});
+	});
+
+	afterNavigate(() => {
+		if (pendingScroll == null) return;
+		restoreListScroll(() => scrollEl, pendingScroll);
+		pendingScroll = null;
+	});
 
 	$effect(() => {
 		if (resetKey !== prevKey) {
@@ -147,7 +188,7 @@
 		</div>
 	</div>
 
-	<main>
+	<main bind:this={scrollEl}>
 		{#if error}
 			<p class="error" role="alert">{error}</p>
 		{/if}
