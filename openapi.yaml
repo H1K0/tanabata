@@ -1151,6 +1151,18 @@ paths:
         '204':
           description: Pool deleted
 
+  /pools/{pool_id}/views:
+    post:
+      tags: [Pools]
+      summary: Record that the current user viewed the pool
+      parameters:
+        - $ref: '#/components/parameters/pool_id'
+      responses:
+        '204':
+          description: View recorded
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /pools/{pool_id}/files:
     get:
       tags: [Pools, Files]
