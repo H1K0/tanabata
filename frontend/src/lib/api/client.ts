@@ -46,8 +46,8 @@ export class ApiError extends Error {
 let refreshPromise: Promise<void> | null = null;
 
 async function refreshTokens(): Promise<void> {
-	const { refreshToken } = get(authStore);
-	if (!refreshToken) {
+	const attempted = get(authStore).refreshToken;
+	if (!attempted) {
 		endSession();
 		throw new ApiError(401, 'unauthorized', 'Session expired');
 	}
@@ -55,10 +55,15 @@ async function refreshTokens(): Promise<void> {
 	const res = await fetch(`${BASE}/auth/refresh`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ refresh_token: refreshToken })
+		body: JSON.stringify({ refresh_token: attempted })
 	});
 
 	if (!res.ok) {
+		// Refresh tokens rotate, so another tab may have already refreshed and
+		// rotated ours out. If a newer token has since synced in from that tab (via
+		// the auth store's storage listener), adopt it and let the caller retry
+		// rather than ending a session that's actually still alive.
+		if (get(authStore).refreshToken !== attempted) return;
 		endSession();
 		throw new ApiError(401, 'unauthorized', 'Session expired');
 	}
