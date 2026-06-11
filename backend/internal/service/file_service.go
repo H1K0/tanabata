@@ -70,6 +70,24 @@ type ImportResult struct {
 	Errors   []ImportFileError `json:"errors"`
 }
 
+// ImportEvent is one progress message streamed during an import, letting the UI
+// show a live progress bar and a per-file status list. Type is the discriminator:
+//
+//	"start" — total is the number of entries about to be processed.
+//	"file"  — one entry finished: index (1-based), filename, status, optional reason.
+//	"done"  — final tallies (imported/skipped/errors).
+type ImportEvent struct {
+	Type     string `json:"type"`
+	Total    int    `json:"total,omitempty"`
+	Index    int    `json:"index,omitempty"`
+	Filename string `json:"filename,omitempty"`
+	Status   string `json:"status,omitempty"` // "imported" | "skipped" | "error"
+	Reason   string `json:"reason,omitempty"`
+	Imported int    `json:"imported,omitempty"`
+	Skipped  int    `json:"skipped,omitempty"`
+	Errors   int    `json:"errors,omitempty"`
+}
+
 // FileService handles business logic for file records.
 type FileService struct {
 	files      port.FileRepo
@@ -532,7 +550,12 @@ func (s *FileService) BulkDelete(ctx context.Context, fileIDs []uuid.UUID) error
 
 // Import scans a server-side directory and uploads all supported files.
 // If path is empty, the configured default import path is used.
-func (s *FileService) Import(ctx context.Context, path string) (*ImportResult, error) {
+//
+// onProgress, when non-nil, receives a "start" event, one "file" event per
+// directory entry as it is processed, and a final "done" event — letting a
+// caller stream live progress. It is always called from this goroutine (never
+// concurrently). The aggregate result is also returned for non-streaming callers.
+func (s *FileService) Import(ctx context.Context, path string, onProgress func(ImportEvent)) (*ImportResult, error) {
 	if s.importPath == "" {
 		return nil, domain.ErrValidation
 	}
@@ -553,47 +576,58 @@ func (s *FileService) Import(ctx context.Context, path string) (*ImportResult, e
 		return nil, fmt.Errorf("FileService.Import: read dir %q: %w", dir, err)
 	}
 
-	result := &ImportResult{Errors: []ImportFileError{}}
+	emit := func(ev ImportEvent) {
+		if onProgress != nil {
+			onProgress(ev)
+		}
+	}
 
-	for _, entry := range entries {
+	result := &ImportResult{Errors: []ImportFileError{}}
+	total := len(entries)
+	emit(ImportEvent{Type: "start", Total: total})
+
+	for i, entry := range entries {
+		name := entry.Name()
+		file := func(status, reason string) {
+			emit(ImportEvent{
+				Type: "file", Index: i + 1, Total: total,
+				Filename: name, Status: status, Reason: reason,
+			})
+		}
+		fail := func(reason string) {
+			result.Errors = append(result.Errors, ImportFileError{Filename: name, Reason: reason})
+			file("error", reason)
+		}
+
 		if entry.IsDir() {
 			result.Skipped++
+			file("skipped", "directory")
 			continue
 		}
 
-		fullPath := filepath.Join(dir, entry.Name())
+		fullPath := filepath.Join(dir, name)
 
 		mt, err := mimetype.DetectFile(fullPath)
 		if err != nil {
-			result.Errors = append(result.Errors, ImportFileError{
-				Filename: entry.Name(),
-				Reason:   fmt.Sprintf("MIME detection failed: %s", err),
-			})
+			fail(fmt.Sprintf("MIME detection failed: %s", err))
 			continue
 		}
 
 		mimeStr := mt.String()
 		// Strip parameters (e.g. "text/plain; charset=utf-8" → "text/plain").
-		if idx := len(mimeStr); idx > 0 {
-			for i, c := range mimeStr {
-				if c == ';' {
-					mimeStr = mimeStr[:i]
-					break
-				}
-			}
+		if j := strings.IndexByte(mimeStr, ';'); j >= 0 {
+			mimeStr = mimeStr[:j]
 		}
 
 		if _, err := s.mimes.GetByName(ctx, mimeStr); err != nil {
 			result.Skipped++
+			file("skipped", "unsupported type: "+mimeStr)
 			continue
 		}
 
 		f, err := os.Open(fullPath)
 		if err != nil {
-			result.Errors = append(result.Errors, ImportFileError{
-				Filename: entry.Name(),
-				Reason:   fmt.Sprintf("open failed: %s", err),
-			})
+			fail(fmt.Sprintf("open failed: %s", err))
 			continue
 		}
 
@@ -606,7 +640,6 @@ func (s *FileService) Import(ctx context.Context, path string) (*ImportResult, e
 			mtime = &t
 		}
 
-		name := entry.Name()
 		_, uploadErr := s.Upload(ctx, UploadParams{
 			Reader:                  f,
 			MIMEType:                mimeStr,
@@ -616,10 +649,7 @@ func (s *FileService) Import(ctx context.Context, path string) (*ImportResult, e
 		f.Close()
 
 		if uploadErr != nil {
-			result.Errors = append(result.Errors, ImportFileError{
-				Filename: entry.Name(),
-				Reason:   uploadErr.Error(),
-			})
+			fail(uploadErr.Error())
 			continue
 		}
 		result.Imported++
@@ -628,12 +658,18 @@ func (s *FileService) Import(ctx context.Context, path string) (*ImportResult, e
 		// doesn't duplicate. The file is already safely copied into storage; a
 		// removal failure is reported but doesn't undo the import.
 		if rmErr := os.Remove(fullPath); rmErr != nil {
-			result.Errors = append(result.Errors, ImportFileError{
-				Filename: entry.Name(),
-				Reason:   fmt.Sprintf("imported, but failed to remove source: %s", rmErr),
-			})
+			reason := fmt.Sprintf("imported, but failed to remove source: %s", rmErr)
+			result.Errors = append(result.Errors, ImportFileError{Filename: name, Reason: reason})
+			file("imported", reason) // imported, with a warning
+			continue
 		}
+		file("imported", "")
 	}
+
+	emit(ImportEvent{
+		Type: "done", Total: total,
+		Imported: result.Imported, Skipped: result.Skipped, Errors: len(result.Errors),
+	})
 
 	return result, nil
 }

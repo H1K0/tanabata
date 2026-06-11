@@ -684,13 +684,36 @@ func (h *FileHandler) Import(c *gin.Context) {
 	// Body is optional; ignore bind errors.
 	_ = c.ShouldBindJSON(&body)
 
-	result, err := h.fileSvc.Import(c.Request.Context(), body.Path)
-	if err != nil {
-		respondError(c, err)
-		return
+	// Stream progress as newline-delimited JSON so the client can render a live
+	// progress bar and per-file status. Headers are deferred until the first
+	// event, so a validation error (bad path, import disabled) raised before any
+	// file is touched can still be returned as a normal JSON error response.
+	flusher, canFlush := c.Writer.(http.Flusher)
+	started := false
+	enc := json.NewEncoder(c.Writer)
+
+	emit := func(ev service.ImportEvent) {
+		if !started {
+			c.Header("Content-Type", "application/x-ndjson")
+			c.Header("Cache-Control", "no-cache")
+			c.Header("X-Accel-Buffering", "no") // don't let a proxy buffer the stream
+			c.Writer.WriteHeader(http.StatusOK)
+			started = true
+		}
+		_ = enc.Encode(ev) // appends a newline
+		if canFlush {
+			flusher.Flush()
+		}
 	}
 
-	respondJSON(c, http.StatusOK, result)
+	if _, err := h.fileSvc.Import(c.Request.Context(), body.Path, emit); err != nil {
+		if !started {
+			respondError(c, err)
+			return
+		}
+		// Headers already sent; surface the failure as a terminal stream event.
+		emit(service.ImportEvent{Type: "error", Reason: err.Error()})
+	}
 }
 
 // ---------------------------------------------------------------------------

@@ -902,6 +902,35 @@ func TestNonOwnerAccessControl(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
 }
 
+// importEvent mirrors service.ImportEvent for decoding the streamed progress.
+type importEvent struct {
+	Type     string `json:"type"`
+	Total    int    `json:"total"`
+	Index    int    `json:"index"`
+	Filename string `json:"filename"`
+	Status   string `json:"status"`
+	Reason   string `json:"reason"`
+	Imported int    `json:"imported"`
+	Skipped  int    `json:"skipped"`
+	Errors   int    `json:"errors"`
+}
+
+// parseImportEvents splits an NDJSON import response into its events.
+func parseImportEvents(t *testing.T, resp *testResponse) []importEvent {
+	t.Helper()
+	var events []importEvent
+	for _, line := range bytes.Split(resp.bodyBytes, []byte("\n")) {
+		line = bytes.TrimSpace(line)
+		if len(line) == 0 {
+			continue
+		}
+		var ev importEvent
+		require.NoError(t, json.Unmarshal(line, &ev), "event line: %s", line)
+		events = append(events, ev)
+	}
+	return events
+}
+
 // TestImportFromFolder verifies the admin server-side import: supported files
 // are ingested, subdirectories are skipped, the source is removed from the
 // import folder afterwards, and a file without EXIF takes the source's mtime as
@@ -923,18 +952,31 @@ func TestImportFromFolder(t *testing.T) {
 
 	resp := h.doJSON("POST", "/files/import", map[string]any{}, adminToken)
 	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
-	var res struct {
-		Imported int `json:"imported"`
-		Skipped  int `json:"skipped"`
-		Errors   []struct {
-			Filename string `json:"filename"`
-			Reason   string `json:"reason"`
-		} `json:"errors"`
+
+	// The import streams newline-delimited JSON progress events.
+	events := parseImportEvents(t, resp)
+	var start, done *importEvent
+	files := map[string]importEvent{}
+	for i := range events {
+		switch events[i].Type {
+		case "start":
+			start = &events[i]
+		case "done":
+			done = &events[i]
+		case "file":
+			files[events[i].Filename] = events[i]
+		}
 	}
-	resp.decode(t, &res)
-	assert.Equal(t, 1, res.Imported, resp.String())
-	assert.Equal(t, 1, res.Skipped, resp.String()) // the nested directory
-	assert.Empty(t, res.Errors, resp.String())
+	require.NotNil(t, start, resp.String())
+	require.NotNil(t, done, resp.String())
+	assert.Equal(t, 2, start.Total, "start total counts every entry")
+	assert.Equal(t, 1, done.Imported, resp.String())
+	assert.Equal(t, 1, done.Skipped, resp.String()) // the nested directory
+	assert.Equal(t, 0, done.Errors, resp.String())
+
+	// Per-file events: the JPEG imported, the subdirectory was skipped.
+	assert.Equal(t, "imported", files["scan.jpg"].Status, resp.String())
+	assert.Equal(t, "skipped", files["nested"].Status, resp.String())
 
 	// Source file is gone from the import folder after a successful import.
 	_, statErr := os.Stat(srcPath)
