@@ -31,22 +31,39 @@
 		if (nearViewport()) onLoadMore();
 	}
 
-	// Load on scroll: the observer notifies us when the sentinel nears the viewport.
+	// Load on scroll. We watch the actual scroll position rather than relying on an
+	// IntersectionObserver, which fires only on enter/leave transitions: a scroll
+	// that *ends* with the sentinel already in range (e.g. scrolling straight to the
+	// bottom) produces no new observer callback, so nothing loads until the user
+	// scrolls back up and down to force a fresh transition. Re-checking the sentinel
+	// on every scroll is what reliably keeps the list growing.
+	//
+	// `capture: true` is required because scroll events don't bubble — capturing lets
+	// a single window listener catch scrolls from any nested scroll container (here
+	// the grid's <main>) as well as the document itself. rAF-throttled so it stays
+	// cheap (one getBoundingClientRect per frame at most).
 	$effect(() => {
-		if (!sentinel) return;
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries[0].isIntersecting) maybeLoad();
-			},
-			{ rootMargin: `${MARGIN}px` },
-		);
-		observer.observe(sentinel);
-		return () => observer.disconnect();
+		let scheduled = false;
+		const onScroll = () => {
+			if (scheduled) return;
+			scheduled = true;
+			requestAnimationFrame(() => {
+				scheduled = false;
+				maybeLoad();
+			});
+		};
+		window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+		window.addEventListener('resize', onScroll, { passive: true });
+		return () => {
+			window.removeEventListener('scroll', onScroll, { capture: true });
+			window.removeEventListener('resize', onScroll);
+		};
 	});
 
-	// After each load settles (loading → false), re-check synchronously: if the
+	// Re-check after mount and after each load settles (loading → false): if the
 	// freshly added content still didn't push the sentinel past the viewport, load
-	// again. This fills short pages without the throttled observer lagging.
+	// again. This fills short pages and covers the sentinel already being in range on
+	// first render, without waiting for a scroll.
 	$effect(() => {
 		if (!loading) maybeLoad();
 	});
