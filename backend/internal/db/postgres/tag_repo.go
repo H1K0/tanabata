@@ -272,7 +272,7 @@ func (r *TagRepo) Create(ctx context.Context, t *domain.Tag) (*domain.Tag, error
 	const query = `
 WITH ins AS (
     INSERT INTO data.tags (name, notes, color, category_id, metadata, creator_id, is_public)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    VALUES ($1, $2, NULLIF($3, ''), $4, $5, $6, $7)
     RETURNING *
 )
 SELECT
@@ -321,7 +321,7 @@ WITH upd AS (
     UPDATE data.tags SET
         name        = $2,
         notes       = $3,
-        color       = $4,
+        color       = NULLIF($4, ''),
         category_id = $5,
         metadata    = COALESCE($6, metadata),
         is_public   = $7

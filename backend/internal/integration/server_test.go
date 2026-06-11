@@ -891,6 +891,41 @@ func TestRecordPoolView(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, resp.String())
 }
 
+// TestTagColorOptional verifies a tag can be created without a colour (stored as
+// NULL rather than the colour input's default) and that an existing colour can
+// be cleared back to none.
+func TestTagColorOptional(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	// Created without a colour → color is null.
+	resp := h.doJSON("POST", "/tags", map[string]any{"name": "plain"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var plain map[string]any
+	resp.decode(t, &plain)
+	assert.Nil(t, plain["color"], "tag created without a colour should have null color")
+
+	// Created with a colour → kept verbatim.
+	resp = h.doJSON("POST", "/tags", map[string]any{"name": "red", "color": "aabbcc"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var red map[string]any
+	resp.decode(t, &red)
+	assert.Equal(t, "aabbcc", red["color"])
+	redID := red["id"].(string)
+
+	// Clearing the colour (color: null) must store NULL — an empty string would
+	// violate the hex CHECK constraint and fail the update.
+	resp = h.doJSON("PATCH", "/tags/"+redID, map[string]any{"color": nil}, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	var cleared map[string]any
+	resp.decode(t, &cleared)
+	assert.Nil(t, cleared["color"], "cleared colour should be null")
+}
+
 // TestBulkTagAutoRule verifies the bulk add path also applies then_tags.
 func TestBulkTagAutoRule(t *testing.T) {
 	if testing.Short() {
