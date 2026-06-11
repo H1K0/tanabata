@@ -461,7 +461,20 @@ func (s *FileService) Replace(ctx context.Context, id uuid.UUID, p UploadParams)
 // files the caller may see (unless they are an admin).
 func (s *FileService) List(ctx context.Context, params domain.FileListParams) (*domain.FilePage, error) {
 	params.ViewerID, params.ViewerIsAdmin, _ = domain.UserFromContext(ctx)
-	return s.files.List(ctx, params)
+
+	page, err := s.files.List(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Log tag usage when a filter is first applied — not on pagination (cursor)
+	// or an anchored return, so a single browse counts once. Best-effort
+	// analytics; a failed write never breaks the listing.
+	if params.Filter != "" && params.Cursor == "" && params.Anchor == nil && params.ViewerID != 0 {
+		_ = s.files.RecordTagUses(ctx, params.ViewerID, params.Filter)
+	}
+
+	return page, nil
 }
 
 // AuthorizeView ensures the caller may view the file. Returns ErrNotFound if the

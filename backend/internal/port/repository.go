@@ -62,6 +62,10 @@ type FileRepo interface {
 
 	// RecordView appends a view-history row (activity.file_views) for the user.
 	RecordView(ctx context.Context, fileID uuid.UUID, userID int16) error
+	// RecordTagUses logs the tags referenced in a filter DSL to
+	// activity.tag_uses, flagging each included or excluded. Best-effort
+	// analytics — callers may ignore the error.
+	RecordTagUses(ctx context.Context, userID int16, filterDSL string) error
 }
 
 // TagRepo is the persistence interface for tags.

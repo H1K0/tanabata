@@ -253,6 +253,31 @@ func (p *filterParser) parseAtom() (filterNode, error) {
 // Public entry point
 // ---------------------------------------------------------------------------
 
+// parseFilterAST lexes and parses a filter DSL into an AST. Returns (nil, nil)
+// for an empty or trivial DSL.
+func parseFilterAST(dsl string) (filterNode, error) {
+	dsl = strings.TrimSpace(dsl)
+	if dsl == "" || dsl == "{}" {
+		return nil, nil
+	}
+	toks, err := lexFilter(dsl)
+	if err != nil {
+		return nil, err
+	}
+	if len(toks) == 0 {
+		return nil, nil
+	}
+	p := &filterParser{tokens: toks}
+	node, err := p.parseExpr()
+	if err != nil {
+		return nil, err
+	}
+	if p.pos != len(p.tokens) {
+		return nil, fmt.Errorf("filter: trailing tokens at position %d", p.pos)
+	}
+	return node, nil
+}
+
 // ParseFilter parses a filter DSL string into a parameterized SQL fragment.
 //
 // argStart is the 1-based index for the first $N placeholder; this lets the
@@ -262,25 +287,62 @@ func (p *filterParser) parseAtom() (filterNode, error) {
 // SQL injection is structurally impossible: every user-supplied value is
 // bound as a query parameter ($N), never interpolated into the SQL string.
 func ParseFilter(dsl string, argStart int) (sql string, nextN int, args []any, err error) {
-	dsl = strings.TrimSpace(dsl)
-	if dsl == "" || dsl == "{}" {
-		return "", argStart, nil, nil
-	}
-	toks, err := lexFilter(dsl)
+	node, err := parseFilterAST(dsl)
 	if err != nil {
 		return "", argStart, nil, err
 	}
-	if len(toks) == 0 {
+	if node == nil {
 		return "", argStart, nil, nil
-	}
-	p := &filterParser{tokens: toks}
-	node, err := p.parseExpr()
-	if err != nil {
-		return "", argStart, nil, err
-	}
-	if p.pos != len(p.tokens) {
-		return "", argStart, nil, fmt.Errorf("filter: trailing tokens at position %d", p.pos)
 	}
 	sql, nextN, args = node.toSQL(argStart, nil)
 	return sql, nextN, args, nil
+}
+
+// tagUse is a tag referenced by a filter, with whether it was included
+// (positive) or excluded (negated under an odd number of NOTs).
+type tagUse struct {
+	tagID    uuid.UUID
+	included bool
+}
+
+// filterTagUses extracts the distinct tag references in a filter DSL, marking
+// each as included or excluded. The "untagged" pseudo-token (zero UUID) is
+// skipped. Returns nil for a filter with no tag terms; an unparseable filter
+// also yields nil (extraction is best-effort analytics, not validation).
+func filterTagUses(dsl string) []tagUse {
+	node, err := parseFilterAST(dsl)
+	if err != nil || node == nil {
+		return nil
+	}
+	seen := make(map[uuid.UUID]bool)
+	collectTagUses(node, true, seen)
+	if len(seen) == 0 {
+		return nil
+	}
+	uses := make([]tagUse, 0, len(seen))
+	for id, inc := range seen {
+		uses = append(uses, tagUse{tagID: id, included: inc})
+	}
+	return uses
+}
+
+// collectTagUses walks the AST, recording each real tag leaf into out keyed by
+// id. included flips under every NOT, so a tag is "excluded" only when nested
+// under an odd number of NOTs. A tag appearing under both polarities keeps the
+// last seen — pathological, but it avoids a duplicate-key insert.
+func collectTagUses(node filterNode, included bool, out map[uuid.UUID]bool) {
+	switch nd := node.(type) {
+	case *andNode:
+		collectTagUses(nd.left, included, out)
+		collectTagUses(nd.right, included, out)
+	case *orNode:
+		collectTagUses(nd.left, included, out)
+		collectTagUses(nd.right, included, out)
+	case *notNode:
+		collectTagUses(nd.child, !included, out)
+	case *leafNode:
+		if nd.tok.kind == ftkTag && !nd.tok.untagged {
+			out[nd.tok.tagID] = included
+		}
+	}
 }

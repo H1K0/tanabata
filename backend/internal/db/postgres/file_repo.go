@@ -811,3 +811,33 @@ func (r *FileRepo) RecordView(ctx context.Context, fileID uuid.UUID, userID int1
 	}
 	return nil
 }
+
+// RecordTagUses appends a row to activity.tag_uses for each tag referenced in a
+// filter DSL, flagging it included (positive) or excluded (negated). Tags are
+// deduplicated per call, so one statement_timestamp() never collides on the
+// (tag_id, used_at, user_id) PK; ON CONFLICT DO NOTHING guards the rest. A
+// filter with no tag terms is a no-op.
+func (r *FileRepo) RecordTagUses(ctx context.Context, userID int16, filterDSL string) error {
+	uses := filterTagUses(filterDSL)
+	if len(uses) == 0 {
+		return nil
+	}
+
+	var sb strings.Builder
+	sb.WriteString("INSERT INTO activity.tag_uses (tag_id, user_id, is_included) VALUES ")
+	args := make([]any, 0, len(uses)*3)
+	for i, u := range uses {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		base := i * 3
+		fmt.Fprintf(&sb, "($%d, $%d, $%d)", base+1, base+2, base+3)
+		args = append(args, u.tagID, userID, u.included)
+	}
+	sb.WriteString(" ON CONFLICT DO NOTHING")
+
+	if _, err := connOrTx(ctx, r.pool).Exec(ctx, sb.String(), args...); err != nil {
+		return fmt.Errorf("FileRepo.RecordTagUses: %w", err)
+	}
+	return nil
+}

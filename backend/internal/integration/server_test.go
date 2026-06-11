@@ -54,6 +54,7 @@ type harness struct {
 	server    *httptest.Server
 	client    *http.Client
 	importDir string
+	pool      *pgxpool.Pool
 }
 
 // setupSuite creates an ephemeral database, runs migrations, wires the full
@@ -165,6 +166,7 @@ func setupSuite(t *testing.T) *harness {
 		server:    srv,
 		client:    srv.Client(),
 		importDir: importDir,
+		pool:      pool,
 	}
 }
 
@@ -190,6 +192,32 @@ func (r *testResponse) decode(t *testing.T, dst any) {
 
 func (h *harness) url(path string) string {
 	return h.server.URL + "/api/v1" + path
+}
+
+// tagUses returns all activity.tag_uses rows as tag_id (text) → is_included.
+func (h *harness) tagUses(ctx context.Context) map[string]bool {
+	h.t.Helper()
+	rows, err := h.pool.Query(ctx, `SELECT tag_id::text, is_included FROM activity.tag_uses`)
+	require.NoError(h.t, err)
+	defer rows.Close()
+
+	out := make(map[string]bool)
+	for rows.Next() {
+		var id string
+		var included bool
+		require.NoError(h.t, rows.Scan(&id, &included))
+		out[id] = included
+	}
+	require.NoError(h.t, rows.Err())
+	return out
+}
+
+// countTagUses returns the number of rows in activity.tag_uses.
+func (h *harness) countTagUses(ctx context.Context) int {
+	h.t.Helper()
+	var n int
+	require.NoError(h.t, h.pool.QueryRow(ctx, `SELECT count(*) FROM activity.tag_uses`).Scan(&n))
+	return n
 }
 
 func (h *harness) do(method, path string, body io.Reader, token string, contentType string) *testResponse {
@@ -716,6 +744,67 @@ func TestRecordFileView(t *testing.T) {
 	// Unknown file id → 404.
 	resp = h.doJSON("POST", "/files/00000000-0000-0000-0000-000000000000/views", nil, adminToken)
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, resp.String())
+}
+
+// TestRecordTagUses verifies that filtering files by tags logs to
+// activity.tag_uses — included tags as is_included=true, negated ones as
+// false — while an unfiltered listing and follow-up pagination record nothing.
+func TestRecordTagUses(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	ctx := context.Background()
+	adminToken := h.login("admin", "admin")
+
+	resp := h.doJSON("POST", "/tags", map[string]any{"name": "sea"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var sea map[string]any
+	resp.decode(t, &sea)
+	seaID := sea["id"].(string)
+
+	resp = h.doJSON("POST", "/tags", map[string]any{"name": "sky"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var sky map[string]any
+	resp.decode(t, &sky)
+	skyID := sky["id"].(string)
+
+	// Two files both tagged "sea", so a paged {t=sea} listing has a second page.
+	for _, name := range []string{"a.jpg", "b.jpg"} {
+		f := h.uploadJPEG(adminToken, name)
+		resp = h.doJSON("PUT", "/files/"+f["id"].(string)+"/tags",
+			map[string]any{"tag_ids": []string{seaID}}, adminToken)
+		require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	}
+
+	// An unfiltered listing must not touch tag_uses.
+	resp = h.doJSON("GET", "/files", nil, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	require.Equal(t, 0, h.countTagUses(ctx), "unfiltered list should record nothing")
+
+	// Include "sea": {t=sea}, one item per page so a next_cursor comes back.
+	resp = h.doJSON("GET", "/files?limit=1&filter=%7Bt%3D"+seaID+"%7D", nil, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	var page1 map[string]any
+	resp.decode(t, &page1)
+	nextCursor, _ := page1["next_cursor"].(string)
+	require.NotEmpty(t, nextCursor, "expected a next_cursor for page 2")
+
+	// Exclude "sky": {!,t=sky}
+	resp = h.doJSON("GET", "/files?filter=%7B%21%2Ct%3D"+skyID+"%7D", nil, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	uses := h.tagUses(ctx)
+	require.Len(t, uses, 2, "expected one row per filtered tag")
+	assert.True(t, uses[seaID], "included tag should be is_included=true")
+	assert.False(t, uses[skyID], "negated tag should be is_included=false")
+
+	// Page 2 (cursor present) is pagination, not a fresh filter — no new row.
+	resp = h.doJSON("GET", "/files?limit=1&cursor="+nextCursor+"&filter=%7Bt%3D"+seaID+"%7D",
+		nil, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	assert.Equal(t, 2, h.countTagUses(ctx), "pagination should not add tag_uses rows")
 }
 
 // TestBulkTagAutoRule verifies the bulk add path also applies then_tags.
