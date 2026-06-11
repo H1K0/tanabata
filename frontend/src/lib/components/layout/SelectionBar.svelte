@@ -8,13 +8,7 @@
 	}
 
 	let { onEditTags, onAddToPool, onDelete }: Props = $props();
-
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') selectionStore.exit();
-	}
 </script>
-
-<svelte:window onkeydown={handleKeydown} />
 
 <div class="bar" role="toolbar" aria-label="Selection actions">
 	<div class="row">

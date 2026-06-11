@@ -27,6 +27,18 @@
 	// ---- Bulk tag editor ----
 	let tagEditorOpen = $state(false);
 
+	// Escape dismisses one layer at a time: an open overlay (tag editor / pool
+	// picker / delete confirm) first, then the selection. The file viewer owns
+	// its own Escape, so we bail out while it's up.
+	function handleEscape(e: KeyboardEvent) {
+		if (e.key !== 'Escape') return;
+		if (tagEditorOpen) tagEditorOpen = false;
+		else if (poolPickerOpen) poolPickerOpen = false;
+		else if (confirmDeleteFiles) confirmDeleteFiles = false;
+		else if (activeFileId) return;
+		else if ($selectionActive) selectionStore.exit();
+	}
+
 	// ---- Add to pool picker ----
 	let poolPickerOpen = $state(false);
 	let pools = $state<Pool[]>([]);
@@ -454,6 +466,8 @@
 		};
 	});
 </script>
+
+<svelte:window onkeydown={handleEscape} />
 
 <svelte:head>
 	<title>Files | Tanabata</title>
