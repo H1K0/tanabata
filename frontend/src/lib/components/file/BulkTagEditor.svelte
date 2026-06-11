@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
-	import type { Tag, TagOffsetPage } from '$lib/api/types';
+	import type { Tag } from '$lib/api/types';
+	import { fetchAllTags } from '$lib/api/tags';
 
 	interface Props {
 		fileIds: string[];
@@ -30,13 +31,13 @@
 		error = '';
 		try {
 			const [tagsRes, commonRes] = await Promise.all([
-				api.get<TagOffsetPage>('/tags?limit=200&sort=name&order=asc'),
+				fetchAllTags(),
 				api.post<{ common_tag_ids: string[]; partial_tag_ids: string[] }>(
 					'/files/bulk/common-tags',
 					{ file_ids: fileIds }
 				)
 			]);
-			allTags = tagsRes.items ?? [];
+			allTags = tagsRes;
 			commonIds = new Set(commonRes.common_tag_ids ?? []);
 			partialIds = new Set(commonRes.partial_tag_ids ?? []);
 		} catch {

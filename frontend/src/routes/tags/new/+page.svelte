@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api, ApiError } from '$lib/api/client';
-	import type { Category, CategoryOffsetPage } from '$lib/api/types';
+	import type { Category } from '$lib/api/types';
+	import { fetchAllCategories } from '$lib/api/categories';
 
 	let name = $state('');
 	let notes = $state('');
@@ -13,8 +14,8 @@
 	let categories = $state<Category[]>([]);
 
 	$effect(() => {
-		api.get<CategoryOffsetPage>('/categories?limit=200&sort=name&order=asc').then((p) => {
-			categories = p.items ?? [];
+		fetchAllCategories().then((all) => {
+			categories = all;
 		});
 	});
 

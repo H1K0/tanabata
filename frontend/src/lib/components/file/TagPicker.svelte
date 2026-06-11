@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { api } from '$lib/api/client';
-	import type { Tag, TagOffsetPage } from '$lib/api/types';
+	import type { Tag } from '$lib/api/types';
+	import { fetchAllTags } from '$lib/api/tags';
 
 	interface Props {
 		fileTags: Tag[];
@@ -15,8 +15,8 @@
 	let busy = $state(false);
 
 	$effect(() => {
-		api.get<TagOffsetPage>('/tags?limit=200&sort=name&order=asc').then((p) => {
-			allTags = p.items ?? [];
+		fetchAllTags().then((all) => {
+			allTags = all;
 		});
 	});
 

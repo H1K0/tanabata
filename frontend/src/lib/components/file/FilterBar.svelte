@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { api } from '$lib/api/client';
-	import type { Tag, TagOffsetPage } from '$lib/api/types';
+	import type { Tag } from '$lib/api/types';
+	import { fetchAllTags } from '$lib/api/tags';
 	import { buildDslFilter, parseDslFilter, tokenLabel } from '$lib/utils/dsl';
 
 	interface Props {
@@ -26,8 +26,8 @@
 	});
 
 	$effect(() => {
-		api.get<TagOffsetPage>('/tags?limit=200&sort=name&order=asc').then((page) => {
-			tags = page.items ?? [];
+		fetchAllTags().then((all) => {
+			tags = all;
 		});
 	});
 

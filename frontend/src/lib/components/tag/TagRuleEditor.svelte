@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { api, ApiError } from '$lib/api/client';
-	import type { Tag, TagOffsetPage, TagRule } from '$lib/api/types';
+	import type { Tag, TagRule } from '$lib/api/types';
+	import { fetchAllTags } from '$lib/api/tags';
 	import TagBadge from './TagBadge.svelte';
 	import { appSettings } from '$lib/stores/appSettings';
 
@@ -18,8 +19,8 @@
 	let error = $state('');
 
 	$effect(() => {
-		api.get<TagOffsetPage>('/tags?limit=200&sort=name&order=asc').then((p) => {
-			allTags = p.items ?? [];
+		fetchAllTags().then((all) => {
+			allTags = all;
 		});
 	});
 

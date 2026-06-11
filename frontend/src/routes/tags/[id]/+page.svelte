@@ -2,7 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { api, ApiError } from '$lib/api/client';
-	import type { Category, CategoryOffsetPage, Tag, TagRule } from '$lib/api/types';
+	import type { Category, Tag, TagRule } from '$lib/api/types';
+	import { fetchAllCategories } from '$lib/api/categories';
 	import TagRuleEditor from '$lib/components/tag/TagRuleEditor.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 
@@ -32,12 +33,12 @@
 		loadError = '';
 		void Promise.all([
 			api.get<Tag>(`/tags/${id}`),
-			api.get<CategoryOffsetPage>('/categories?limit=200&sort=name&order=asc'),
+			fetchAllCategories(),
 			api.get<TagRule[]>(`/tags/${id}/rules`).catch(() => [] as TagRule[])
 		])
 			.then(([t, cats, r]) => {
 				tag = t;
-				categories = cats.items ?? [];
+				categories = cats;
 				rules = r;
 
 				name = t.name ?? '';
