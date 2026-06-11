@@ -184,8 +184,16 @@
 	}
 
 	// ---- Keyboard ----
+	let viewerPage = $state<HTMLElement>();
 	let tagsSection = $state<HTMLElement>();
 	let pendingTagFocus = false;
+
+	// Bring the preview back to the top of the scroll container (the overlay, or
+	// the page in the standalone route). scrollIntoView resolves the right
+	// scroller in either case. Called when Escape leaves the tag filter.
+	function revealPreview() {
+		viewerPage?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -242,7 +250,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="viewer-page">
+<div class="viewer-page" bind:this={viewerPage}>
 	<!-- Top bar -->
 	<div class="top-bar">
 		<button class="back-btn" onclick={onClose} aria-label="Back to files">
@@ -377,7 +385,7 @@
 			<section class="section" use:tagsSentinel bind:this={tagsSection}>
 				<div class="field-label">Tags</div>
 				{#if tagsLoaded}
-					<TagPicker {fileTags} onAdd={addTag} onRemove={removeTag} />
+					<TagPicker {fileTags} onAdd={addTag} onRemove={removeTag} onExit={revealPreview} />
 				{:else}
 					<p class="tags-loading">Loading tags…</p>
 				{/if}

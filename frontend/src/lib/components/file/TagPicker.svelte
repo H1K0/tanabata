@@ -7,9 +7,12 @@
 		fileTags: Tag[];
 		onAdd: (tagId: string) => Promise<void>;
 		onRemove: (tagId: string) => Promise<void>;
+		/** Called when Escape leaves an already-empty filter, so the viewer can
+		 *  scroll the preview back into view. */
+		onExit?: () => void;
 	}
 
-	let { fileTags, onAdd, onRemove }: Props = $props();
+	let { fileTags, onAdd, onRemove, onExit }: Props = $props();
 
 	let allTags = $state<Tag[]>([]);
 	let search = $state('');
@@ -110,11 +113,18 @@
 				assignedFocusIdx = Math.min(assignedFocusIdx, filteredAssigned.length - 2);
 			}
 		} else if (e.key === 'Escape') {
-			// Let the keyboard leave the field: blur back to the page so arrow keys
-			// and Escape reach the viewer again (e.g. a second Esc closes it).
 			e.preventDefault();
+			if (search) {
+				// Non-empty filter: just clear it, keeping focus for more editing.
+				search = '';
+				assignedFocusIdx = -1;
+				return;
+			}
+			// Empty: blur back to the page (so arrow keys and a further Escape reach
+			// the viewer) and let it scroll the preview back into view.
 			assignedFocusIdx = -1;
 			(e.currentTarget as HTMLInputElement).blur();
+			onExit?.();
 		}
 	}
 </script>

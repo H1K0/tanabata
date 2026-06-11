@@ -159,6 +159,20 @@
 				void remove(tag.id);
 				assignedFocusIdx = Math.min(assignedFocusIdx, assignedTags.length - 2);
 			}
+		} else if (e.key === 'Escape') {
+			// Staged exit: a non-empty filter clears first; once empty, Escape
+			// releases focus. Stop propagation so neither step reaches the page's
+			// window handler — only the *next* Escape (with focus already gone) does,
+			// and that one closes the popup.
+			e.preventDefault();
+			e.stopPropagation();
+			if (search) {
+				search = '';
+				assignedFocusIdx = -1;
+			} else {
+				assignedFocusIdx = -1;
+				(e.currentTarget as HTMLInputElement).blur();
+			}
 		}
 	}
 </script>
