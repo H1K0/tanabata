@@ -297,7 +297,7 @@ stored as hash in `activity.sessions.token_hash`.
 
 ```env
 # Server
-LISTEN_ADDR=:8080
+LISTEN_ADDR=:42776
 JWT_SECRET=<random-32-bytes>
 JWT_ACCESS_TTL=15m
 JWT_REFRESH_TTL=720h

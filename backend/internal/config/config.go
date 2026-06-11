@@ -105,7 +105,7 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		ListenAddr:    defaultStr("LISTEN_ADDR", ":8080"),
+		ListenAddr:    defaultStr("LISTEN_ADDR", ":42776"),
 		JWTSecret:     requireStr("JWT_SECRET"),
 		JWTAccessTTL:  parseDuration("JWT_ACCESS_TTL", "15m"),
 		JWTRefreshTTL: parseDuration("JWT_REFRESH_TTL", "720h"),

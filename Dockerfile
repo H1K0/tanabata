@@ -73,17 +73,17 @@ RUN mkdir -p /data/files /data/thumbs /data/import && chown -R app:app /data
 
 # Non-secret defaults mirroring .env.example. Secrets (JWT_SECRET, ADMIN_PASSWORD,
 # DATABASE_URL) are intentionally NOT baked in — pass them at `docker run`.
-ENV LISTEN_ADDR=:8080 \
+ENV LISTEN_ADDR=:42776 \
     STATIC_DIR=/app/static \
     FILES_PATH=/data/files \
     THUMBS_CACHE_PATH=/data/thumbs \
     IMPORT_PATH=/data/import
 
-EXPOSE 8080
+EXPOSE 42776
 VOLUME ["/data"]
 USER app
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD wget -qO- http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1
+    CMD wget -qO- http://127.0.0.1:42776/health >/dev/null 2>&1 || exit 1
 
 ENTRYPOINT ["/app/server"]
