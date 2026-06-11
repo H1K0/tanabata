@@ -648,6 +648,12 @@ paths:
     post:
       tags: [Files]
       summary: Import files from a server directory
+      description: >
+        Admin only. Ingests supported files from the server's configured import
+        directory (optionally a subfolder of it). Subdirectories are skipped and
+        not recursed. A successfully imported file is removed from the import
+        folder. For files without an EXIF date, the source file's modified time
+        is used as content_datetime.
       requestBody:
         required: true
         content:

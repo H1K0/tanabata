@@ -99,6 +99,31 @@
 		}
 	}
 
+	// ---- Server-side import (admin only) ----
+	interface ImportResult {
+		imported: number;
+		skipped: number;
+		errors: { filename: string; reason: string }[];
+	}
+	let importPath = $state('');
+	let importing = $state(false);
+	let importError = $state('');
+	let importResult = $state<ImportResult | null>(null);
+
+	async function runImport() {
+		importing = true;
+		importError = '';
+		importResult = null;
+		try {
+			const sub = importPath.trim();
+			importResult = await api.post<ImportResult>('/files/import', sub ? { path: sub } : {});
+		} catch (e) {
+			importError = e instanceof ApiError ? e.message : 'Import failed';
+		} finally {
+			importing = false;
+		}
+	}
+
 	// ---- Helpers ----
 	function formatDate(iso: string | null | undefined): string {
 		if (!iso) return '—';
@@ -291,6 +316,57 @@
 			</button>
 		</div>
 	</section>
+
+	<!-- ====== Server import (admin) ====== -->
+	{#if $authStore.user?.isAdmin}
+		<section class="card">
+			<h2 class="section-title">Import from server</h2>
+			<p class="hint-text">
+				Ingest supported files sitting in the server's import folder. Successfully imported files
+				are removed from that folder, and a file's modified time is kept as its date when it has no
+				EXIF. Admin only.
+			</p>
+
+			<div class="field">
+				<label class="label" for="import-path">Subfolder (optional)</label>
+				<input
+					id="import-path"
+					class="input"
+					type="text"
+					bind:value={importPath}
+					placeholder="Leave blank for the import root"
+					autocomplete="off"
+					spellcheck="false"
+				/>
+				<p class="hint-text">Relative to the server's configured import folder.</p>
+			</div>
+
+			{#if importError}
+				<p class="msg error" role="alert">{importError}</p>
+			{/if}
+			{#if importResult}
+				<p class="msg success" role="status">
+					Imported {importResult.imported}, skipped {importResult.skipped}{importResult.errors
+						.length
+						? `, ${importResult.errors.length} error${importResult.errors.length === 1 ? '' : 's'}`
+						: ''}.
+				</p>
+				{#if importResult.errors.length}
+					<ul class="import-errors">
+						{#each importResult.errors as err}
+							<li><span class="err-file">{err.filename}</span> — {err.reason}</li>
+						{/each}
+					</ul>
+				{/if}
+			{/if}
+
+			<div class="row-actions">
+				<button class="btn primary" onclick={runImport} disabled={importing}>
+					{importing ? 'Importing…' : 'Import files'}
+				</button>
+			</div>
+		</section>
+	{/if}
 
 	<!-- ====== Sessions ====== -->
 	<section class="card">
@@ -533,6 +609,27 @@
 		color: var(--color-text-muted);
 		margin: 0;
 		line-height: 1.5;
+	}
+
+	/* ---- Server import ---- */
+	.import-errors {
+		list-style: none;
+		margin: 0;
+		padding: 8px 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		border-radius: 7px;
+		background-color: color-mix(in srgb, var(--color-danger) 10%, transparent);
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		max-height: 180px;
+		overflow-y: auto;
+	}
+
+	.import-errors .err-file {
+		color: var(--color-text-primary);
+		font-weight: 600;
 	}
 
 	/* ---- Sessions ---- */
