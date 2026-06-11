@@ -71,14 +71,24 @@
 		return color ? `background-color: #${color}` : '';
 	}
 
+	// Refetch which tags are common/partial across the selection. Run after any
+	// bulk change so rule-applied tags (and partial→common shifts) show up — the
+	// server applies auto-tag rules, so we can't infer the result locally.
+	async function refreshCommon() {
+		const res = await api.post<{ common_tag_ids: string[]; partial_tag_ids: string[] }>(
+			'/files/bulk/common-tags',
+			{ file_ids: fileIds }
+		);
+		commonIds = new Set(res.common_tag_ids ?? []);
+		partialIds = new Set(res.partial_tag_ids ?? []);
+	}
+
 	async function add(tagId: string) {
 		if (busy) return;
 		busy = true;
 		try {
 			await api.post('/files/bulk/tags', { file_ids: fileIds, action: 'add', tag_ids: [tagId] });
-			commonIds = new Set([...commonIds, tagId]);
-			partialIds.delete(tagId);
-			partialIds = new Set(partialIds);
+			await refreshCommon();
 		} finally {
 			busy = false;
 		}
@@ -90,9 +100,7 @@
 		busy = true;
 		try {
 			await api.post('/files/bulk/tags', { file_ids: fileIds, action: 'add', tag_ids: [tagId] });
-			commonIds = new Set([...commonIds, tagId]);
-			partialIds.delete(tagId);
-			partialIds = new Set(partialIds);
+			await refreshCommon();
 		} finally {
 			busy = false;
 		}
@@ -103,10 +111,7 @@
 		busy = true;
 		try {
 			await api.post('/files/bulk/tags', { file_ids: fileIds, action: 'remove', tag_ids: [tagId] });
-			commonIds.delete(tagId);
-			partialIds.delete(tagId);
-			commonIds = new Set(commonIds);
-			partialIds = new Set(partialIds);
+			await refreshCommon();
 		} finally {
 			busy = false;
 		}

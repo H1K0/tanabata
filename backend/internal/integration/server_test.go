@@ -715,6 +715,53 @@ func TestRecordFileView(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, resp.StatusCode, resp.String())
 }
 
+// TestBulkTagAutoRule verifies the bulk add path also applies then_tags.
+func TestBulkTagAutoRule(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	resp := h.doJSON("POST", "/tags", map[string]any{"name": "outdoor"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	var outdoor map[string]any
+	resp.decode(t, &outdoor)
+	outdoorID := outdoor["id"].(string)
+
+	resp = h.doJSON("POST", "/tags", map[string]any{"name": "nature"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	var nature map[string]any
+	resp.decode(t, &nature)
+	natureID := nature["id"].(string)
+
+	resp = h.doJSON("POST", "/tags/"+outdoorID+"/rules", map[string]any{"then_tag_id": natureID}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+
+	file := h.uploadJPEG(adminToken, "park.jpg")
+	fileID := file["id"].(string)
+
+	// Bulk-add only "outdoor" to the file.
+	resp = h.doJSON("POST", "/files/bulk/tags", map[string]any{
+		"file_ids": []string{fileID},
+		"action":   "add",
+		"tag_ids":  []string{outdoorID},
+	}, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	// The auto-applied "nature" should be on the file too.
+	resp = h.doJSON("GET", "/files/"+fileID+"/tags", nil, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var tagsResp []any
+	resp.decode(t, &tagsResp)
+	names := make([]string, 0, len(tagsResp))
+	for _, tg := range tagsResp {
+		names = append(names, tg.(map[string]any)["name"].(string))
+	}
+	assert.ElementsMatch(t, []string{"outdoor", "nature"}, names)
+}
+
 // ---------------------------------------------------------------------------
 // Security regression tests
 // ---------------------------------------------------------------------------
