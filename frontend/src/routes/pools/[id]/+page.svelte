@@ -86,6 +86,9 @@
 				notes = p.notes ?? '';
 				isPublic = p.is_public ?? false;
 				loaded = true;
+				// Log the view (activity.pool_views). Fire-and-forget — never block or
+				// fail the page over view tracking.
+				void api.post(`/pools/${id}/views`).catch(() => {});
 			})
 			.catch((e) => {
 				loadError = e instanceof ApiError ? e.message : 'Failed to load pool';
