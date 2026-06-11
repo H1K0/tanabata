@@ -801,3 +801,13 @@ func (r *FileRepo) loadTagsBatch(ctx context.Context, fileIDs []uuid.UUID) (map[
 	}
 	return result, nil
 }
+
+// RecordView appends a row to activity.file_views. viewed_at defaults to
+// statement_timestamp(), so each call records a distinct view in the history.
+func (r *FileRepo) RecordView(ctx context.Context, fileID uuid.UUID, userID int16) error {
+	const query = `INSERT INTO activity.file_views (file_id, user_id) VALUES ($1, $2)`
+	if _, err := connOrTx(ctx, r.pool).Exec(ctx, query, fileID, userID); err != nil {
+		return fmt.Errorf("FileRepo.RecordView: %w", err)
+	}
+	return nil
+}

@@ -690,6 +690,31 @@ func TestTagAutoRule(t *testing.T) {
 	assert.ElementsMatch(t, []string{"outdoor", "nature"}, names)
 }
 
+// TestRecordFileView verifies that viewing a file is logged (POST .../views),
+// is repeatable (view history, not a unique flag), and 404s for unknown files.
+func TestRecordFileView(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	file := h.uploadJPEG(adminToken, "seen.jpg")
+	fileID := file["id"].(string)
+
+	resp := h.doJSON("POST", "/files/"+fileID+"/views", nil, adminToken)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
+
+	// Viewing again logs another history row, not a conflict.
+	resp = h.doJSON("POST", "/files/"+fileID+"/views", nil, adminToken)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
+
+	// Unknown file id → 404.
+	resp = h.doJSON("POST", "/files/00000000-0000-0000-0000-000000000000/views", nil, adminToken)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, resp.String())
+}
+
 // ---------------------------------------------------------------------------
 // Security regression tests
 // ---------------------------------------------------------------------------

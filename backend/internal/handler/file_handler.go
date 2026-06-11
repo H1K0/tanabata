@@ -301,6 +301,25 @@ func (h *FileHandler) GetMeta(c *gin.Context) {
 }
 
 // ---------------------------------------------------------------------------
+// POST /files/:id/views
+// ---------------------------------------------------------------------------
+
+// RecordView logs that the current user viewed the file (activity.file_views).
+func (h *FileHandler) RecordView(c *gin.Context) {
+	id, ok := parseFileID(c)
+	if !ok {
+		return
+	}
+
+	if err := h.fileSvc.RecordView(c.Request.Context(), id); err != nil {
+		respondError(c, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// ---------------------------------------------------------------------------
 // PATCH /files/:id
 // ---------------------------------------------------------------------------
 

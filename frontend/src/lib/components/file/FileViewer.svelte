@@ -77,6 +77,9 @@
 			isPublic = fileData.is_public ?? false;
 			dirty = false;
 			void fetchPreview(id);
+			// Log the view (activity.file_views). Fire-and-forget — never block or
+			// fail the viewer over view tracking.
+			void api.post(`/files/${id}/views`).catch(() => {});
 		} catch (e) {
 			error = e instanceof ApiError ? e.message : 'Failed to load file';
 		} finally {

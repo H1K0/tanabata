@@ -84,6 +84,7 @@ func NewRouter(
 		files.PUT("/:id/content", fileHandler.ReplaceContent)
 		files.GET("/:id/thumbnail", fileHandler.GetThumbnail)
 		files.GET("/:id/preview", fileHandler.GetPreview)
+		files.POST("/:id/views", fileHandler.RecordView)
 		files.POST("/:id/restore", fileHandler.Restore)
 		files.DELETE("/:id/permanent", fileHandler.PermanentDelete)
 

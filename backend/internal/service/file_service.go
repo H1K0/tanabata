@@ -208,6 +208,26 @@ func (s *FileService) Get(ctx context.Context, id uuid.UUID) (*domain.File, erro
 	return f, nil
 }
 
+// RecordView appends a view-history entry for the current user, enforcing view
+// ACL (you can only record a view of a file you may see).
+func (s *FileService) RecordView(ctx context.Context, id uuid.UUID) error {
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+
+	f, err := s.files.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	ok, err := s.acl.CanView(ctx, userID, isAdmin, f.CreatorID, f.IsPublic, fileObjectTypeID, id)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return domain.ErrForbidden
+	}
+	return s.files.RecordView(ctx, id, userID)
+}
+
 // Update applies metadata changes to a file, enforcing edit ACL.
 func (s *FileService) Update(ctx context.Context, id uuid.UUID, p UpdateParams) (*domain.File, error) {
 	userID, isAdmin, _ := domain.UserFromContext(ctx)

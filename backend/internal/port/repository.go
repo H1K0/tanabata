@@ -59,6 +59,9 @@ type FileRepo interface {
 	ListTags(ctx context.Context, fileID uuid.UUID) ([]domain.Tag, error)
 	// SetTags replaces all tags on a file (full replace semantics).
 	SetTags(ctx context.Context, fileID uuid.UUID, tagIDs []uuid.UUID) error
+
+	// RecordView appends a view-history row (activity.file_views) for the user.
+	RecordView(ctx context.Context, fileID uuid.UUID, userID int16) error
 }
 
 // TagRepo is the persistence interface for tags.

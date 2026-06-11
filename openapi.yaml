@@ -407,6 +407,18 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /files/{file_id}/views:
+    post:
+      tags: [Files]
+      summary: Record that the current user viewed the file
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '204':
+          description: View recorded
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /files/{file_id}/restore:
     post:
       tags: [Files]
