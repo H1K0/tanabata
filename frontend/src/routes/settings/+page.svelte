@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { api, ApiError } from '$lib/api/client';
+	import { api, ApiError, postStream } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
 	import { themeStore, toggleTheme } from '$lib/stores/theme';
 	import { appSettings } from '$lib/stores/appSettings';
@@ -100,23 +100,66 @@
 	}
 
 	// ---- Server-side import (admin only) ----
-	interface ImportResult {
-		imported: number;
-		skipped: number;
-		errors: { filename: string; reason: string }[];
+	// The backend streams NDJSON progress events (start → file… → done); we render
+	// a live progress bar and a per-file status list as they arrive.
+	type ImportStatus = 'imported' | 'skipped' | 'error';
+	interface ImportItem {
+		filename: string;
+		status: ImportStatus;
+		reason?: string;
 	}
 	let importPath = $state('');
 	let importing = $state(false);
 	let importError = $state('');
-	let importResult = $state<ImportResult | null>(null);
+	let importTotal = $state(0);
+	let importProcessed = $state(0);
+	let importDone = $state(false);
+	let importItems = $state<ImportItem[]>([]);
+	let importSummary = $state<{ imported: number; skipped: number; errors: number } | null>(null);
+	let importListEl = $state<HTMLUListElement | null>(null);
+
+	// Keep the newest row in view as files stream in.
+	$effect(() => {
+		importItems.length;
+		if (importListEl) importListEl.scrollTop = importListEl.scrollHeight;
+	});
 
 	async function runImport() {
 		importing = true;
 		importError = '';
-		importResult = null;
+		importTotal = 0;
+		importProcessed = 0;
+		importDone = false;
+		importItems = [];
+		importSummary = null;
 		try {
 			const sub = importPath.trim();
-			importResult = await api.post<ImportResult>('/files/import', sub ? { path: sub } : {});
+			await postStream('/files/import', sub ? { path: sub } : {}, (ev) => {
+				switch (ev.type) {
+					case 'start':
+						importTotal = (ev.total as number) ?? 0;
+						break;
+					case 'file':
+						importProcessed = (ev.index as number) ?? importProcessed + 1;
+						importItems.push({
+							filename: (ev.filename as string) ?? '',
+							status: (ev.status as ImportStatus) ?? 'skipped',
+							reason: (ev.reason as string) || undefined
+						});
+						break;
+					case 'done':
+						importDone = true;
+						importSummary = {
+							imported: (ev.imported as number) ?? 0,
+							skipped: (ev.skipped as number) ?? 0,
+							errors: (ev.errors as number) ?? 0
+						};
+						break;
+					case 'error':
+						importError = (ev.reason as string) ?? 'Import failed';
+						break;
+				}
+			});
 		} catch (e) {
 			importError = e instanceof ApiError ? e.message : 'Import failed';
 		} finally {
@@ -344,17 +387,50 @@
 			{#if importError}
 				<p class="msg error" role="alert">{importError}</p>
 			{/if}
-			{#if importResult}
-				<p class="msg success" role="status">
-					Imported {importResult.imported}, skipped {importResult.skipped}{importResult.errors
-						.length
-						? `, ${importResult.errors.length} error${importResult.errors.length === 1 ? '' : 's'}`
-						: ''}.
-				</p>
-				{#if importResult.errors.length}
-					<ul class="import-errors">
-						{#each importResult.errors as err}
-							<li><span class="err-file">{err.filename}</span> — {err.reason}</li>
+
+			{#if importing || importDone || importItems.length > 0}
+				<div class="import-progress">
+					<div
+						class="progress-track"
+						role="progressbar"
+						aria-valuemin={0}
+						aria-valuemax={importTotal}
+						aria-valuenow={importProcessed}
+					>
+						<div
+							class="progress-fill"
+							class:done={importDone}
+							style:width={importTotal > 0
+								? `${Math.round((importProcessed / importTotal) * 100)}%`
+								: importDone
+									? '100%'
+									: '0%'}
+						></div>
+					</div>
+					<p class="progress-label">
+						{#if importDone && importSummary}
+							Done — imported {importSummary.imported}, skipped {importSummary.skipped}{importSummary.errors
+								? `, ${importSummary.errors} error${importSummary.errors === 1 ? '' : 's'}`
+								: ''}.
+						{:else if importTotal > 0}
+							Importing… {importProcessed}/{importTotal}
+						{:else}
+							Scanning…
+						{/if}
+					</p>
+				</div>
+
+				{#if importItems.length > 0}
+					<ul class="import-list" bind:this={importListEl}>
+						{#each importItems as item}
+							<li class="import-item {item.status}">
+								<span class="status-dot" aria-hidden="true"></span>
+								<span class="item-file" title={item.filename}>{item.filename}</span>
+								<span class="item-status">{item.status}</span>
+								{#if item.reason}
+									<span class="item-reason">{item.reason}</span>
+								{/if}
+							</li>
 						{/each}
 					</ul>
 				{/if}
@@ -612,24 +688,107 @@
 	}
 
 	/* ---- Server import ---- */
-	.import-errors {
-		list-style: none;
-		margin: 0;
-		padding: 8px 10px;
+	.import-progress {
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
-		border-radius: 7px;
-		background-color: color-mix(in srgb, var(--color-danger) 10%, transparent);
+		gap: 6px;
+	}
+
+	.progress-track {
+		height: 8px;
+		border-radius: 4px;
+		background-color: color-mix(in srgb, var(--color-accent) 15%, var(--color-bg-primary));
+		overflow: hidden;
+	}
+
+	.progress-fill {
+		height: 100%;
+		border-radius: 4px;
+		background-color: var(--color-accent);
+		transition:
+			width 0.2s ease,
+			background-color 0.2s ease;
+	}
+
+	.progress-fill.done {
+		background-color: #7ecba1;
+	}
+
+	.progress-label {
 		font-size: 0.8rem;
 		color: var(--color-text-muted);
-		max-height: 180px;
+		margin: 0;
+	}
+
+	.import-list {
+		list-style: none;
+		margin: 0;
+		padding: 6px 0;
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+		max-height: 220px;
 		overflow-y: auto;
 	}
 
-	.import-errors .err-file {
+	.import-item {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+		padding: 4px 8px;
+		border-radius: 6px;
+		font-size: 0.8rem;
+	}
+
+	.status-dot {
+		flex-shrink: 0;
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		align-self: center;
+		background-color: var(--color-text-muted);
+	}
+
+	.import-item.imported .status-dot {
+		background-color: #7ecba1;
+	}
+	.import-item.error .status-dot {
+		background-color: var(--color-danger);
+	}
+
+	.item-file {
 		color: var(--color-text-primary);
 		font-weight: 600;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 45%;
+	}
+
+	.import-item.skipped .item-file {
+		color: var(--color-text-muted);
+		font-weight: 500;
+	}
+
+	.item-status {
+		flex-shrink: 0;
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--color-text-muted);
+	}
+
+	.import-item.error .item-status {
+		color: var(--color-danger);
+	}
+
+	.item-reason {
+		flex: 1;
+		min-width: 0;
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	/* ---- Sessions ---- */

@@ -166,6 +166,66 @@ export function uploadWithProgress<T>(
 	});
 }
 
+/** POST that consumes a streamed newline-delimited JSON (NDJSON) response,
+ *  invoking onEvent once per parsed line. Used by the server-side import so the
+ *  UI can render live per-file progress. Reuses the bearer token and a single
+ *  401 refresh+retry, but (unlike request()) keeps the body as a stream. */
+export async function postStream(
+	path: string,
+	body: unknown,
+	onEvent: (ev: Record<string, unknown>) => void
+): Promise<void> {
+	const init: RequestInit = { method: 'POST', body: JSON.stringify(body) };
+	const send = () =>
+		fetch(BASE + path, { ...init, headers: buildHeaders(init, get(authStore).accessToken) });
+
+	let res = await send();
+	if (res.status === 401) {
+		if (!refreshPromise) {
+			refreshPromise = refreshTokens().finally(() => {
+				refreshPromise = null;
+			});
+		}
+		try {
+			await refreshPromise;
+		} catch {
+			throw new ApiError(401, 'unauthorized', 'Session expired');
+		}
+		res = await send();
+	}
+
+	if (!res.ok || !res.body) {
+		let b: { code?: string; message?: string } = {};
+		try {
+			b = await res.json();
+		} catch {
+			// ignore parse failure
+		}
+		throw new ApiError(res.status, b.code ?? 'error', b.message ?? res.statusText);
+	}
+
+	const reader = res.body.getReader();
+	const decoder = new TextDecoder();
+	let buf = '';
+	const flushLine = (line: string) => {
+		const trimmed = line.trim();
+		if (trimmed) onEvent(JSON.parse(trimmed));
+	};
+
+	for (;;) {
+		const { done, value } = await reader.read();
+		if (done) break;
+		buf += decoder.decode(value, { stream: true });
+		let nl: number;
+		while ((nl = buf.indexOf('\n')) >= 0) {
+			flushLine(buf.slice(0, nl));
+			buf = buf.slice(nl + 1);
+		}
+	}
+	buf += decoder.decode();
+	flushLine(buf);
+}
+
 export const api = {
 	get: <T>(path: string) => request<T>(path),
 	post: <T>(path: string, body?: unknown) =>
