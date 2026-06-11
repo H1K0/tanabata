@@ -10,6 +10,46 @@
 - **Font**: Epilogue (variable weight)
 - **Package manager**: npm
 
+## SPA mode — why SvelteKit without the server
+
+This frontend runs as a **pure client-side SPA**: `adapter-static` with
+`fallback: 'index.html'` and `ssr = false` globally (see
+`src/routes/+layout.ts`). There is no Node server in production — the build is
+static assets, and the only backend is the Go API. SvelteKit is used here
+purely as an SPA framework: file-based routing, the client router, and build
+tooling.
+
+**SvelteKit features we *do* use:**
+
+- File-based routing with nested layouts (`admin/` has its own guard) and
+  dynamic segments (`[id]`).
+- The client router: `goto`, the `page` store/state, `afterNavigate`,
+  `navigating`.
+- **Shallow routing** — `pushState`/`replaceState` + `page.state`. The
+  Immich-style file viewer in `files/` and `pools/[id]/` opens as an overlay
+  over the still-mounted list via shallow routing, so the browser back button
+  dismisses it without reloading the grid. This is the single biggest reason we
+  stay on SvelteKit rather than a plain router.
+- `load` functions, used *only* as client-side route guards (auth redirect,
+  admin redirect, `/` → `/files`).
+- `$lib` alias, generated `./$types`, Vite/HMR integration.
+
+**SvelteKit features we deliberately do *not* use** (the "server half"):
+
+- SSR / hydration.
+- `+page.server.ts`, `+server.ts` endpoints, form actions — all data goes
+  through the Go API via the `$lib/api` client.
+- `hooks.*`, prerendering, server-only modules — no `hooks.server.ts` /
+  `hooks.client.ts` files exist.
+
+**Decision: stay on SvelteKit, do not migrate to a bare Svelte + router SPA.**
+The project already *is* an SPA, so there is no runtime gain from switching
+(adapter-static tree-shakes the unused server bits; the client-runtime size
+difference is negligible). A migration would mean re-implementing nested
+layouts, guards, dynamic params, and — most painfully — shallow routing /
+history-state overlays by hand, for zero benefit. New contributors should not
+expect SSR, endpoints, or hooks to do anything here; that is intentional.
+
 ## Monorepo Layout
 
 ```
@@ -49,8 +89,7 @@ frontend/
 ├── src/
 │   ├── app.html                    # Shell HTML (PWA meta, font preload)
 │   ├── app.css                     # Tailwind directives + CSS custom properties
-│   ├── hooks.server.ts             # Server hooks (not used in SPA mode)
-│   ├── hooks.client.ts             # Client hooks (global error handling)
+│   │                               # (no hooks.* — see "SPA mode" above)
 │   │
 │   ├── lib/                        # Shared code ($lib/ alias)
 │   │   │
