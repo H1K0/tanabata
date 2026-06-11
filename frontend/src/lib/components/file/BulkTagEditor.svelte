@@ -116,6 +116,51 @@
 			busy = false;
 		}
 	}
+
+	// ---- Keyboard navigation (from the search input) ----
+	// ↓/↑ highlight a suggestion, Enter adds it (focus stays); with the input empty
+	// ←/→ walk the assigned tags and Del removes the focused one from all files.
+	let highlightIdx = $state(0);
+	let assignedFocusIdx = $state(-1);
+
+	$effect(() => {
+		if (highlightIdx > availableTags.length - 1) {
+			highlightIdx = Math.max(0, availableTags.length - 1);
+		}
+	});
+
+	function onSearchKeydown(e: KeyboardEvent) {
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			assignedFocusIdx = -1;
+			if (availableTags.length) highlightIdx = Math.min(highlightIdx + 1, availableTags.length - 1);
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			assignedFocusIdx = -1;
+			highlightIdx = Math.max(highlightIdx - 1, 0);
+		} else if (e.key === 'Enter') {
+			const tag = availableTags[highlightIdx];
+			if (tag?.id) {
+				e.preventDefault();
+				void add(tag.id);
+			}
+		} else if (e.key === 'ArrowRight' && search === '') {
+			e.preventDefault();
+			const n = assignedTags.length;
+			if (n) assignedFocusIdx = assignedFocusIdx < 0 ? 0 : Math.min(assignedFocusIdx + 1, n - 1);
+		} else if (e.key === 'ArrowLeft' && search === '') {
+			e.preventDefault();
+			const n = assignedTags.length;
+			if (n) assignedFocusIdx = assignedFocusIdx < 0 ? n - 1 : Math.max(assignedFocusIdx - 1, 0);
+		} else if (e.key === 'Delete' && assignedFocusIdx >= 0) {
+			const tag = assignedTags[assignedFocusIdx];
+			if (tag?.id) {
+				e.preventDefault();
+				void remove(tag.id);
+				assignedFocusIdx = Math.min(assignedFocusIdx, assignedTags.length - 2);
+			}
+		}
+	}
 </script>
 
 <div class="editor" class:busy>
@@ -131,12 +176,13 @@
 				<span class="hint">— partial tags shown with dashed border, click to apply to all</span>
 			</div>
 			<div class="tag-row">
-				{#each assignedTags as tag (tag.id)}
+				{#each assignedTags as tag, i (tag.id)}
 					{@const isPartial = partialIds.has(tag.id ?? '')}
 					<div class="tag-wrap">
 						<button
 							class="tag assigned"
 							class:partial={isPartial}
+							class:kbfocus={assignedFocusIdx === i}
 							style={tagStyle(tag)}
 							onclick={() => (isPartial ? promotePartial(tag.id!) : remove(tag.id!))}
 							title={isPartial
@@ -162,6 +208,7 @@
 				type="search"
 				placeholder="Search tags…"
 				bind:value={search}
+				onkeydown={onSearchKeydown}
 				autocomplete="off"
 			/>
 			{#if search}
@@ -182,9 +229,10 @@
 		{#if availableTags.length > 0}
 			<div class="section-label">Add tag</div>
 			<div class="tag-row available-row">
-				{#each availableTags as tag (tag.id)}
+				{#each availableTags as tag, i (tag.id)}
 					<button
 						class="tag available"
+						class:hl={highlightIdx === i}
 						style={tagStyle(tag)}
 						onclick={() => add(tag.id!)}
 						title="Add to all selected files"
@@ -308,6 +356,17 @@
 	.tag.available:hover {
 		opacity: 1;
 		filter: brightness(1.1);
+	}
+
+	.tag.available.hl {
+		opacity: 1;
+		outline: 2px solid var(--color-accent);
+		outline-offset: 1px;
+	}
+
+	.tag.assigned.kbfocus {
+		outline: 2px solid var(--color-danger);
+		outline-offset: 1px;
 	}
 
 	.search-wrap {
