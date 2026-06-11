@@ -189,11 +189,14 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-		if (e.key === 'ArrowLeft' || e.key === 'k') {
+		if (e.ctrlKey || e.metaKey || e.altKey) return;
+		// Letter keys are matched by physical position (e.code) so j/k/e work on any
+		// keyboard layout; arrows and Escape are layout-independent already.
+		if (e.key === 'ArrowLeft' || e.code === 'KeyK') {
 			if (prevId) onNavigate(prevId);
-		} else if (e.key === 'ArrowRight' || e.key === 'j') {
+		} else if (e.key === 'ArrowRight' || e.code === 'KeyJ') {
 			if (nextId) onNavigate(nextId);
-		} else if (e.key === 'e') {
+		} else if (e.code === 'KeyE') {
 			e.preventDefault();
 			jumpToTags();
 		} else if (e.key === 'Escape') {

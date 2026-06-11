@@ -57,13 +57,15 @@
 	let helpOpen = $state(false);
 
 	// g-then-letter and 1–5 jump between sections; both honour the remembered
-	// per-section URL so you land back on the same filter/scroll.
+	// per-section URL so you land back on the same filter/scroll. Keyed by
+	// KeyboardEvent.code (physical key) so the shortcuts work the same on any
+	// layout — on a Russian layout the `f` key still triggers Files, etc.
 	const G_MAP: Record<string, string> = {
-		c: '/categories',
-		t: '/tags',
-		f: '/files',
-		p: '/pools',
-		s: '/settings'
+		KeyC: '/categories',
+		KeyT: '/tags',
+		KeyF: '/files',
+		KeyP: '/pools',
+		KeyS: '/settings'
 	};
 	const NUM_MAP = navItems.map((it) => it.match); // 1→categories … 5→settings
 
@@ -90,7 +92,8 @@
 		if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
 		if (isLogin) return;
 
-		if (e.key === '?') {
+		// Help: `?` by character, or Shift+/ by position (covers non-US layouts).
+		if (e.key === '?' || (e.code === 'Slash' && e.shiftKey)) {
 			helpOpen = !helpOpen;
 			e.preventDefault();
 			return;
@@ -98,8 +101,8 @@
 
 		// Focus the page's search box. Pages with a persistent one (Tags/Categories/
 		// Pools) are handled here; Files has no always-on input, so its own handler
-		// opens the filter instead.
-		if (e.key === '/') {
+		// opens the filter instead. Match `/` by character or by Slash position.
+		if (!e.shiftKey && (e.key === '/' || e.code === 'Slash')) {
 			const input = document.querySelector<HTMLInputElement>('input[type="search"]');
 			if (input) {
 				e.preventDefault();
@@ -108,28 +111,30 @@
 			return;
 		}
 
+		// The remaining shortcuts are unshifted letters/digits, matched by physical
+		// position so the layout (Latin or not) doesn't matter.
+		if (e.shiftKey) return;
+
 		if (pendingG) {
 			pendingG = false;
 			clearTimeout(gTimer);
-			const dest = G_MAP[e.key.toLowerCase()];
+			const dest = G_MAP[e.code];
 			if (dest) {
 				e.preventDefault();
 				go(dest);
 			}
 			return;
 		}
-		if (e.key === 'g') {
+		if (e.code === 'KeyG') {
 			pendingG = true;
 			clearTimeout(gTimer);
 			gTimer = setTimeout(() => (pendingG = false), 1000);
 			return;
 		}
-		if (e.key >= '1' && e.key <= '5') {
-			const dest = NUM_MAP[Number(e.key) - 1];
-			if (dest) {
-				e.preventDefault();
-				go(dest);
-			}
+		const digit = /^(?:Digit|Numpad)([1-5])$/.exec(e.code);
+		if (digit) {
+			e.preventDefault();
+			go(NUM_MAP[Number(digit[1]) - 1]);
 		}
 	}
 </script>

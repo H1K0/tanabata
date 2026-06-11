@@ -112,33 +112,54 @@
 		if (activeFileId || tagEditorOpen || poolPickerOpen || confirmDeleteFiles) return;
 		if (isFormTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
 
+		// Navigation / named keys — same on every layout.
 		switch (e.key) {
 			case 'ArrowRight':
 				e.preventDefault();
 				moveFocus(1);
-				break;
+				return;
 			case 'ArrowLeft':
 				e.preventDefault();
 				moveFocus(-1);
-				break;
+				return;
 			case 'ArrowDown':
 				e.preventDefault();
 				moveFocus(gridCols());
-				break;
+				return;
 			case 'ArrowUp':
 				e.preventDefault();
 				moveFocus(-gridCols());
-				break;
+				return;
 			case 'Enter': {
 				const f = focusedFile();
 				if (f) {
 					e.preventDefault();
 					openFile(f);
 				}
-				break;
+				return;
 			}
-			case ' ':
-			case 'x': {
+			case ' ': {
+				const f = focusedFile();
+				if (f?.id) {
+					e.preventDefault();
+					selectionStore.toggle(f.id);
+				}
+				return;
+			}
+			case 'Delete':
+				if ($selectionActive || focusedFile()) {
+					e.preventDefault();
+					ensureSelectedFocused();
+					confirmDeleteFiles = true;
+				}
+				return;
+		}
+
+		// Letter / symbol commands matched by physical position, so they fire the
+		// same on a non-Latin layout.
+		if (e.shiftKey) return;
+		switch (e.code) {
+			case 'KeyX': {
 				const f = focusedFile();
 				if (f?.id) {
 					e.preventDefault();
@@ -146,28 +167,21 @@
 				}
 				break;
 			}
-			case 'e':
+			case 'KeyE':
 				if ($selectionActive || focusedFile()) {
 					e.preventDefault();
 					ensureSelectedFocused();
 					openTagEditor();
 				}
 				break;
-			case 'p':
+			case 'KeyP':
 				if ($selectionActive || focusedFile()) {
 					e.preventDefault();
 					ensureSelectedFocused();
 					void openPoolPicker();
 				}
 				break;
-			case 'Delete':
-				if ($selectionActive || focusedFile()) {
-					e.preventDefault();
-					ensureSelectedFocused();
-					confirmDeleteFiles = true;
-				}
-				break;
-			case '/':
+			case 'Slash':
 				e.preventDefault();
 				openFilterAndFocus();
 				break;
