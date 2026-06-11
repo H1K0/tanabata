@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { goto, pushState, replaceState } from '$app/navigation';
 	import { api, ApiError } from '$lib/api/client';
 	import { tick } from 'svelte';
 	import FileCard from '$lib/components/file/FileCard.svelte';
+	import FileViewer from '$lib/components/file/FileViewer.svelte';
 	import FilterBar from '$lib/components/file/FilterBar.svelte';
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
@@ -164,7 +165,7 @@
 	// ---- Selection ----
 	function handleTap(file: PoolFile, idx: number, e: MouseEvent) {
 		if (!selectionMode) {
-			goto(`/files/${file.id}`);
+			openFile(file);
 			return;
 		}
 		if (e.shiftKey && lastSelectedIdx !== null) {
@@ -207,6 +208,60 @@
 			// silently ignore
 		}
 	}
+
+	// ---- File viewer overlay (shallow routing) ----
+	// Open the viewer on top of the still-mounted pool grid so the back button (and
+	// the viewer's own close) returns here — with the pool's list and scroll intact —
+	// instead of navigating to the standalone /files/<id> route, whose close drops
+	// the user on the global files list. Neighbours follow the pool's own order.
+	let activeFileId = $derived(page.state.fileId);
+	let activeIdx = $derived(activeFileId ? files.findIndex((f) => f.id === activeFileId) : -1);
+	let viewerPrevId = $derived(activeIdx > 0 ? (files[activeIdx - 1]?.id ?? null) : null);
+	let viewerNextId = $derived(
+		activeIdx >= 0 && activeIdx < files.length - 1 ? (files[activeIdx + 1]?.id ?? null) : null,
+	);
+
+	function openFile(file: PoolFile) {
+		if (!file.id) return;
+		// Keep the pool URL; the overlay is driven by page.state, so a back press (or
+		// a reload, which clears page.state) reveals the pool untouched.
+		pushState(`${page.url.pathname}${page.url.search}`, { fileId: file.id });
+	}
+
+	function pageTo(id: string) {
+		// Replace (not push) so one back press returns to the grid rather than
+		// stepping back through every file paged.
+		replaceState(`${page.url.pathname}${page.url.search}`, { fileId: id });
+	}
+
+	function closeViewer() {
+		history.back();
+	}
+
+	// Page in more pool files when the viewer nears the end of the loaded set.
+	$effect(() => {
+		if (activeIdx >= 0 && activeIdx >= files.length - 3 && hasMore && !filesLoading) {
+			void loadMore();
+		}
+	});
+
+	// On close, bring the grid back to the last-viewed file (the list never unmounted).
+	let lastOverlayId: string | null = null;
+	$effect(() => {
+		const id = activeFileId;
+		if (id) {
+			lastOverlayId = id;
+		} else if (lastOverlayId) {
+			const target = lastOverlayId;
+			lastOverlayId = null;
+			const idx = files.findIndex((f) => f.id === target);
+			if (idx >= 0) {
+				document
+					.querySelector<HTMLElement>(`[data-file-index="${idx}"]`)
+					?.scrollIntoView({ block: 'center' });
+			}
+		}
+	});
 
 	// ---- Drag-to-reorder ----
 	function onDragStart(idx: number, e: DragEvent) {
@@ -553,6 +608,20 @@
 	{/if}
 </div>
 
+<!-- File viewer overlay (shallow routing): renders on top of the still-mounted
+     pool grid, so closing it reveals the pool untouched. -->
+{#if activeFileId}
+	<div class="viewer-overlay">
+		<FileViewer
+			fileId={activeFileId}
+			prevId={viewerPrevId}
+			nextId={viewerNextId}
+			onNavigate={pageTo}
+			onClose={closeViewer}
+		/>
+	</div>
+{/if}
+
 <!-- Selection bar (remove mode) -->
 {#if selectionMode && !addMode}
 	<div class="selection-bar" role="toolbar">
@@ -596,6 +665,16 @@
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
+	}
+
+	/* Full-screen viewer overlay covering the grid and the bottom navbar. */
+	.viewer-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 200;
+		background-color: var(--color-bg-primary);
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 
 	/* ---- Shared top bar ---- */
