@@ -353,6 +353,9 @@
 		const anchor = page.url.searchParams.get('anchor');
 		if (anchor) {
 			scrollToFile(anchor);
+			// Pre-focus the anchor file so keyboard navigation resumes from it.
+			focusedId = anchor;
+			kbActive = true;
 			consumeAnchor();
 			return;
 		}
@@ -709,6 +712,10 @@
 			const target = lastOverlayId;
 			lastOverlayId = null;
 			scrollToFile(target);
+			// Land the keyboard roving-focus on the file we came back from, so arrow
+			// navigation continues from there (and the ring marks where you were).
+			focusedId = target;
+			kbActive = true;
 		}
 	});
 
