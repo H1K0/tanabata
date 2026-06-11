@@ -54,5 +54,11 @@ function tagSortKey(t: Tag, field: TagSortField): string {
  */
 export function sortTags(tags: Tag[], { sort, order }: SortState<TagSortField>): Tag[] {
 	const dir = order === 'asc' ? 1 : -1;
-	return [...tags].sort((a, b) => dir * tagSortKey(a, sort).localeCompare(tagSortKey(b, sort)));
+	return [...tags].sort((a, b) => {
+		const primary = dir * tagSortKey(a, sort).localeCompare(tagSortKey(b, sort));
+		if (primary !== 0 || sort !== 'category_name') return primary;
+		// Same category: break the tie by the tag's own name (same direction), so
+		// tags are grouped by category then alphabetical — matching the server.
+		return dir * (a.name ?? '').localeCompare(b.name ?? '');
+	});
 }
