@@ -33,8 +33,12 @@ type UploadParams struct {
 	Notes           *string
 	Metadata        json.RawMessage
 	ContentDatetime *time.Time
-	IsPublic        bool
-	TagIDs          []uuid.UUID
+	// ContentDatetimeFallback is used for content_datetime only when neither an
+	// explicit ContentDatetime nor an EXIF date is available (e.g. the source
+	// file's mtime on a server-side import).
+	ContentDatetimeFallback *time.Time
+	IsPublic                bool
+	TagIDs                  []uuid.UUID
 }
 
 // UpdateParams holds the parameters for updating file metadata.
@@ -128,12 +132,14 @@ func (s *FileService) Upload(ctx context.Context, p UploadParams) (*domain.File,
 	// Extract EXIF metadata (best-effort; non-image files will error silently).
 	exifData, exifDatetime := extractEXIFWithDatetime(data)
 
-	// Resolve content datetime: explicit > EXIF > zero value.
+	// Resolve content datetime: explicit > EXIF > fallback (e.g. import mtime) > zero.
 	var contentDatetime time.Time
 	if p.ContentDatetime != nil {
 		contentDatetime = *p.ContentDatetime
 	} else if exifDatetime != nil {
 		contentDatetime = *exifDatetime
+	} else if p.ContentDatetimeFallback != nil {
+		contentDatetime = *p.ContentDatetimeFallback
 	}
 
 	// Assign UUID v7 so CreatedAt can be derived from it later.
@@ -584,11 +590,21 @@ func (s *FileService) Import(ctx context.Context, path string) (*ImportResult, e
 			continue
 		}
 
+		// Preserve the file's mtime as a content_datetime fallback (used only when
+		// the file has no EXIF date) — once the source is removed below it's the
+		// only date left for non-photo files.
+		var mtime *time.Time
+		if info, statErr := entry.Info(); statErr == nil {
+			t := info.ModTime()
+			mtime = &t
+		}
+
 		name := entry.Name()
 		_, uploadErr := s.Upload(ctx, UploadParams{
-			Reader:       f,
-			MIMEType:     mimeStr,
-			OriginalName: &name,
+			Reader:                  f,
+			MIMEType:                mimeStr,
+			OriginalName:            &name,
+			ContentDatetimeFallback: mtime,
 		})
 		f.Close()
 
@@ -600,6 +616,16 @@ func (s *FileService) Import(ctx context.Context, path string) (*ImportResult, e
 			continue
 		}
 		result.Imported++
+
+		// Remove the source on success so the import folder drains and re-running
+		// doesn't duplicate. The file is already safely copied into storage; a
+		// removal failure is reported but doesn't undo the import.
+		if rmErr := os.Remove(fullPath); rmErr != nil {
+			result.Errors = append(result.Errors, ImportFileError{
+				Filename: entry.Name(),
+				Reason:   fmt.Sprintf("imported, but failed to remove source: %s", rmErr),
+			})
+		}
 	}
 
 	return result, nil

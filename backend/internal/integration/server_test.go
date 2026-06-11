@@ -50,9 +50,10 @@ const defaultAdminDSN = "host=/var/run/postgresql port=5434 user=h1k0 dbname=pos
 // ---------------------------------------------------------------------------
 
 type harness struct {
-	t      *testing.T
-	server *httptest.Server
-	client *http.Client
+	t         *testing.T
+	server    *httptest.Server
+	client    *http.Client
+	importDir string
 }
 
 // setupSuite creates an ephemeral database, runs migrations, wires the full
@@ -106,6 +107,7 @@ func setupSuite(t *testing.T) *harness {
 	// --- Temp directories for storage ----------------------------------------
 	filesDir := t.TempDir()
 	thumbsDir := t.TempDir()
+	importDir := t.TempDir()
 
 	diskStorage, err := storage.NewDiskStorage(filesDir, thumbsDir, 160, 160, 1920, 1080)
 	require.NoError(t, err)
@@ -130,7 +132,7 @@ func setupSuite(t *testing.T) *harness {
 	tagSvc := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
 	categorySvc := service.NewCategoryService(categoryRepo, tagRepo, aclSvc, auditSvc)
 	poolSvc := service.NewPoolService(poolRepo, aclSvc, auditSvc)
-	fileSvc := service.NewFileService(fileRepo, mimeRepo, diskStorage, aclSvc, auditSvc, tagSvc, transactor, filesDir)
+	fileSvc := service.NewFileService(fileRepo, mimeRepo, diskStorage, aclSvc, auditSvc, tagSvc, transactor, importDir)
 	userSvc := service.NewUserService(userRepo, sessionRepo, auditSvc)
 
 	// Bootstrap the admin account the suite logs in with (replaces the old
@@ -159,9 +161,10 @@ func setupSuite(t *testing.T) *harness {
 	t.Cleanup(srv.Close)
 
 	return &harness{
-		t:      t,
-		server: srv,
-		client: srv.Client(),
+		t:         t,
+		server:    srv,
+		client:    srv.Client(),
+		importDir: importDir,
 	}
 }
 
@@ -897,6 +900,59 @@ func TestNonOwnerAccessControl(t *testing.T) {
 	// The owner can still manage her own file's ACL.
 	resp = h.doJSON("GET", "/acl/file/"+fileID, nil, aliceToken)
 	assert.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+}
+
+// TestImportFromFolder verifies the admin server-side import: supported files
+// are ingested, subdirectories are skipped, the source is removed from the
+// import folder afterwards, and a file without EXIF takes the source's mtime as
+// its content_datetime.
+func TestImportFromFolder(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	// Drop a non-EXIF JPEG into the import folder with a known mtime, plus a
+	// subdirectory that must be skipped.
+	srcPath := filepath.Join(h.importDir, "scan.jpg")
+	require.NoError(t, os.WriteFile(srcPath, minimalJPEG(), 0o644))
+	mtime := time.Date(2021, 3, 4, 5, 6, 7, 0, time.UTC)
+	require.NoError(t, os.Chtimes(srcPath, mtime, mtime))
+	require.NoError(t, os.Mkdir(filepath.Join(h.importDir, "nested"), 0o755))
+
+	resp := h.doJSON("POST", "/files/import", map[string]any{}, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	var res struct {
+		Imported int `json:"imported"`
+		Skipped  int `json:"skipped"`
+		Errors   []struct {
+			Filename string `json:"filename"`
+			Reason   string `json:"reason"`
+		} `json:"errors"`
+	}
+	resp.decode(t, &res)
+	assert.Equal(t, 1, res.Imported, resp.String())
+	assert.Equal(t, 1, res.Skipped, resp.String()) // the nested directory
+	assert.Empty(t, res.Errors, resp.String())
+
+	// Source file is gone from the import folder after a successful import.
+	_, statErr := os.Stat(srcPath)
+	assert.True(t, os.IsNotExist(statErr), "source should be removed after import")
+
+	// The imported file took the mtime as content_datetime (no EXIF present).
+	listResp := h.doJSON("GET", "/files?limit=10", nil, adminToken)
+	require.Equal(t, http.StatusOK, listResp.StatusCode, listResp.String())
+	var list struct {
+		Items []struct {
+			ContentDatetime string `json:"content_datetime"`
+		} `json:"items"`
+	}
+	listResp.decode(t, &list)
+	require.Len(t, list.Items, 1, listResp.String())
+	ct, err := time.Parse(time.RFC3339, list.Items[0].ContentDatetime)
+	require.NoError(t, err)
+	assert.True(t, ct.Equal(mtime), "content_datetime %v should equal mtime %v", ct, mtime)
 }
 
 // TestBlockRevokesActiveSessions verifies that blocking a user immediately
