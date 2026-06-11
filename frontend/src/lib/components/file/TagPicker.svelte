@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Tag } from '$lib/api/types';
-	import { fetchAllTags } from '$lib/api/tags';
+	import { fetchAllTags, sortTags } from '$lib/api/tags';
+	import { tagSorting } from '$lib/stores/sorting';
 
 	interface Props {
 		fileTags: Tag[];
@@ -30,10 +31,13 @@
 		)
 	);
 
+	// Show a file's already-assigned tags in the user's chosen tag order too.
+	let sortedAssigned = $derived(sortTags(fileTags, $tagSorting));
+
 	let filteredAssigned = $derived(
 		search.trim()
-			? fileTags.filter((t) => t.name?.toLowerCase().includes(search.toLowerCase()))
-			: fileTags
+			? sortedAssigned.filter((t) => t.name?.toLowerCase().includes(search.toLowerCase()))
+			: sortedAssigned
 	);
 
 	async function handleAdd(tagId: string) {
