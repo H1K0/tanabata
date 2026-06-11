@@ -762,6 +762,32 @@ func TestBulkTagAutoRule(t *testing.T) {
 	assert.ElementsMatch(t, []string{"outdoor", "nature"}, names)
 }
 
+// TestMediaQueryTokenAuth verifies the ?access_token= fallback: it authenticates
+// a GET (so media can be opened via a plain link/new tab) but is rejected for a
+// non-GET, and a missing token is still 401.
+func TestMediaQueryTokenAuth(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	token := h.login("admin", "admin")
+	file := h.uploadJPEG(token, "q.jpg")
+	fileID := file["id"].(string)
+
+	// GET with token in the query, no Authorization header → 200.
+	resp := h.do("GET", "/files/"+fileID+"/content?access_token="+token, nil, "", "")
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	// No token anywhere → 401.
+	resp = h.do("GET", "/files/"+fileID+"/content", nil, "", "")
+	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+
+	// Query token must NOT authorize a state-changing (non-GET) request → 401.
+	resp = h.do("DELETE", "/files/"+fileID+"?access_token="+token, nil, "", "")
+	require.Equal(t, http.StatusUnauthorized, resp.StatusCode, resp.String())
+}
+
 // ---------------------------------------------------------------------------
 // Security regression tests
 // ---------------------------------------------------------------------------

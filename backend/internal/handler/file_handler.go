@@ -402,9 +402,14 @@ func (h *FileHandler) GetContent(c *gin.Context) {
 
 	c.Header("Content-Type", res.MIMEType)
 	c.Header("Cache-Control", "private, max-age=3600")
+	// Default to attachment (download); ?inline=1 serves it for in-tab viewing.
+	disposition := "attachment"
+	if c.Query("inline") == "1" {
+		disposition = "inline"
+	}
 	if res.OriginalName != nil {
 		c.Header("Content-Disposition",
-			fmt.Sprintf("attachment; filename=%q", *res.OriginalName))
+			fmt.Sprintf("%s; filename=%q", disposition, *res.OriginalName))
 	}
 	c.Status(http.StatusOK)
 	io.Copy(c.Writer, res.Body) //nolint:errcheck

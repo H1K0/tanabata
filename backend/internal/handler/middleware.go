@@ -24,8 +24,8 @@ func NewAuthMiddleware(authSvc *service.AuthService) *AuthMiddleware {
 // On success it calls c.Next(); on failure it aborts with 401 JSON.
 func (m *AuthMiddleware) Handle() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		raw := c.GetHeader("Authorization")
-		if !strings.HasPrefix(raw, "Bearer ") {
+		token := bearerToken(c)
+		if token == "" {
 			c.JSON(http.StatusUnauthorized, errorBody{
 				Code:    domain.ErrUnauthorized.Code(),
 				Message: "authorization header missing or malformed",
@@ -33,7 +33,6 @@ func (m *AuthMiddleware) Handle() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		token := strings.TrimPrefix(raw, "Bearer ")
 
 		claims, err := m.authSvc.ValidateAccessToken(c.Request.Context(), token)
 		if err != nil {
@@ -49,4 +48,19 @@ func (m *AuthMiddleware) Handle() gin.HandlerFunc {
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}
+}
+
+// bearerToken extracts the access token from the Authorization header. As a
+// fallback it accepts an ?access_token= query parameter, but only for GET
+// requests — this lets the browser open media (e.g. /files/{id}/content) via a
+// plain link/new tab, where it can't send the header, without allowing a crafted
+// link to drive a state-changing request.
+func bearerToken(c *gin.Context) string {
+	if raw := c.GetHeader("Authorization"); strings.HasPrefix(raw, "Bearer ") {
+		return strings.TrimPrefix(raw, "Bearer ")
+	}
+	if c.Request.Method == http.MethodGet {
+		return c.Query("access_token")
+	}
+	return ""
 }

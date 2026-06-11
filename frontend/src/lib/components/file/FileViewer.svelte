@@ -101,6 +101,16 @@
 		}
 	}
 
+	// Direct link to the full-resolution original, opened in a new tab. A
+	// navigation can't send the auth header, so the token rides in the query —
+	// the server accepts ?access_token= for GET media. Reactive on the token so a
+	// silent refresh keeps the link valid.
+	let originalUrl = $derived(
+		fileId
+			? `/api/v1/files/${fileId}/content?inline=1&access_token=${encodeURIComponent($authStore.accessToken ?? '')}`
+			: '#'
+	);
+
 	// ---- Tags (lazy) ----
 	// Fetch the current file's tags the first time the Tags section is visible.
 	// Re-runs when fileId changes while the section is still on-screen.
@@ -222,7 +232,15 @@
 	<!-- Preview -->
 	<div class="preview-wrap">
 		{#if previewSrc}
-			<img src={previewSrc} alt={file?.original_name ?? ''} class="preview-img" />
+			<a
+				class="preview-link"
+				href={originalUrl}
+				target="_blank"
+				rel="noopener"
+				title="Open original in a new tab"
+			>
+				<img src={previewSrc} alt={file?.original_name ?? ''} class="preview-img" />
+			</a>
 		{:else if loading}
 			<div class="preview-placeholder shimmer"></div>
 		{:else}
@@ -412,6 +430,17 @@
 		height: calc(100dvh - 44px);
 		flex-shrink: 0;
 		overflow: hidden;
+	}
+
+	/* Whole preview area is a link: click opens the original in a new tab. */
+	.preview-link {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: zoom-in;
+		text-decoration: none;
 	}
 
 	.preview-img {

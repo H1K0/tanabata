@@ -330,8 +330,27 @@ paths:
     get:
       tags: [Files]
       summary: Download file content
+      description: >
+        Returns the original file bytes. Served as an attachment (download) by
+        default; pass inline=1 to serve it for in-tab viewing
+        (Content-Disposition: inline). For browser navigation/new-tab opens that
+        can't send the Authorization header, the access token may be supplied as
+        the access_token query parameter (GET only).
       parameters:
         - $ref: '#/components/parameters/file_id'
+        - name: inline
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ['1']
+          description: When '1', serve inline (view) instead of as a download.
+        - name: access_token
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Access token, as an alternative to the Authorization header (GET only).
       responses:
         '200':
           description: File binary
