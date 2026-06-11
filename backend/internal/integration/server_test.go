@@ -152,6 +152,7 @@ func setupSuite(t *testing.T) *harness {
 		authMiddleware, authHandler,
 		fileHandler, tagHandler, categoryHandler, poolHandler,
 		userHandler, aclHandler, auditHandler,
+		"",
 	)
 
 	srv := httptest.NewServer(r)

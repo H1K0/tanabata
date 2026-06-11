@@ -31,6 +31,7 @@ func NewRouter(
 	userHandler *UserHandler,
 	aclHandler *ACLHandler,
 	auditHandler *AuditHandler,
+	staticDir string,
 ) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery(), securityHeaders())
@@ -178,6 +179,13 @@ func NewRouter(
 	// Audit (auth required; admin check enforced in handler)
 	// -------------------------------------------------------------------------
 	v1.GET("/audit", auth.Handle(), auditHandler.List)
+
+	// Serve the built single-page app on the same port as the API. When
+	// staticDir is empty (local development) the Vite dev server serves the UI
+	// instead, so the API runs standalone and unknown routes 404 normally.
+	if staticDir != "" {
+		r.NoRoute(spaHandler(staticDir))
+	}
 
 	return r
 }

@@ -1,0 +1,29 @@
+# Keep the build context small and reproducible: never ship local state,
+# dependencies, or build outputs — they are rebuilt inside the image.
+
+# VCS / tooling
+.git
+.gitignore
+**/.DS_Store
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# Node
+frontend/node_modules
+frontend/.svelte-kit
+frontend/build
+frontend/.vite
+
+# Go
+backend/server
+backend/**/*.test
+
+# Docs / reference (not needed to build the image)
+docs/reference
+
+# Editor / OS
+.vscode
+.idea

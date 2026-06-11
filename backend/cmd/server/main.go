@@ -117,6 +117,7 @@ func main() {
 		authMiddleware, authHandler,
 		fileHandler, tagHandler, categoryHandler, poolHandler,
 		userHandler, aclHandler, auditHandler,
+		cfg.StaticDir,
 	)
 
 	// ReadHeaderTimeout bounds slow-header (Slowloris) attacks; body read/write

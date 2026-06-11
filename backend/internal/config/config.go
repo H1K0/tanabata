@@ -38,6 +38,11 @@ type Config struct {
 
 	// Import
 	ImportPath string
+
+	// Static SPA. When set, the server serves the built frontend (and falls
+	// back to index.html for client routes) on the same port as the API. Empty
+	// in local development, where the Vite dev server serves the UI separately.
+	StaticDir string
 }
 
 // Load reads a .env file (if present) then loads all configuration from
@@ -120,6 +125,8 @@ func Load() (*Config, error) {
 		PreviewHeight: parseInt("PREVIEW_HEIGHT", 1080),
 
 		ImportPath: requireStr("IMPORT_PATH"),
+
+		StaticDir: defaultStr("STATIC_DIR", ""),
 	}
 
 	if len(errs) > 0 {
