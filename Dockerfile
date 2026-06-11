@@ -49,13 +49,15 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/server 
 # -----------------------------------------------------------------------------
 # Stage 3 — minimal runtime
 #
-# Alpine (not distroless/scratch) because video thumbnailing invokes ffmpeg as
-# an external process; it must be present on the runtime image.
+# Alpine (not distroless/scratch) because video thumbnailing invokes ffmpeg and
+# metadata extraction invokes exiftool as external processes; both must be
+# present on the runtime image.
 # -----------------------------------------------------------------------------
 FROM alpine:3.21 AS runtime
 
-# ffmpeg: video frame extraction. ca-certificates/tzdata: TLS + time zones.
-RUN apk add --no-cache ffmpeg ca-certificates tzdata
+# ffmpeg: video frame extraction. exiftool: rich image/video/audio metadata.
+# ca-certificates/tzdata: TLS + time zones.
+RUN apk add --no-cache ffmpeg exiftool ca-certificates tzdata
 
 # Run as an unprivileged user.
 RUN addgroup -S -g 42776 tanabata && adduser -S -G tanabata -u 42776 tanabata
