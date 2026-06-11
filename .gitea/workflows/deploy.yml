@@ -1,0 +1,44 @@
+name: deploy
+
+# Build the image and (re)start the compose stack on the production host
+# whenever master moves. Also runnable manually from the Gitea Actions tab.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+# One deploy at a time; queue rather than cancel an in-flight run.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Self-hosted act_runner registered on the prod host with the "host" label
+    # (shell executor), so the job uses the host's git + Docker daemon and the
+    # existing clone in /opt/tanabata. See docs/DEPLOY.md for runner setup.
+    #
+    # Only shell steps here (no `uses:` actions), so the host needs git + docker
+    # and nothing else — no node, no rsync.
+    runs-on: host
+
+    env:
+      DEPLOY_DIR: /opt/tanabata
+
+    steps:
+      - name: Pull latest master
+        # DEPLOY_DIR is a git clone set up once at deploy time. reset --hard
+        # makes it match origin exactly; .env is untracked (.gitignore) so it
+        # is never touched.
+        run: |
+          cd "$DEPLOY_DIR"
+          git fetch --prune origin
+          git reset --hard origin/master
+
+      - name: Build image and start the stack
+        working-directory: /opt/tanabata
+        # .env must already exist in DEPLOY_DIR on the host (secrets + DB mode).
+        run: docker compose up -d --build --remove-orphans
+
+      - name: Prune dangling build layers
+        run: docker image prune -f
