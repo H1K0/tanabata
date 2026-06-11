@@ -161,6 +161,25 @@ func (h *PoolHandler) Get(c *gin.Context) {
 }
 
 // ---------------------------------------------------------------------------
+// POST /pools/:pool_id/views
+// ---------------------------------------------------------------------------
+
+// RecordView logs that the current user viewed the pool (activity.pool_views).
+func (h *PoolHandler) RecordView(c *gin.Context) {
+	id, ok := parsePoolID(c)
+	if !ok {
+		return
+	}
+
+	if err := h.poolSvc.RecordView(c.Request.Context(), id); err != nil {
+		respondError(c, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// ---------------------------------------------------------------------------
 // PATCH /pools/:pool_id
 // ---------------------------------------------------------------------------
 

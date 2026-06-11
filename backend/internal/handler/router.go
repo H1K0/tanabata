@@ -141,6 +141,7 @@ func NewRouter(
 		pools.GET("/:pool_id", poolHandler.Get)
 		pools.PATCH("/:pool_id", poolHandler.Update)
 		pools.DELETE("/:pool_id", poolHandler.Delete)
+		pools.POST("/:pool_id/views", poolHandler.RecordView)
 
 		// Sub-routes registered before /:pool_id/files to avoid param conflicts.
 		pools.POST("/:pool_id/files/remove", poolHandler.RemoveFiles)

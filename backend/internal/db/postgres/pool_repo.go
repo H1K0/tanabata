@@ -266,6 +266,16 @@ WHERE p.id = $1`
 	return &p, nil
 }
 
+// RecordView appends a row to activity.pool_views. viewed_at defaults to
+// statement_timestamp(), so each call records a distinct view in the history.
+func (r *PoolRepo) RecordView(ctx context.Context, poolID uuid.UUID, userID int16) error {
+	const query = `INSERT INTO activity.pool_views (pool_id, user_id) VALUES ($1, $2)`
+	if _, err := connOrTx(ctx, r.pool).Exec(ctx, query, poolID, userID); err != nil {
+		return fmt.Errorf("PoolRepo.RecordView: %w", err)
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Create
 // ---------------------------------------------------------------------------

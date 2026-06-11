@@ -82,6 +82,16 @@ func (s *PoolService) authorizeView(ctx context.Context, poolID uuid.UUID) error
 	return nil
 }
 
+// RecordView appends a view-history entry for the current user, enforcing view
+// ACL (you can only record a view of a pool you may see).
+func (s *PoolService) RecordView(ctx context.Context, id uuid.UUID) error {
+	userID, _, _ := domain.UserFromContext(ctx)
+	if err := s.authorizeView(ctx, id); err != nil {
+		return err
+	}
+	return s.pools.RecordView(ctx, id, userID)
+}
+
 // authorizeEdit returns nil if the caller may edit the pool, else ErrForbidden
 // (or ErrNotFound if the pool does not exist).
 func (s *PoolService) authorizeEdit(ctx context.Context, poolID uuid.UUID) error {

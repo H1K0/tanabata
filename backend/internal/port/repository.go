@@ -129,6 +129,9 @@ type PoolRepo interface {
 	RemoveFiles(ctx context.Context, poolID uuid.UUID, fileIDs []uuid.UUID) error
 	// Reorder sets the full ordered sequence of file IDs in the pool.
 	Reorder(ctx context.Context, poolID uuid.UUID, fileIDs []uuid.UUID) error
+
+	// RecordView appends a view-history row (activity.pool_views) for the user.
+	RecordView(ctx context.Context, poolID uuid.UUID, userID int16) error
 }
 
 // UserRepo is the persistence interface for users.

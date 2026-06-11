@@ -857,6 +857,40 @@ func TestTagSortByCategoryThenName(t *testing.T) {
 	assert.Equal(t, []string{"ant", "zebra", "mid", "solo"}, names)
 }
 
+// TestRecordPoolView verifies that viewing a pool is logged (POST .../views),
+// is repeatable (view history, not a unique flag), and 404s for unknown pools.
+func TestRecordPoolView(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	ctx := context.Background()
+	adminToken := h.login("admin", "admin")
+
+	resp := h.doJSON("POST", "/pools", map[string]any{"name": "trip"}, adminToken)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var pool map[string]any
+	resp.decode(t, &pool)
+	poolID := pool["id"].(string)
+
+	resp = h.doJSON("POST", "/pools/"+poolID+"/views", nil, adminToken)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
+
+	// Viewing again logs another history row, not a conflict.
+	resp = h.doJSON("POST", "/pools/"+poolID+"/views", nil, adminToken)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
+
+	var n int
+	require.NoError(t, h.pool.QueryRow(ctx,
+		`SELECT count(*) FROM activity.pool_views WHERE pool_id = $1`, poolID).Scan(&n))
+	assert.Equal(t, 2, n, "each view should add a history row")
+
+	// Unknown pool id → 404.
+	resp = h.doJSON("POST", "/pools/00000000-0000-0000-0000-000000000000/views", nil, adminToken)
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, resp.String())
+}
+
 // TestBulkTagAutoRule verifies the bulk add path also applies then_tags.
 func TestBulkTagAutoRule(t *testing.T) {
 	if testing.Short() {
