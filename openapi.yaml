@@ -654,6 +654,13 @@ paths:
         not recursed. A successfully imported file is removed from the import
         folder. For files without an EXIF date, the source file's modified time
         is used as content_datetime.
+
+
+        Progress is streamed as newline-delimited JSON (`application/x-ndjson`):
+        a single `start` event, one `file` event per directory entry as it is
+        processed, and a final `done` event with the tallies. A validation error
+        raised before any file is touched (e.g. import disabled, bad path) is
+        instead returned as a normal JSON error with a 4xx/5xx status.
       requestBody:
         required: true
         content:
@@ -666,25 +673,45 @@ paths:
                   description: Server directory path (uses user's configured import path if omitted)
       responses:
         '200':
-          description: Import result
+          description: >
+            A stream of newline-delimited JSON import progress events. The
+            schema below describes a single event line; the response body is one
+            such object per line.
           content:
-            application/json:
+            application/x-ndjson:
               schema:
                 type: object
+                required: [type]
                 properties:
+                  type:
+                    type: string
+                    enum: [start, file, done, error]
+                    description: Event discriminator.
+                  total:
+                    type: integer
+                    description: Entries to process (start) or processed (done).
+                  index:
+                    type: integer
+                    description: 1-based position of this entry (file events).
+                  filename:
+                    type: string
+                    description: Entry name (file events).
+                  status:
+                    type: string
+                    enum: [imported, skipped, error]
+                    description: Outcome for this entry (file events).
+                  reason:
+                    type: string
+                    description: Detail for a skipped/error/warning entry.
                   imported:
                     type: integer
+                    description: Total imported (done event).
                   skipped:
                     type: integer
+                    description: Total skipped (done event).
                   errors:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        filename:
-                          type: string
-                        reason:
-                          type: string
+                    type: integer
+                    description: Total errors (done event).
 
   # -------------------------------------------------------------------------
   # Tags
