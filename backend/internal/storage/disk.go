@@ -120,16 +120,18 @@ func (s *DiskStorage) InvalidateCache(_ context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// Thumbnail returns a JPEG that fits within the configured max width×height
-// (never upscaled, never cropped). Generated on first call and cached.
-// Video files are thumbnailed via ffmpeg; other non-image files get a placeholder.
+// Thumbnail returns a JPEG scaled to fit within the configured max width×height,
+// preserving the original aspect ratio (never upscaled, never cropped); the grid
+// cell letterboxes it as needed. Generated on first call and cached. Video files
+// are thumbnailed via ffmpeg; other non-image files get a placeholder.
 func (s *DiskStorage) Thumbnail(ctx context.Context, id uuid.UUID) (io.ReadCloser, error) {
 	return s.serveGenerated(ctx, id, s.thumbCachePath(id), s.thumbWidth, s.thumbHeight)
 }
 
-// Preview returns a JPEG that fits within the configured max width×height
-// (never upscaled, never cropped). Generated on first call and cached.
-// Video files are thumbnailed via ffmpeg; other non-image files get a placeholder.
+// Preview returns a JPEG scaled to fit within the configured max width×height,
+// preserving the original aspect ratio (never upscaled, never cropped) so the
+// viewer shows the whole image. Generated on first call and cached. Video files
+// are thumbnailed via ffmpeg; other non-image files get a placeholder.
 func (s *DiskStorage) Preview(ctx context.Context, id uuid.UUID) (io.ReadCloser, error) {
 	return s.serveGenerated(ctx, id, s.previewCachePath(id), s.previewWidth, s.previewHeight)
 }
@@ -138,8 +140,9 @@ func (s *DiskStorage) Preview(ctx context.Context, id uuid.UUID) (io.ReadCloser,
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-// serveGenerated is the shared implementation for Thumbnail and Preview.
-// imaging.Thumbnail fits the source within maxW×maxH without upscaling or cropping.
+// serveGenerated is the shared implementation for Thumbnail and Preview. Both
+// fit the source within maxW×maxH with imaging.Fit, preserving the aspect ratio
+// (no crop, no upscale); they differ only in the configured dimensions.
 //
 // Resolution order:
 //  1. Return cached JPEG if present.
@@ -166,9 +169,9 @@ func (s *DiskStorage) serveGenerated(ctx context.Context, id uuid.UUID, cachePat
 	// 3. Fall back to placeholder.
 	var img image.Image
 	if decoded, err := decodeImageLimited(srcPath); err == nil {
-		img = imaging.Thumbnail(decoded, maxW, maxH, imaging.Lanczos)
+		img = imaging.Fit(decoded, maxW, maxH, imaging.Lanczos)
 	} else if frame, err := extractVideoFrame(ctx, srcPath); err == nil {
-		img = imaging.Thumbnail(frame, maxW, maxH, imaging.Lanczos)
+		img = imaging.Fit(frame, maxW, maxH, imaging.Lanczos)
 	} else {
 		img = placeholder(maxW, maxH)
 	}
