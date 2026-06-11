@@ -85,16 +85,15 @@
 	});
 
 	// ---- PWA reset ----
+	// doPwaReset() clears the caches/SW and then hard-reloads the page, so there's
+	// no post-success state to surface here — just keep the button disabled while it
+	// runs until the reload takes over.
 	let pwaResetting = $state(false);
-	let pwaSuccess = $state(false);
 
 	async function resetPwa() {
 		pwaResetting = true;
-		pwaSuccess = false;
 		try {
 			await doPwaReset();
-			pwaSuccess = true;
-			setTimeout(() => (pwaSuccess = false), 3000);
 		} finally {
 			pwaResetting = false;
 		}
@@ -226,10 +225,7 @@
 	<!-- ====== PWA ====== -->
 	<section class="card">
 		<h2 class="section-title">App cache</h2>
-		<p class="hint-text">Clear service worker and cached assets. Useful if the app feels stale after an update.</p>
-		{#if pwaSuccess}
-			<p class="msg success" role="status">Cache cleared. Reload the page to fetch fresh assets.</p>
-		{/if}
+		<p class="hint-text">Clear service worker and cached assets, then reload. Useful if the app feels stale after an update.</p>
 		<div class="row-actions">
 			<button class="btn danger-outline" onclick={resetPwa} disabled={pwaResetting}>
 				{pwaResetting ? 'Clearing…' : 'Clear PWA cache'}

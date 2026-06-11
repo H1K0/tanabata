@@ -8,8 +8,11 @@ declare const self: ServiceWorkerGlobalScope;
 // Cache name is versioned so a new deploy invalidates the old shell.
 const CACHE = `app-shell-${version}`;
 
-// App shell: all Vite-emitted JS/CSS chunks + static assets (fonts, icons, manifest).
-const SHELL = [...build, ...files];
+// App shell: the SPA entry HTML ('/'), all Vite-emitted JS/CSS chunks, and the
+// static assets (fonts, icons, manifest). Pre-caching '/' makes the shell — and
+// therefore the whole offline fallback below — available from the very first
+// visit, before any navigation has been seen by the runtime cache.
+const SHELL = ['/', ...build, ...files];
 
 // ---- Install: pre-cache the app shell ----
 self.addEventListener('install', (event) => {

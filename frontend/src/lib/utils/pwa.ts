@@ -11,4 +11,7 @@ export async function resetPwa(): Promise<void> {
 		const keys = await caches.keys();
 		await Promise.all(keys.map((k) => caches.delete(k)));
 	}
+	// Hard reload so the page (and a fresh service worker, if still installed)
+	// re-fetches everything from the network instead of the now-cleared cache.
+	location.reload();
 }
