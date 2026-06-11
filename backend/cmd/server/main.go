@@ -52,6 +52,7 @@ func main() {
 		cfg.ThumbsCachePath,
 		cfg.ThumbWidth, cfg.ThumbHeight,
 		cfg.PreviewWidth, cfg.PreviewHeight,
+		cfg.ThumbMaxPixels, cfg.ThumbConcurrency,
 	)
 	if err != nil {
 		slog.Error("failed to initialise storage", "err", err)

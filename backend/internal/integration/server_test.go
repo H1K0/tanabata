@@ -110,7 +110,7 @@ func setupSuite(t *testing.T) *harness {
 	thumbsDir := t.TempDir()
 	importDir := t.TempDir()
 
-	diskStorage, err := storage.NewDiskStorage(filesDir, thumbsDir, 160, 160, 1920, 1080)
+	diskStorage, err := storage.NewDiskStorage(filesDir, thumbsDir, 160, 160, 1920, 1080, 0, 0)
 	require.NoError(t, err)
 
 	// --- Repositories --------------------------------------------------------

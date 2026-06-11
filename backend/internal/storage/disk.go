@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/disintegration/imaging"
@@ -38,19 +39,35 @@ type DiskStorage struct {
 	thumbHeight   int
 	previewWidth  int
 	previewHeight int
+	maxPixels     int
+	// genSem bounds concurrent thumbnail/preview generation. Each resize already
+	// fans out across every core (imaging uses GOMAXPROCS), and large sources cost
+	// hundreds of MB to decode, so unbounded parallelism on a burst of big images
+	// pegs the CPU and can exhaust RAM. A buffered channel caps how many run at once.
+	genSem chan struct{}
 }
 
 var _ port.FileStorage = (*DiskStorage)(nil)
 
 // NewDiskStorage creates a DiskStorage and ensures both directories exist.
+//
+// maxPixels caps the source pixel count we will decode in-process (0 → a sane
+// default). concurrency bounds simultaneous generation (≤0 → half the CPUs).
 func NewDiskStorage(
 	filesPath, thumbsPath string,
 	thumbW, thumbH, prevW, prevH int,
+	maxPixels, concurrency int,
 ) (*DiskStorage, error) {
 	for _, p := range []string{filesPath, thumbsPath} {
 		if err := os.MkdirAll(p, 0o755); err != nil {
 			return nil, fmt.Errorf("storage: create directory %q: %w", p, err)
 		}
+	}
+	if maxPixels <= 0 {
+		maxPixels = defaultMaxDecodePixels
+	}
+	if concurrency <= 0 {
+		concurrency = max(1, runtime.GOMAXPROCS(0)/2)
 	}
 	return &DiskStorage{
 		filesPath:     filesPath,
@@ -59,6 +76,8 @@ func NewDiskStorage(
 		thumbHeight:   thumbH,
 		previewWidth:  prevW,
 		previewHeight: prevH,
+		maxPixels:     maxPixels,
+		genSem:        make(chan struct{}, concurrency),
 	}, nil
 }
 
@@ -164,11 +183,26 @@ func (s *DiskStorage) serveGenerated(ctx context.Context, id uuid.UUID, cachePat
 		return nil, fmt.Errorf("storage: stat %q: %w", srcPath, err)
 	}
 
+	// Bound concurrent generation so a burst of large images can't peg every core
+	// or exhaust RAM. Queue here (respecting cancellation) rather than starting
+	// the heavy decode immediately.
+	select {
+	case s.genSem <- struct{}{}:
+		defer func() { <-s.genSem }()
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	// Another request may have generated this while we waited on the semaphore.
+	if f, err := os.Open(cachePath); err == nil {
+		return f, nil
+	}
+
 	// 1. Try still-image decode (JPEG/PNG/GIF), rejecting decompression bombs.
 	// 2. Try video frame extraction via ffmpeg.
 	// 3. Fall back to placeholder.
 	var img image.Image
-	if decoded, err := decodeImageLimited(srcPath); err == nil {
+	if decoded, err := decodeImageLimited(srcPath, s.maxPixels); err == nil {
 		img = imaging.Fit(decoded, maxW, maxH, imaging.Lanczos)
 	} else if frame, err := extractVideoFrame(ctx, srcPath); err == nil {
 		img = imaging.Fit(frame, maxW, maxH, imaging.Lanczos)
@@ -221,15 +255,15 @@ func writeCache(cachePath string, img image.Image) (io.ReadCloser, error) {
 	return f, nil
 }
 
-// maxDecodePixels caps the pixel count of an image we are willing to decode
-// into memory, bounding the cost of a decompression bomb (a tiny file that
-// expands to an enormous raster). 64 Mpx is ~ an 8192×8192 image.
-const maxDecodePixels = 64 << 20
+// defaultMaxDecodePixels is the fallback cap when none is configured. It bounds
+// the cost of a decompression bomb (a tiny file that expands to an enormous
+// raster) and the per-image memory; ~300 Mpx covers e.g. a 13000×17000 photo.
+const defaultMaxDecodePixels = 300_000_000
 
 // decodeImageLimited decodes the image at path after first inspecting its header
 // dimensions via image.DecodeConfig (which does not allocate the raster), and
-// refuses images whose pixel count exceeds maxDecodePixels.
-func decodeImageLimited(path string) (image.Image, error) {
+// refuses images whose pixel count exceeds maxPixels.
+func decodeImageLimited(path string, maxPixels int) (image.Image, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -240,7 +274,7 @@ func decodeImageLimited(path string) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	if int64(cfg.Width)*int64(cfg.Height) > maxDecodePixels {
+	if int64(cfg.Width)*int64(cfg.Height) > int64(maxPixels) {
 		return nil, fmt.Errorf("image too large to decode: %dx%d", cfg.Width, cfg.Height)
 	}
 	if _, err := f.Seek(0, io.SeekStart); err != nil {

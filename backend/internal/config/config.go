@@ -35,6 +35,14 @@ type Config struct {
 	ThumbHeight   int
 	PreviewWidth  int
 	PreviewHeight int
+	// ThumbMaxPixels caps the pixel count of a source image we will decode into
+	// memory to generate a thumbnail/preview (a decode bombs guard, and a memory
+	// bound). Larger images fall back to a placeholder.
+	ThumbMaxPixels int
+	// ThumbConcurrency bounds how many thumbnails/previews are generated at once,
+	// so a burst of large images can't saturate every core or exhaust RAM. 0 =
+	// auto (half the available CPUs).
+	ThumbConcurrency int
 
 	// Import
 	ImportPath string
@@ -119,10 +127,12 @@ func Load() (*Config, error) {
 		ThumbsCachePath: requireStr("THUMBS_CACHE_PATH"),
 		MaxUploadBytes:  parseInt64("MAX_UPLOAD_BYTES", 500<<20), // 500 MiB
 
-		ThumbWidth:    parseInt("THUMB_WIDTH", 160),
-		ThumbHeight:   parseInt("THUMB_HEIGHT", 160),
-		PreviewWidth:  parseInt("PREVIEW_WIDTH", 1920),
-		PreviewHeight: parseInt("PREVIEW_HEIGHT", 1080),
+		ThumbWidth:       parseInt("THUMB_WIDTH", 160),
+		ThumbHeight:      parseInt("THUMB_HEIGHT", 160),
+		PreviewWidth:     parseInt("PREVIEW_WIDTH", 1920),
+		PreviewHeight:    parseInt("PREVIEW_HEIGHT", 1080),
+		ThumbMaxPixels:   parseInt("THUMB_MAX_PIXELS", 300_000_000), // ~300 Mpx (e.g. 13000×17000)
+		ThumbConcurrency: parseInt("THUMB_CONCURRENCY", 0),          // 0 = auto
 
 		ImportPath: requireStr("IMPORT_PATH"),
 
