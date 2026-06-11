@@ -6,6 +6,10 @@
 .gitignore
 **/.DS_Store
 
+# Compose file — used to build/run, not needed inside the image context
+docker-compose.yml
+docker-compose.*.yml
+
 # Secrets and local env
 .env
 .env.*

@@ -1,0 +1,103 @@
+# =============================================================================
+# Tanabata File Manager — Docker Compose
+#
+# Quick start:
+#   cp .env.example .env        # then edit the secrets
+#   docker compose up -d --build
+#
+# Database — two supported modes, selected in .env:
+#
+#   1. Bundled Postgres container (default).
+#        COMPOSE_PROFILES=with-db
+#        DATABASE_URL=postgres://tanabata:password@db:5432/tanabata?sslmode=disable
+#
+#   2. Postgres already running on the host.
+#        COMPOSE_PROFILES=          # empty → the db container is not started
+#        DATABASE_URL=postgres://tanabata:password@host.docker.internal:5432/tanabata?sslmode=disable
+#
+# Requires Docker Compose v2.20+ (for depends_on.required).
+# =============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
+    # All application config (secrets, DATABASE_URL, tunables) comes from .env.
+    env_file: .env
+
+    # Pin STATIC_DIR to the path baked into the image. .env intentionally leaves
+    # it unset; pinning here guarantees in-container SPA serving can't be
+    # disabled by an empty value leaking in through env_file.
+    environment:
+      STATIC_DIR: /app/static
+
+    # The container always listens on 42776 (Dockerfile default); APP_PORT only
+    # changes the host-published port.
+    ports:
+      - "${APP_PORT:-42776}:42776"
+
+    # Wait for the bundled DB when the with-db profile is active. When using a
+    # host Postgres the db service is disabled, and required:false keeps this
+    # dependency from erroring or auto-starting it.
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false
+
+    # Lets DATABASE_URL reach a Postgres on the host via host.docker.internal
+    # (needed on Linux; harmless elsewhere).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    # Run as this uid:gid. Relevant when the mounts below are bind-mounted to
+    # host folders: set PUID/PGID (in .env) to the owner of those folders so the
+    # container can write to them. Defaults to the image's tanabata user
+    # (42776), which owns the named volumes.
+    user: "${PUID:-42776}:${PGID:-42776}"
+
+    # Storage for originals, the thumbnail cache, and the import drop folder.
+    # Each source defaults to a named volume but can be pointed at a specific
+    # host folder via FILES_DIR / THUMBS_DIR / IMPORT_DIR in .env (a path turns
+    # the mount into a host bind mount; a bare name stays a named volume).
+    volumes:
+      - "${FILES_DIR:-app_files}:/data/files"
+      - "${THUMBS_DIR:-app_thumbs}:/data/thumbs"
+      - "${IMPORT_DIR:-app_import}:/data/import"
+
+  db:
+    image: postgres:14-alpine
+    restart: unless-stopped
+
+    # Only started when COMPOSE_PROFILES includes "with-db". Disable it to point
+    # the app at a Postgres running on the host instead.
+    profiles: ["with-db"]
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tanabata}
+      POSTGRES_USER: ${POSTGRES_USER:-tanabata}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+
+    # Defaults to a named volume; set DB_DIR in .env to a host folder to bind
+    # mount it instead. Postgres fixes the folder's ownership itself, so DB_DIR
+    # needs no PUID/PGID.
+    volumes:
+      - "${DB_DIR:-db_data}:/var/lib/postgresql/data"
+
+    # Uncomment to reach the DB from the host (e.g. with psql) for debugging.
+    # ports:
+    #   - "5432:5432"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tanabata} -d ${POSTGRES_DB:-tanabata}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  app_files:
+  app_thumbs:
+  app_import:
+  db_data:

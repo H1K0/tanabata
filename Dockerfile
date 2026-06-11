@@ -58,18 +58,18 @@ FROM alpine:3.21 AS runtime
 RUN apk add --no-cache ffmpeg ca-certificates tzdata
 
 # Run as an unprivileged user.
-RUN addgroup -S app && adduser -S -G app -u 10001 app
+RUN addgroup -S -g 42776 tanabata && adduser -S -G tanabata -u 42776 tanabata
 
 WORKDIR /app
 
 # The built SPA, served by the Go binary (matches STATIC_DIR below).
-COPY --from=frontend --chown=app:app /src/frontend/build /app/static
+COPY --from=frontend --chown=tanabata:tanabata /src/frontend/build /app/static
 # The server binary.
-COPY --from=backend --chown=app:app /out/server /app/server
+COPY --from=backend --chown=tanabata:tanabata /out/server /app/server
 
 # Data directories (overridable via FILES_PATH/THUMBS_CACHE_PATH/IMPORT_PATH).
-# Created and owned by the app user so a fresh named volume inherits write access.
-RUN mkdir -p /data/files /data/thumbs /data/import && chown -R app:app /data
+# Created and owned by the tanabata user so a fresh named volume inherits write access.
+RUN mkdir -p /data/files /data/thumbs /data/import && chown -R tanabata:tanabata /data
 
 # Non-secret defaults mirroring .env.example. Secrets (JWT_SECRET, ADMIN_PASSWORD,
 # DATABASE_URL) are intentionally NOT baked in — pass them at `docker run`.
@@ -81,7 +81,7 @@ ENV LISTEN_ADDR=:42776 \
 
 EXPOSE 42776
 VOLUME ["/data"]
-USER app
+USER tanabata
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD wget -qO- http://127.0.0.1:42776/health >/dev/null 2>&1 || exit 1
