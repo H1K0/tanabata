@@ -184,16 +184,43 @@
 	}
 
 	// ---- Keyboard ----
+	let tagsSection = $state<HTMLElement>();
+	let pendingTagFocus = false;
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-		if (e.key === 'ArrowLeft') {
+		if (e.key === 'ArrowLeft' || e.key === 'k') {
 			if (prevId) onNavigate(prevId);
-		} else if (e.key === 'ArrowRight') {
+		} else if (e.key === 'ArrowRight' || e.key === 'j') {
 			if (nextId) onNavigate(nextId);
+		} else if (e.key === 'e') {
+			e.preventDefault();
+			jumpToTags();
 		} else if (e.key === 'Escape') {
 			onClose();
 		}
 	}
+
+	// Scroll the (lazily loaded) Tags section into view and drop the cursor into
+	// its filter. Forces the load so the focus lands even before the user reaches
+	// the section by scrolling.
+	function jumpToTags() {
+		tagsVisible = true;
+		tagsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		pendingTagFocus = true;
+		focusTagInput();
+	}
+
+	function focusTagInput() {
+		requestAnimationFrame(() => tagsSection?.querySelector<HTMLInputElement>('input')?.focus());
+	}
+
+	$effect(() => {
+		if (tagsLoaded && pendingTagFocus) {
+			pendingTagFocus = false;
+			focusTagInput();
+		}
+	});
 
 	// ---- Helpers ----
 	function formatDatetime(iso: string | null | undefined): string {
@@ -344,7 +371,7 @@
 			</button>
 
 			<!-- Tags (loaded lazily on scroll) -->
-			<section class="section" use:tagsSentinel>
+			<section class="section" use:tagsSentinel bind:this={tagsSection}>
 				<div class="field-label">Tags</div>
 				{#if tagsLoaded}
 					<TagPicker {fileTags} onAdd={addTag} onRemove={removeTag} />

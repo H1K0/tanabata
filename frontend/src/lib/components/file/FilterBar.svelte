@@ -53,6 +53,71 @@
 		onApply(null);
 	}
 
+	// ---- Keyboard navigation (from the search input) ----
+	// ↓/↑ highlight a tag, Enter adds it as a token; the operator chars insert an
+	// operator token; with the input empty ←/→ walk the active tokens and Del
+	// removes the focused one. Mod+Enter applies, Mod+Backspace resets, Esc closes.
+	let highlightIdx = $state(0);
+	let tokenFocusIdx = $state(-1);
+	const OP_KEYS = ['&', '|', '!', '(', ')'];
+
+	$effect(() => {
+		if (highlightIdx > filteredTags.length - 1) {
+			highlightIdx = Math.max(0, filteredTags.length - 1);
+		}
+	});
+
+	function onSearchKeydown(e: KeyboardEvent) {
+		if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+			e.preventDefault();
+			apply();
+			return;
+		}
+		if ((e.ctrlKey || e.metaKey) && e.key === 'Backspace') {
+			e.preventDefault();
+			reset();
+			return;
+		}
+		if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+		if (OP_KEYS.includes(e.key)) {
+			e.preventDefault();
+			addToken(e.key);
+			return;
+		}
+
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			tokenFocusIdx = -1;
+			if (filteredTags.length) highlightIdx = Math.min(highlightIdx + 1, filteredTags.length - 1);
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			tokenFocusIdx = -1;
+			highlightIdx = Math.max(highlightIdx - 1, 0);
+		} else if (e.key === 'Enter') {
+			const tag = filteredTags[highlightIdx];
+			if (tag?.id) {
+				e.preventDefault();
+				addToken(`t=${tag.id}`);
+			}
+		} else if (e.key === 'ArrowRight' && search === '') {
+			e.preventDefault();
+			const n = tokens.length;
+			if (n) tokenFocusIdx = tokenFocusIdx < 0 ? 0 : Math.min(tokenFocusIdx + 1, n - 1);
+		} else if (e.key === 'ArrowLeft' && search === '') {
+			e.preventDefault();
+			const n = tokens.length;
+			if (n) tokenFocusIdx = tokenFocusIdx < 0 ? n - 1 : Math.max(tokenFocusIdx - 1, 0);
+		} else if (e.key === 'Delete' && tokenFocusIdx >= 0) {
+			e.preventDefault();
+			removeToken(tokenFocusIdx);
+			tokenFocusIdx = Math.min(tokenFocusIdx, tokens.length - 2);
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			onClose();
+		}
+	}
+
 	// --- Drag-and-drop reordering ---
 	let dragIndex = $state<number | null>(null);
 	let dropIndex = $state<number | null>(null);
@@ -99,6 +164,7 @@
 					class="token active-token"
 					class:dragging={dragIndex === i}
 					class:drop-before={dropIndex === i && dragIndex !== null && dragIndex !== i}
+					class:kbfocus={tokenFocusIdx === i}
 					draggable="true"
 					role="button"
 					tabindex="0"
@@ -129,14 +195,16 @@
 		type="search"
 		placeholder="Search tags…"
 		bind:value={search}
+		onkeydown={onSearchKeydown}
 		autocomplete="off"
 	/>
 
 	<!-- Tag list -->
 	<div class="tag-list">
-		{#each filteredTags as tag (tag.id)}
+		{#each filteredTags as tag, i (tag.id)}
 			<button
 				class="token tag-token"
+				class:hl={highlightIdx === i}
 				style="background-color: {tag.color
 					? '#' + tag.color
 					: tag.category_color
@@ -232,6 +300,11 @@
 		outline-offset: 2px;
 	}
 
+	.active-token.kbfocus {
+		outline: 2px solid var(--color-danger);
+		outline-offset: 2px;
+	}
+
 	.op-token {
 		background-color: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg-elevated));
 		color: var(--color-text-primary);
@@ -276,6 +349,11 @@
 
 	.tag-token:hover {
 		filter: brightness(1.15);
+	}
+
+	.tag-token.hl {
+		outline: 2px solid var(--color-text-primary);
+		outline-offset: 1px;
 	}
 
 	.no-tags {

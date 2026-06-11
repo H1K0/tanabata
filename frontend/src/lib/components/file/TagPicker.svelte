@@ -64,6 +64,53 @@
 		const color = tag.color ?? tag.category_color;
 		return color ? `background-color: #${color}` : '';
 	}
+
+	// ---- Keyboard navigation (from the search input) ----
+	// ↓/↑ highlight a suggestion, Enter adds it (focus stays for chaining); with the
+	// input empty, ←/→ walk the assigned pills and Del removes the focused one.
+	let highlightIdx = $state(0);
+	let assignedFocusIdx = $state(-1);
+
+	$effect(() => {
+		if (highlightIdx > filteredAvailable.length - 1) {
+			highlightIdx = Math.max(0, filteredAvailable.length - 1);
+		}
+	});
+
+	function onSearchKeydown(e: KeyboardEvent) {
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			assignedFocusIdx = -1;
+			if (filteredAvailable.length) {
+				highlightIdx = Math.min(highlightIdx + 1, filteredAvailable.length - 1);
+			}
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			assignedFocusIdx = -1;
+			highlightIdx = Math.max(highlightIdx - 1, 0);
+		} else if (e.key === 'Enter') {
+			const tag = filteredAvailable[highlightIdx];
+			if (tag?.id) {
+				e.preventDefault();
+				void handleAdd(tag.id);
+			}
+		} else if (e.key === 'ArrowRight' && search === '') {
+			e.preventDefault();
+			const n = filteredAssigned.length;
+			if (n) assignedFocusIdx = assignedFocusIdx < 0 ? 0 : Math.min(assignedFocusIdx + 1, n - 1);
+		} else if (e.key === 'ArrowLeft' && search === '') {
+			e.preventDefault();
+			const n = filteredAssigned.length;
+			if (n) assignedFocusIdx = assignedFocusIdx < 0 ? n - 1 : Math.max(assignedFocusIdx - 1, 0);
+		} else if (e.key === 'Delete' && assignedFocusIdx >= 0) {
+			const tag = filteredAssigned[assignedFocusIdx];
+			if (tag?.id) {
+				e.preventDefault();
+				void handleRemove(tag.id);
+				assignedFocusIdx = Math.min(assignedFocusIdx, filteredAssigned.length - 2);
+			}
+		}
+	}
 </script>
 
 <div class="picker" class:busy>
@@ -71,9 +118,10 @@
 	{#if fileTags.length > 0}
 		<div class="section-label">Assigned</div>
 		<div class="tag-row">
-			{#each filteredAssigned as tag (tag.id)}
+			{#each filteredAssigned as tag, i (tag.id)}
 				<button
 					class="tag assigned"
+					class:kbfocus={assignedFocusIdx === i}
 					style={tagStyle(tag)}
 					onclick={() => handleRemove(tag.id!)}
 					title="Remove tag"
@@ -92,6 +140,7 @@
 			type="search"
 			placeholder="Search tags…"
 			bind:value={search}
+			onkeydown={onSearchKeydown}
 			autocomplete="off"
 		/>
 		{#if search}
@@ -112,9 +161,10 @@
 	{#if filteredAvailable.length > 0}
 		<div class="section-label">Add tag</div>
 		<div class="tag-row available-row">
-			{#each filteredAvailable as tag (tag.id)}
+			{#each filteredAvailable as tag, i (tag.id)}
 				<button
 					class="tag available"
+					class:hl={highlightIdx === i}
 					style={tagStyle(tag)}
 					onclick={() => handleAdd(tag.id!)}
 					title="Add tag"
@@ -196,6 +246,17 @@
 	.tag.available:hover {
 		opacity: 1;
 		filter: brightness(1.1);
+	}
+
+	.tag.available.hl {
+		opacity: 1;
+		outline: 2px solid var(--color-accent);
+		outline-offset: 1px;
+	}
+
+	.tag.assigned.kbfocus {
+		outline: 2px solid var(--color-danger);
+		outline-offset: 1px;
 	}
 
 	.search-wrap {
