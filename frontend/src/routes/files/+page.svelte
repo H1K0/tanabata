@@ -86,6 +86,24 @@
 		if (f?.id && !$selectionStore.ids.has(f.id)) selectionStore.select(f.id);
 	}
 
+	// Select via the keyboard: a plain press toggles the focused card and drops the
+	// range anchor there; a Shift press selects everything from the anchor to the
+	// focused card — the same model as Shift+click on the grid.
+	function selectFocused(range: boolean) {
+		const idx = focusedId ? files.findIndex((f) => f.id === focusedId) : -1;
+		if (idx < 0) return;
+		if (range && lastSelectedIdx !== null) {
+			const from = Math.min(lastSelectedIdx, idx);
+			const to = Math.max(lastSelectedIdx, idx);
+			for (let i = from; i <= to; i++) {
+				if (files[i]?.id) selectionStore.select(files[i].id!);
+			}
+		} else if (files[idx]?.id) {
+			selectionStore.toggle(files[idx].id!);
+		}
+		lastSelectedIdx = idx;
+	}
+
 	function openTagEditor() {
 		tagEditorOpen = true;
 		void tick().then(() => document.querySelector<HTMLInputElement>('.tag-sheet input')?.focus());
@@ -138,14 +156,10 @@
 				}
 				return;
 			}
-			case ' ': {
-				const f = focusedFile();
-				if (f?.id) {
-					e.preventDefault();
-					selectionStore.toggle(f.id);
-				}
+			case ' ':
+				e.preventDefault();
+				selectFocused(e.shiftKey);
 				return;
-			}
 			case 'Delete':
 				if ($selectionActive || focusedFile()) {
 					e.preventDefault();
@@ -155,18 +169,18 @@
 				return;
 		}
 
-		// Letter / symbol commands matched by physical position, so they fire the
-		// same on a non-Latin layout.
+		// Select by position (x), Shift = range — handled before the unshifted-only
+		// guard below because Shift+x is a valid range-select.
+		if (e.code === 'KeyX') {
+			e.preventDefault();
+			selectFocused(e.shiftKey);
+			return;
+		}
+
+		// The remaining letter / symbol commands are unshifted-only, matched by
+		// physical position so they fire the same on a non-Latin layout.
 		if (e.shiftKey) return;
 		switch (e.code) {
-			case 'KeyX': {
-				const f = focusedFile();
-				if (f?.id) {
-					e.preventDefault();
-					selectionStore.toggle(f.id);
-				}
-				break;
-			}
 			case 'KeyE':
 				if ($selectionActive || focusedFile()) {
 					e.preventDefault();

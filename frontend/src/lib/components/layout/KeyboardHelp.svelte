@@ -24,6 +24,7 @@
 				['↑ ↓ ← →', 'Move focus between files'],
 				['Enter', 'Open the focused file'],
 				['Space / x', 'Select / deselect'],
+				['Shift+Space / Shift+x', 'Select a range from the anchor'],
 				['e', 'Edit tags (focus the tag filter)'],
 				['p', 'Add to pool'],
 				['Del', 'Move to trash'],
