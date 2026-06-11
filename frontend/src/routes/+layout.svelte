@@ -96,6 +96,18 @@
 			return;
 		}
 
+		// Focus the page's search box. Pages with a persistent one (Tags/Categories/
+		// Pools) are handled here; Files has no always-on input, so its own handler
+		// opens the filter instead.
+		if (e.key === '/') {
+			const input = document.querySelector<HTMLInputElement>('input[type="search"]');
+			if (input) {
+				e.preventDefault();
+				input.focus();
+			}
+			return;
+		}
+
 		if (pendingG) {
 			pendingG = false;
 			clearTimeout(gTimer);
