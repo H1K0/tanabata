@@ -41,23 +41,25 @@ RUN go mod download
 
 COPY backend/ ./
 
-# CGO is disabled: image processing is pure Go (disintegration/imaging) and
-# video thumbnails shell out to the ffmpeg binary at runtime, so the resulting
-# binary is fully static and portable across base images.
+# CGO is disabled: the binary shells out to external tools at runtime
+# (vipsthumbnail for image thumbnails, ffmpeg for video frames, exiftool for
+# metadata) and falls back to pure-Go image processing (disintegration/imaging)
+# when vips is absent, so it stays fully static and portable across base images.
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server
 
 # -----------------------------------------------------------------------------
 # Stage 3 — minimal runtime
 #
-# Alpine (not distroless/scratch) because video thumbnailing invokes ffmpeg and
-# metadata extraction invokes exiftool as external processes; both must be
-# present on the runtime image.
+# Alpine (not distroless/scratch) because thumbnailing and metadata extraction
+# invoke external processes (vipsthumbnail, ffmpeg, exiftool) that must be present
+# on the runtime image.
 # -----------------------------------------------------------------------------
 FROM alpine:3.21 AS runtime
 
-# ffmpeg: video frame extraction. exiftool: rich image/video/audio metadata.
+# vips-tools: fast, low-memory image thumbnails (shrink-on-load, so multi-hundred-
+# Mpx photos cost little). ffmpeg: video frame extraction. exiftool: rich metadata.
 # ca-certificates/tzdata: TLS + time zones.
-RUN apk add --no-cache ffmpeg exiftool ca-certificates tzdata
+RUN apk add --no-cache vips-tools ffmpeg exiftool ca-certificates tzdata
 
 # Run as an unprivileged user.
 RUN addgroup -S -g 42776 tanabata && adduser -S -G tanabata -u 42776 tanabata
