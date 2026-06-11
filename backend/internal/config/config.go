@@ -35,9 +35,10 @@ type Config struct {
 	ThumbHeight   int
 	PreviewWidth  int
 	PreviewHeight int
-	// ThumbMaxPixels caps the pixel count of a source image we will decode into
-	// memory to generate a thumbnail/preview (a decode bombs guard, and a memory
-	// bound). Larger images fall back to a placeholder.
+	// ThumbMaxPixels caps the pixel count of a source image decoded in-process by
+	// the pure-Go fallback (a decompression-bomb guard and memory bound); larger
+	// images then get a placeholder. It does not apply when vipsthumbnail is
+	// installed, which shrinks on load regardless of source size.
 	ThumbMaxPixels int
 	// ThumbConcurrency bounds how many thumbnails/previews are generated at once,
 	// so a burst of large images can't saturate every core or exhaust RAM. 0 =

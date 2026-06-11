@@ -160,14 +160,15 @@ func (s *DiskStorage) Preview(ctx context.Context, id uuid.UUID) (io.ReadCloser,
 // ---------------------------------------------------------------------------
 
 // serveGenerated is the shared implementation for Thumbnail and Preview. Both
-// fit the source within maxW×maxH with imaging.Fit, preserving the aspect ratio
-// (no crop, no upscale); they differ only in the configured dimensions.
+// fit the source within maxW×maxH preserving the aspect ratio (no crop, no
+// upscale); they differ only in the configured dimensions.
 //
 // Resolution order:
 //  1. Return cached JPEG if present.
-//  2. Decode as still image (JPEG/PNG/GIF via imaging).
-//  3. Extract a frame with ffmpeg (video files).
-//  4. Solid-colour placeholder (archives, unrecognised formats, etc.).
+//  2. vipsthumbnail (shrink-on-load; the primary still-image path).
+//  3. Pure-Go decode + imaging.Fit (fallback when vips is absent).
+//  4. Extract a frame with ffmpeg (video files).
+//  5. Solid-colour placeholder (archives, unrecognised formats, etc.).
 func (s *DiskStorage) serveGenerated(ctx context.Context, id uuid.UUID, cachePath string, maxW, maxH int) (io.ReadCloser, error) {
 	// Fast path: cache hit.
 	if f, err := os.Open(cachePath); err == nil {
@@ -198,9 +199,20 @@ func (s *DiskStorage) serveGenerated(ctx context.Context, id uuid.UUID, cachePat
 		return f, nil
 	}
 
-	// 1. Try still-image decode (JPEG/PNG/GIF), rejecting decompression bombs.
-	// 2. Try video frame extraction via ffmpeg.
-	// 3. Fall back to placeholder.
+	// Primary path: vipsthumbnail. It shrinks on load (e.g. JPEG DCT scaling), so
+	// even a 200+ Mpx photo is thumbnailed in a fraction of the memory and CPU of a
+	// full in-process decode, writing the final JPEG straight to the cache. Falls
+	// through when vips is absent or can't read the source (e.g. a video).
+	if vipsThumbnailPath != "" {
+		if rc, err := s.vipsThumbnail(ctx, srcPath, cachePath, maxW, maxH); err == nil {
+			return rc, nil
+		}
+	}
+
+	// Fallback pipeline (pure Go):
+	//  1. Still-image decode (JPEG/PNG/GIF), rejecting oversized rasters.
+	//  2. Video frame extraction via ffmpeg.
+	//  3. Solid-colour placeholder.
 	var img image.Image
 	if decoded, err := decodeImageLimited(srcPath, s.maxPixels); err == nil {
 		img = imaging.Fit(decoded, maxW, maxH, imaging.Lanczos)
@@ -281,6 +293,53 @@ func decodeImageLimited(path string, maxPixels int) (image.Image, error) {
 		return nil, err
 	}
 	return imaging.Decode(f, imaging.AutoOrientation(true))
+}
+
+// vipsThumbnailPath is the resolved path to the vipsthumbnail CLI, or "" when it
+// isn't installed — in which case generation falls back to the pure-Go pipeline.
+var vipsThumbnailPath, _ = exec.LookPath("vipsthumbnail")
+
+// vipsThumbnail generates a JPEG thumbnail with the vipsthumbnail CLI, writing it
+// straight to cachePath via an atomic temp→rename. vips decodes large images at a
+// reduced scale (shrink-on-load), so this costs a fraction of the memory and CPU
+// of a full in-process decode. The result is fit within maxW×maxH and never
+// upscaled (the ">" size modifier). Returns an error for inputs vips can't read
+// (e.g. videos) so the caller can fall back.
+func (s *DiskStorage) vipsThumbnail(ctx context.Context, srcPath, cachePath string, maxW, maxH int) (io.ReadCloser, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	tmp, err := os.CreateTemp(filepath.Dir(cachePath), ".vips-*.jpg")
+	if err != nil {
+		return nil, fmt.Errorf("storage: create temp file: %w", err)
+	}
+	tmpName := tmp.Name()
+	_ = tmp.Close()
+
+	cmd := exec.CommandContext(ctx, vipsThumbnailPath,
+		srcPath,
+		"--size", fmt.Sprintf("%dx%d>", maxW, maxH),
+		"--output", tmpName+"[Q=85]",
+	)
+	cmd.Stderr = io.Discard
+
+	if err := cmd.Run(); err != nil {
+		os.Remove(tmpName)
+		return nil, fmt.Errorf("vipsthumbnail: %w", err)
+	}
+	if fi, err := os.Stat(tmpName); err != nil || fi.Size() == 0 {
+		os.Remove(tmpName)
+		return nil, fmt.Errorf("vipsthumbnail: no output produced")
+	}
+	if err := os.Rename(tmpName, cachePath); err != nil {
+		os.Remove(tmpName)
+		return nil, fmt.Errorf("storage: rename cache file: %w", err)
+	}
+	f, err := os.Open(cachePath)
+	if err != nil {
+		return nil, fmt.Errorf("storage: open cache file: %w", err)
+	}
+	return f, nil
 }
 
 // extractVideoFrame uses ffmpeg to extract a single frame from a video file.

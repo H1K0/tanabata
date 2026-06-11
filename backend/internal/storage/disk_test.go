@@ -97,3 +97,85 @@ func TestThumbnailGeneratesAndCaches(t *testing.T) {
 	}
 	rc2.Close()
 }
+
+// TestThumbnailFallbackWithoutVips forces the pure-Go pipeline (as if vips were
+// not installed) and verifies generation still produces the source image.
+func TestThumbnailFallbackWithoutVips(t *testing.T) {
+	orig := vipsThumbnailPath
+	vipsThumbnailPath = ""
+	t.Cleanup(func() { vipsThumbnailPath = orig })
+
+	files := t.TempDir()
+	thumbs := t.TempDir()
+	id := uuid.New()
+	writeTestImage(t, filepath.Join(files, id.String()), 100, 80)
+
+	s, err := NewDiskStorage(files, thumbs, 160, 160, 1920, 1080, 0, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rc, err := s.Thumbnail(context.Background(), id)
+	if err != nil {
+		t.Fatalf("Thumbnail: %v", err)
+	}
+	data, _ := io.ReadAll(rc)
+	rc.Close()
+
+	out, err := imaging.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("decode thumbnail: %v", err)
+	}
+	if b := out.Bounds(); b.Dx() != 100 || b.Dy() != 80 {
+		t.Fatalf("unexpected thumbnail size %v", b.Size())
+	}
+	r, g, b, _ := out.At(50, 40).RGBA()
+	if !(r>>8 > g>>8+40 && r>>8 > b>>8+40) {
+		t.Fatalf("fallback produced a placeholder, not the source (r=%d g=%d b=%d)", r>>8, g>>8, b>>8)
+	}
+}
+
+// TestPreviewGeneratesAndCaches verifies Preview runs through the same pipeline
+// with the preview dimensions and its own cache file (not the thumbnail's).
+func TestPreviewGeneratesAndCaches(t *testing.T) {
+	files := t.TempDir()
+	thumbs := t.TempDir()
+	id := uuid.New()
+	// Larger than the thumbnail box but within the preview box, so the preview
+	// keeps full resolution where a thumbnail would shrink it.
+	writeTestImage(t, filepath.Join(files, id.String()), 400, 300)
+
+	s, err := NewDiskStorage(files, thumbs, 160, 160, 1920, 1080, 0, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rc, err := s.Preview(context.Background(), id)
+	if err != nil {
+		t.Fatalf("Preview: %v", err)
+	}
+	data, _ := io.ReadAll(rc)
+	rc.Close()
+
+	out, err := imaging.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("decode preview: %v", err)
+	}
+	// 400×300 fits within 1920×1080, so the preview is not downscaled.
+	if b := out.Bounds(); b.Dx() != 400 || b.Dy() != 300 {
+		t.Fatalf("unexpected preview size %v", b.Size())
+	}
+	r, g, b, _ := out.At(200, 150).RGBA()
+	if !(r>>8 > g>>8+40 && r>>8 > b>>8+40) {
+		t.Fatalf("preview is not the source image (r=%d g=%d b=%d)", r>>8, g>>8, b>>8)
+	}
+
+	// The preview cache must be written, and the thumbnail cache must not — they
+	// are separate files served by the same code with different dimensions.
+	if _, err := os.Stat(s.previewCachePath(id)); err != nil {
+		t.Fatalf("preview cache not written: %v", err)
+	}
+	if _, err := os.Stat(s.thumbCachePath(id)); err == nil {
+		t.Fatal("thumbnail cache should not exist after a preview-only request")
+	}
+}
