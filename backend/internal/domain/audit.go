@@ -15,14 +15,14 @@ type ActionType struct {
 
 // AuditEntry is a single audit log record.
 type AuditEntry struct {
-	ID           int64
-	UserID       int16
-	UserName     string // denormalized
-	Action       string // action type name, e.g. "file_create"
-	ObjectType   *string
-	ObjectID     *uuid.UUID
-	Details      json.RawMessage
-	PerformedAt  time.Time
+	ID          int64
+	UserID      int16
+	UserName    string // denormalized
+	Action      string // action type name, e.g. "file_create"
+	ObjectType  *string
+	ObjectID    *uuid.UUID
+	Details     json.RawMessage
+	PerformedAt time.Time
 }
 
 // AuditPage is an offset-based page of audit log entries.

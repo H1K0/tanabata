@@ -29,30 +29,30 @@ function makeSortStore<F extends string>(key: string, defaults: SortState<F>) {
 		},
 		toggleOrder() {
 			store.update((s) => ({ ...s, order: s.order === 'asc' ? 'desc' : 'asc' }));
-		},
+		}
 	};
 }
 
 export const fileSorting = makeSortStore<FileSortField>('sort:files', {
 	sort: 'created',
-	order: 'desc',
+	order: 'desc'
 });
 
 export const tagSorting = makeSortStore<TagSortField>('sort:tags', {
 	sort: 'created',
-	order: 'desc',
+	order: 'desc'
 });
 
 export type CategorySortField = 'name' | 'color' | 'created';
 
 export const categorySorting = makeSortStore<CategorySortField>('sort:categories', {
 	sort: 'name',
-	order: 'asc',
+	order: 'asc'
 });
 
 export type PoolSortField = 'name' | 'created';
 
 export const poolSorting = makeSortStore<PoolSortField>('sort:pools', {
 	sort: 'created',
-	order: 'desc',
+	order: 'desc'
 });

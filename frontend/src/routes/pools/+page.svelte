@@ -9,7 +9,7 @@
 
 	const SORT_OPTIONS: { value: PoolSortField; label: string }[] = [
 		{ value: 'name', label: 'Name' },
-		{ value: 'created', label: 'Created' },
+		{ value: 'created', label: 'Created' }
 	];
 
 	let pools = $state<Pool[]>([]);
@@ -48,7 +48,7 @@
 				limit: String(LIMIT),
 				offset: String(offset),
 				sort: sortState.sort,
-				order: sortState.order,
+				order: sortState.order
 			});
 			if (search.trim()) params.set('search', search.trim());
 			const page = await api.get<PoolOffsetPage>(`/pools?${params}`);
@@ -82,7 +82,8 @@
 			<select
 				class="sort-select"
 				value={sortState.sort}
-				onchange={(e) => poolSorting.setSort((e.currentTarget as HTMLSelectElement).value as PoolSortField)}
+				onchange={(e) =>
+					poolSorting.setSort((e.currentTarget as HTMLSelectElement).value as PoolSortField)}
 			>
 				{#each SORT_OPTIONS as opt}
 					<option value={opt.value}>{opt.label}</option>
@@ -96,11 +97,23 @@
 			>
 				{#if sortState.order === 'asc'}
 					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-						<path d="M3 9L7 5L11 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+						<path
+							d="M3 9L7 5L11 9"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
 					</svg>
 				{:else}
 					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-						<path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+						<path
+							d="M3 5L7 9L11 5"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
 					</svg>
 				{/if}
 			</button>
@@ -122,7 +135,12 @@
 			{#if search}
 				<button class="search-clear" onclick={() => (search = '')} aria-label="Clear search">
 					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-						<path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+						<path
+							d="M2 2l10 10M12 2L2 12"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+						/>
 					</svg>
 				</button>
 			{/if}
@@ -139,10 +157,10 @@
 				<button class="pool-card" onclick={() => goto(`/pools/${pool.id}`)}>
 					<div class="pool-icon" aria-hidden="true">
 						<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-							<rect x="2" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.7"/>
-							<rect x="11" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5"/>
-							<rect x="2" y="11" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5"/>
-							<rect x="11" y="11" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.3"/>
+							<rect x="2" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.7" />
+							<rect x="11" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5" />
+							<rect x="2" y="11" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5" />
+							<rect x="11" y="11" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.3" />
 						</svg>
 					</div>
 					<div class="pool-info">
@@ -153,8 +171,21 @@
 							{#if pool.is_public}<span class="badge-public">public</span>{/if}
 						</span>
 					</div>
-					<svg class="chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-						<path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+					<svg
+						class="chevron"
+						width="16"
+						height="16"
+						viewBox="0 0 16 16"
+						fill="none"
+						aria-hidden="true"
+					>
+						<path
+							d="M6 4l4 4-4 4"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
 					</svg>
 				</button>
 			{/each}
@@ -331,7 +362,9 @@
 		font-family: inherit;
 		cursor: pointer;
 		text-align: left;
-		transition: border-color 0.15s, background-color 0.15s;
+		transition:
+			border-color 0.15s,
+			background-color 0.15s;
 	}
 
 	.pool-card:hover {
@@ -385,7 +418,6 @@
 		flex-shrink: 0;
 		opacity: 0.5;
 	}
-
 
 	.error {
 		color: var(--color-danger);

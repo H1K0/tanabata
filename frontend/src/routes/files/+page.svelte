@@ -76,7 +76,7 @@
 		{ value: 'created', label: 'Created' },
 		{ value: 'content_datetime', label: 'Date taken' },
 		{ value: 'original_name', label: 'Name' },
-		{ value: 'mime', label: 'Type' },
+		{ value: 'mime', label: 'Type' }
 	];
 
 	let files = $state<File[]>([]);
@@ -181,7 +181,7 @@
 		const p = new URLSearchParams({
 			limit: String(LIMIT),
 			sort: sortState.sort,
-			order: sortState.order,
+			order: sortState.order
 		});
 		if (filterParam) p.set('filter', filterParam);
 		return p;
@@ -335,7 +335,7 @@
 	let activeIdx = $derived(activeFileId ? files.findIndex((f) => f.id === activeFileId) : -1);
 	let viewerPrevId = $derived(activeIdx > 0 ? (files[activeIdx - 1]?.id ?? null) : null);
 	let viewerNextId = $derived(
-		activeIdx >= 0 && activeIdx < files.length - 1 ? (files[activeIdx + 1]?.id ?? null) : null,
+		activeIdx >= 0 && activeIdx < files.length - 1 ? (files[activeIdx + 1]?.id ?? null) : null
 	);
 
 	// Paging near the end of the loaded grid: pull the next page by cursor so the
@@ -469,11 +469,7 @@
 	/>
 
 	{#if filterOpen}
-		<FilterBar
-			value={filterParam}
-			onApply={applyFilter}
-			onClose={() => (filterOpen = false)}
-		/>
+		<FilterBar value={filterParam} onApply={applyFilter} onClose={() => (filterOpen = false)} />
 	{/if}
 
 	<FileUpload bind:this={uploader} onUploaded={handleUploaded}>
@@ -535,10 +531,19 @@
 	<div class="picker-backdrop" role="presentation" onclick={() => (tagEditorOpen = false)}></div>
 	<div class="picker-sheet tag-sheet" role="dialog" aria-label="Edit tags">
 		<div class="picker-header">
-			<span class="picker-title">Edit tags — {$selectionStore.ids.size} file{$selectionStore.ids.size !== 1 ? 's' : ''}</span>
+			<span class="picker-title"
+				>Edit tags — {$selectionStore.ids.size} file{$selectionStore.ids.size !== 1
+					? 's'
+					: ''}</span
+			>
 			<button class="picker-close" onclick={() => (tagEditorOpen = false)} aria-label="Close">
 				<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-					<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+					<path
+						d="M3 3l10 10M13 3L3 13"
+						stroke="currentColor"
+						stroke-width="1.8"
+						stroke-linecap="round"
+					/>
 				</svg>
 			</button>
 		</div>
@@ -553,10 +558,17 @@
 	<div class="picker-backdrop" role="presentation" onclick={() => (poolPickerOpen = false)}></div>
 	<div class="picker-sheet" role="dialog" aria-label="Add to pool">
 		<div class="picker-header">
-			<span class="picker-title">Add {$selectionStore.ids.size} file{$selectionStore.ids.size !== 1 ? 's' : ''} to pool</span>
+			<span class="picker-title"
+				>Add {$selectionStore.ids.size} file{$selectionStore.ids.size !== 1 ? 's' : ''} to pool</span
+			>
 			<button class="picker-close" onclick={() => (poolPickerOpen = false)} aria-label="Close">
 				<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-					<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+					<path
+						d="M3 3l10 10M13 3L3 13"
+						stroke="currentColor"
+						stroke-width="1.8"
+						stroke-linecap="round"
+					/>
 				</svg>
 			</button>
 		</div>
@@ -697,8 +709,14 @@
 	}
 
 	@keyframes slide-up {
-		from { transform: translateY(20px); opacity: 0; }
-		to   { transform: translateY(0);    opacity: 1; }
+		from {
+			transform: translateY(20px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
 	}
 
 	.picker-header {

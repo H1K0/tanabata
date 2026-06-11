@@ -8,7 +8,7 @@ export interface AppSettings {
 
 const DEFAULTS: AppSettings = {
 	fileLoadLimit: 100,
-	tagRuleApplyToExisting: false,
+	tagRuleApplyToExisting: false
 };
 
 function load(): AppSettings {

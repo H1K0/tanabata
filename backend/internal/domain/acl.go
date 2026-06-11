@@ -10,10 +10,10 @@ type ObjectType struct {
 
 // Permission represents a per-object access entry for a user.
 type Permission struct {
-	UserID        int16
-	UserName      string // denormalized
-	ObjectTypeID  int16
-	ObjectID      uuid.UUID
-	CanView       bool
-	CanEdit       bool
+	UserID       int16
+	UserName     string // denormalized
+	ObjectTypeID int16
+	ObjectID     uuid.UUID
+	CanView      bool
+	CanEdit      bool
 }

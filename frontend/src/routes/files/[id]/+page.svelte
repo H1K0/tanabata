@@ -29,7 +29,7 @@
 			anchor: id,
 			limit: '3',
 			sort: sort.sort,
-			order: sort.order,
+			order: sort.order
 		});
 		try {
 			const result = await api.get<FileCursorPage>(`/files?${params}`);

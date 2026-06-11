@@ -15,7 +15,7 @@ import (
 type filterTokenKind int
 
 const (
-	ftkAnd       filterTokenKind = iota
+	ftkAnd filterTokenKind = iota
 	ftkOr
 	ftkNot
 	ftkLParen
@@ -44,9 +44,9 @@ type filterNode interface {
 	toSQL(n int, args []any) (string, int, []any)
 }
 
-type andNode  struct{ left, right filterNode }
-type orNode   struct{ left, right filterNode }
-type notNode  struct{ child filterNode }
+type andNode struct{ left, right filterNode }
+type orNode struct{ left, right filterNode }
+type notNode struct{ child filterNode }
 type leafNode struct{ tok filterToken }
 
 func (a *andNode) toSQL(n int, args []any) (string, int, []any) {

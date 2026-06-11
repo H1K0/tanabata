@@ -1,42 +1,42 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-bg-primary: #312F45;
-  --color-bg-secondary: #181721;
-  --color-bg-elevated: #111118;
-  --color-accent: #9592B5;
-  --color-accent-hover: #7D7AA4;
-  --color-text-primary: #f0f0f0;
-  --color-text-muted: #9999AD;
-  --color-danger: #DB6060;
-  --color-info: #4DC7ED;
-  --color-warning: #F5E872;
-  --color-tag-default: #444455;
-  --color-nav-bg: rgba(0, 0, 0, 0.45);
-  --color-nav-active: rgba(52, 50, 73, 0.72);
+	--color-bg-primary: #312f45;
+	--color-bg-secondary: #181721;
+	--color-bg-elevated: #111118;
+	--color-accent: #9592b5;
+	--color-accent-hover: #7d7aa4;
+	--color-text-primary: #f0f0f0;
+	--color-text-muted: #9999ad;
+	--color-danger: #db6060;
+	--color-info: #4dc7ed;
+	--color-warning: #f5e872;
+	--color-tag-default: #444455;
+	--color-nav-bg: rgba(0, 0, 0, 0.45);
+	--color-nav-active: rgba(52, 50, 73, 0.72);
 
-  --font-sans: 'Epilogue', sans-serif;
+	--font-sans: 'Epilogue', sans-serif;
 }
 
-:root[data-theme="light"] {
-  /* Muted, faintly lavender-tinted surfaces — not a glaring near-white, the same
+:root[data-theme='light'] {
+	/* Muted, faintly lavender-tinted surfaces — not a glaring near-white, the same
      way the dark theme's background isn't pure black. Page sits on the dimmest
      surface; sheets are brighter to pop, chips a touch darker for definition. */
-  --color-bg-primary: #e4e2ec;
-  --color-bg-secondary: #f2f1f6;
-  --color-bg-elevated: #d8d6e2;
-  --color-accent: #6B68A0;
-  --color-accent-hover: #5A578F;
-  --color-text-primary: #111118;
-  --color-text-muted: #555566;
-  --color-tag-default: #cbcad9;
-  --color-nav-bg: rgba(228, 226, 236, 0.85);
-  --color-nav-active: rgba(90, 87, 143, 0.22);
+	--color-bg-primary: #e4e2ec;
+	--color-bg-secondary: #f2f1f6;
+	--color-bg-elevated: #d8d6e2;
+	--color-accent: #6b68a0;
+	--color-accent-hover: #5a578f;
+	--color-text-primary: #111118;
+	--color-text-muted: #555566;
+	--color-tag-default: #cbcad9;
+	--color-nav-bg: rgba(228, 226, 236, 0.85);
+	--color-nav-active: rgba(90, 87, 143, 0.22);
 }
 
 @font-face {
-  font-family: 'Epilogue';
-  src: url('/fonts/Epilogue-VariableFont_wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-display: swap;
+	font-family: 'Epilogue';
+	src: url('/fonts/Epilogue-VariableFont_wght.ttf') format('truetype');
+	font-weight: 100 900;
+	font-display: swap;
 }

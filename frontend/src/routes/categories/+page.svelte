@@ -10,7 +10,7 @@
 	const SORT_OPTIONS: { value: CategorySortField; label: string }[] = [
 		{ value: 'name', label: 'Name' },
 		{ value: 'color', label: 'Color' },
-		{ value: 'created', label: 'Created' },
+		{ value: 'created', label: 'Created' }
 	];
 
 	let categories = $state<Category[]>([]);
@@ -49,7 +49,7 @@
 				limit: String(LIMIT),
 				offset: String(offset),
 				sort: sortState.sort,
-				order: sortState.order,
+				order: sortState.order
 			});
 			if (search.trim()) params.set('search', search.trim());
 			const page = await api.get<CategoryOffsetPage>(`/categories?${params}`);
@@ -79,7 +79,10 @@
 			<select
 				class="sort-select"
 				value={sortState.sort}
-				onchange={(e) => categorySorting.setSort((e.currentTarget as HTMLSelectElement).value as CategorySortField)}
+				onchange={(e) =>
+					categorySorting.setSort(
+						(e.currentTarget as HTMLSelectElement).value as CategorySortField
+					)}
 			>
 				{#each SORT_OPTIONS as opt}
 					<option value={opt.value}>{opt.label}</option>
@@ -93,11 +96,23 @@
 			>
 				{#if sortState.order === 'asc'}
 					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-						<path d="M3 9L7 5L11 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+						<path
+							d="M3 9L7 5L11 9"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
 					</svg>
 				{:else}
 					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-						<path d="M3 5L7 9L11 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+						<path
+							d="M3 5L7 9L11 5"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
 					</svg>
 				{/if}
 			</button>
@@ -119,7 +134,12 @@
 			{#if search}
 				<button class="search-clear" onclick={() => (search = '')} aria-label="Clear search">
 					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-						<path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+						<path
+							d="M2 2l10 10M12 2L2 12"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+						/>
 					</svg>
 				</button>
 			{/if}
@@ -322,7 +342,6 @@
 	.category-pill:hover {
 		filter: brightness(1.15);
 	}
-
 
 	.error {
 		color: var(--color-danger);

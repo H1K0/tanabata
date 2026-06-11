@@ -21,9 +21,7 @@
 	function nearViewport(): boolean {
 		if (!sentinel) return false;
 		const rect = sentinel.getBoundingClientRect();
-		return edge === 'bottom'
-			? rect.top <= window.innerHeight + MARGIN
-			: rect.bottom >= -MARGIN;
+		return edge === 'bottom' ? rect.top <= window.innerHeight + MARGIN : rect.bottom >= -MARGIN;
 	}
 
 	function maybeLoad() {
@@ -100,6 +98,8 @@
 	}
 
 	@keyframes spin {
-		to { transform: rotate(360deg); }
+		to {
+			transform: rotate(360deg);
+		}
 	}
 </style>

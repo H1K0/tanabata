@@ -106,11 +106,11 @@ func (h *TagHandler) List(c *gin.Context) {
 
 func (h *TagHandler) Create(c *gin.Context) {
 	var body struct {
-		Name       string   `json:"name"       binding:"required"`
-		Notes      *string  `json:"notes"`
-		Color      *string  `json:"color"`
-		CategoryID *string  `json:"category_id"`
-		IsPublic   *bool    `json:"is_public"`
+		Name       string  `json:"name"       binding:"required"`
+		Notes      *string `json:"notes"`
+		Color      *string `json:"color"`
+		CategoryID *string `json:"category_id"`
+		IsPublic   *bool   `json:"is_public"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		respondError(c, domain.ErrValidation)

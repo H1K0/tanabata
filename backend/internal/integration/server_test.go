@@ -111,42 +111,42 @@ func setupSuite(t *testing.T) *harness {
 	require.NoError(t, err)
 
 	// --- Repositories --------------------------------------------------------
-	userRepo     := postgres.NewUserRepo(pool)
-	sessionRepo  := postgres.NewSessionRepo(pool)
-	fileRepo     := postgres.NewFileRepo(pool)
-	mimeRepo     := postgres.NewMimeRepo(pool)
-	aclRepo      := postgres.NewACLRepo(pool)
-	auditRepo    := postgres.NewAuditRepo(pool)
-	tagRepo      := postgres.NewTagRepo(pool)
-	tagRuleRepo  := postgres.NewTagRuleRepo(pool)
+	userRepo := postgres.NewUserRepo(pool)
+	sessionRepo := postgres.NewSessionRepo(pool)
+	fileRepo := postgres.NewFileRepo(pool)
+	mimeRepo := postgres.NewMimeRepo(pool)
+	aclRepo := postgres.NewACLRepo(pool)
+	auditRepo := postgres.NewAuditRepo(pool)
+	tagRepo := postgres.NewTagRepo(pool)
+	tagRuleRepo := postgres.NewTagRuleRepo(pool)
 	categoryRepo := postgres.NewCategoryRepo(pool)
-	poolRepo     := postgres.NewPoolRepo(pool)
-	transactor   := postgres.NewTransactor(pool)
+	poolRepo := postgres.NewPoolRepo(pool)
+	transactor := postgres.NewTransactor(pool)
 
 	// --- Services ------------------------------------------------------------
-	authSvc     := service.NewAuthService(userRepo, sessionRepo, "test-secret", 15*time.Minute, 720*time.Hour)
-	aclSvc      := service.NewACLService(aclRepo, fileRepo, tagRepo, categoryRepo, poolRepo, transactor)
-	auditSvc    := service.NewAuditService(auditRepo)
-	tagSvc      := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
+	authSvc := service.NewAuthService(userRepo, sessionRepo, "test-secret", 15*time.Minute, 720*time.Hour)
+	aclSvc := service.NewACLService(aclRepo, fileRepo, tagRepo, categoryRepo, poolRepo, transactor)
+	auditSvc := service.NewAuditService(auditRepo)
+	tagSvc := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
 	categorySvc := service.NewCategoryService(categoryRepo, tagRepo, aclSvc, auditSvc)
-	poolSvc     := service.NewPoolService(poolRepo, aclSvc, auditSvc)
-	fileSvc     := service.NewFileService(fileRepo, mimeRepo, diskStorage, aclSvc, auditSvc, tagSvc, transactor, filesDir)
-	userSvc     := service.NewUserService(userRepo, sessionRepo, auditSvc)
+	poolSvc := service.NewPoolService(poolRepo, aclSvc, auditSvc)
+	fileSvc := service.NewFileService(fileRepo, mimeRepo, diskStorage, aclSvc, auditSvc, tagSvc, transactor, filesDir)
+	userSvc := service.NewUserService(userRepo, sessionRepo, auditSvc)
 
 	// Bootstrap the admin account the suite logs in with (replaces the old
 	// hardcoded seed credentials).
 	require.NoError(t, userSvc.EnsureAdmin(ctx, "admin", "admin"))
 
 	// --- Handlers ------------------------------------------------------------
-	authMiddleware  := handler.NewAuthMiddleware(authSvc)
-	authHandler     := handler.NewAuthHandler(authSvc)
-	fileHandler     := handler.NewFileHandler(fileSvc, tagSvc, 500<<20)
-	tagHandler      := handler.NewTagHandler(tagSvc, fileSvc)
+	authMiddleware := handler.NewAuthMiddleware(authSvc)
+	authHandler := handler.NewAuthHandler(authSvc)
+	fileHandler := handler.NewFileHandler(fileSvc, tagSvc, 500<<20)
+	tagHandler := handler.NewTagHandler(tagSvc, fileSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
-	poolHandler     := handler.NewPoolHandler(poolSvc)
-	userHandler     := handler.NewUserHandler(userSvc)
-	aclHandler      := handler.NewACLHandler(aclSvc)
-	auditHandler    := handler.NewAuditHandler(auditSvc)
+	poolHandler := handler.NewPoolHandler(poolSvc)
+	userHandler := handler.NewUserHandler(userSvc)
+	aclHandler := handler.NewACLHandler(aclSvc)
+	auditHandler := handler.NewAuditHandler(auditSvc)
 
 	r := handler.NewRouter(
 		authMiddleware, authHandler,
@@ -289,7 +289,7 @@ func TestFullFlow(t *testing.T) {
 	// 3. Log in as alice
 	// =========================================================================
 	aliceToken := h.login("alice", "alicepass")
-	bobToken   := h.login("bob", "bobpass")
+	bobToken := h.login("bob", "bobpass")
 
 	// =========================================================================
 	// 4. Alice uploads a private JPEG
@@ -619,7 +619,7 @@ func TestTagRuleActivateApplyToExisting(t *testing.T) {
 
 	// Activate A→B WITHOUT apply_to_existing — existing file must not change.
 	resp = h.doJSON("PATCH", "/tags/"+tagA+"/rules/"+tagB, map[string]any{
-		"is_active":        true,
+		"is_active":         true,
 		"apply_to_existing": false,
 	}, tok)
 	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
@@ -634,7 +634,7 @@ func TestTagRuleActivateApplyToExisting(t *testing.T) {
 	// Activate A→B WITH apply_to_existing=true.
 	// Expectation: file gets B directly, and C transitively via the active B→C rule.
 	resp = h.doJSON("PATCH", "/tags/"+tagA+"/rules/"+tagB, map[string]any{
-		"is_active":        true,
+		"is_active":         true,
 		"apply_to_existing": true,
 	}, tok)
 	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())

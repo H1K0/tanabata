@@ -6,42 +6,42 @@
 	const OBJECT_TYPES = ['file', 'tag', 'category', 'pool'];
 	const ACTION_LABELS: Record<string, string> = {
 		// Auth
-		user_login:             'User logged in',
-		user_logout:            'User logged out',
+		user_login: 'User logged in',
+		user_logout: 'User logged out',
 		// Files
-		file_create:            'File uploaded',
-		file_edit:              'File edited',
-		file_delete:            'File deleted',
-		file_restore:           'File restored',
-		file_permanent_delete:  'File permanently deleted',
-		file_replace:           'File replaced',
+		file_create: 'File uploaded',
+		file_edit: 'File edited',
+		file_delete: 'File deleted',
+		file_restore: 'File restored',
+		file_permanent_delete: 'File permanently deleted',
+		file_replace: 'File replaced',
 		// Tags
-		tag_create:             'Tag created',
-		tag_edit:               'Tag edited',
-		tag_delete:             'Tag deleted',
+		tag_create: 'Tag created',
+		tag_edit: 'Tag edited',
+		tag_delete: 'Tag deleted',
 		// Categories
-		category_create:        'Category created',
-		category_edit:          'Category edited',
-		category_delete:        'Category deleted',
+		category_create: 'Category created',
+		category_edit: 'Category edited',
+		category_delete: 'Category deleted',
 		// Pools
-		pool_create:            'Pool created',
-		pool_edit:              'Pool edited',
-		pool_delete:            'Pool deleted',
+		pool_create: 'Pool created',
+		pool_edit: 'Pool edited',
+		pool_delete: 'Pool deleted',
 		// Relations
-		file_tag_add:           'Tag added to file',
-		file_tag_remove:        'Tag removed from file',
-		file_pool_add:          'File added to pool',
-		file_pool_remove:       'File removed from pool',
+		file_tag_add: 'Tag added to file',
+		file_tag_remove: 'Tag removed from file',
+		file_pool_add: 'File added to pool',
+		file_pool_remove: 'File removed from pool',
 		// ACL
-		acl_change:             'ACL changed',
+		acl_change: 'ACL changed',
 		// Admin
-		user_create:            'User created',
-		user_delete:            'User deleted',
-		user_block:             'User blocked',
-		user_unblock:           'User unblocked',
-		user_role_change:       'User role changed',
+		user_create: 'User created',
+		user_delete: 'User deleted',
+		user_block: 'User blocked',
+		user_unblock: 'User unblocked',
+		user_role_change: 'User role changed',
 		// Sessions
-		session_terminate:      'Session terminated',
+		session_terminate: 'Session terminated'
 	};
 
 	// ---- Filters ----
@@ -55,7 +55,7 @@
 	// ---- Data ----
 	let entries = $state<AuditEntry[]>([]);
 	let total = $state(0);
-	let page = $state(0);   // 0-based
+	let page = $state(0); // 0-based
 	let loading = $state(false);
 	let error = $state('');
 	let initialLoaded = $state(false);
@@ -65,14 +65,23 @@
 	// ---- Users for filter dropdown ----
 	let allUsers = $state<User[]>([]);
 	$effect(() => {
-		api.get<UserOffsetPage>('/users?limit=200').then((r) => { allUsers = r.items ?? []; }).catch(() => {});
+		api
+			.get<UserOffsetPage>('/users?limit=200')
+			.then((r) => {
+				allUsers = r.items ?? [];
+			})
+			.catch(() => {});
 	});
 
 	// Unknown action types not in ACTION_LABELS (server may add new ones)
-	let knownActions = $derived([...new Set(entries.map((e) => e.action).filter(Boolean))].sort() as string[]);
+	let knownActions = $derived(
+		[...new Set(entries.map((e) => e.action).filter(Boolean))].sort() as string[]
+	);
 
 	// ---- Reset on filter change ----
-	let filterKey = $derived(`${filterUserId}|${filterAction}|${filterObjectType}|${filterObjectId}|${filterFrom}|${filterTo}`);
+	let filterKey = $derived(
+		`${filterUserId}|${filterAction}|${filterObjectType}|${filterObjectId}|${filterFrom}|${filterTo}`
+	);
 	let prevFilterKey = $state('');
 
 	$effect(() => {
@@ -94,12 +103,12 @@
 		error = '';
 		try {
 			const params = new URLSearchParams({ limit: String(LIMIT), offset: String(page * LIMIT) });
-			if (filterUserId)          params.set('user_id',     filterUserId);
-			if (filterAction)          params.set('action',      filterAction);
-			if (filterObjectType)      params.set('object_type', filterObjectType);
-			if (filterObjectId.trim()) params.set('object_id',   filterObjectId.trim());
-			if (filterFrom)            params.set('from', new Date(filterFrom).toISOString());
-			if (filterTo)              params.set('to',   new Date(filterTo).toISOString());
+			if (filterUserId) params.set('user_id', filterUserId);
+			if (filterAction) params.set('action', filterAction);
+			if (filterObjectType) params.set('object_type', filterObjectType);
+			if (filterObjectId.trim()) params.set('object_id', filterObjectId.trim());
+			if (filterFrom) params.set('from', new Date(filterFrom).toISOString());
+			if (filterTo) params.set('to', new Date(filterTo).toISOString());
 
 			const res = await api.get<AuditOffsetPage>(`/audit?${params}`);
 			entries = res.items ?? [];
@@ -122,8 +131,12 @@
 		if (!iso) return '—';
 		const d = new Date(iso);
 		return d.toLocaleString(undefined, {
-			year: 'numeric', month: 'short', day: 'numeric',
-			hour: '2-digit', minute: '2-digit', second: '2-digit',
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+			second: '2-digit'
 		});
 	}
 
@@ -211,60 +224,74 @@
 		<p class="msg error" role="alert">{error}</p>
 	{:else}
 		<div class="content-area">
-		<div class="table-wrap">
-			<table class="table">
-				<thead>
-					<tr>
-						<th>Time</th>
-						<th>User</th>
-						<th>Action</th>
-						<th>Object</th>
-						<th>ID</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each entries as e (e.id)}
+			<div class="table-wrap">
+				<table class="table">
+					<thead>
 						<tr>
-							<td class="ts-cell">{formatTs(e.performed_at)}</td>
-							<td class="user-cell">{e.user_name ?? '—'}</td>
-							<td class="action-cell">
-								<span class="action-tag" class:file={e.object_type === 'file'} class:tag={e.object_type === 'tag'} class:pool={e.object_type === 'pool'} class:cat={e.object_type === 'category'}>
-									{actionLabel(e.action)}
-								</span>
-							</td>
-							<td class="obj-type-cell">{e.object_type ?? '—'}</td>
-							<td class="obj-id-cell" title={e.object_id ?? ''}>{shortId(e.object_id)}</td>
+							<th>Time</th>
+							<th>User</th>
+							<th>Action</th>
+							<th>Object</th>
+							<th>ID</th>
 						</tr>
-					{/each}
+					</thead>
+					<tbody>
+						{#each entries as e (e.id)}
+							<tr>
+								<td class="ts-cell">{formatTs(e.performed_at)}</td>
+								<td class="user-cell">{e.user_name ?? '—'}</td>
+								<td class="action-cell">
+									<span
+										class="action-tag"
+										class:file={e.object_type === 'file'}
+										class:tag={e.object_type === 'tag'}
+										class:pool={e.object_type === 'pool'}
+										class:cat={e.object_type === 'category'}
+									>
+										{actionLabel(e.action)}
+									</span>
+								</td>
+								<td class="obj-type-cell">{e.object_type ?? '—'}</td>
+								<td class="obj-id-cell" title={e.object_id ?? ''}>{shortId(e.object_id)}</td>
+							</tr>
+						{/each}
 
-					{#if loading}
-						<tr class="loading-row">
-							<td colspan="5">
-								<span class="spinner" role="status" aria-label="Loading"></span>
-							</td>
-						</tr>
-					{/if}
+						{#if loading}
+							<tr class="loading-row">
+								<td colspan="5">
+									<span class="spinner" role="status" aria-label="Loading"></span>
+								</td>
+							</tr>
+						{/if}
 
-					{#if !loading && initialLoaded && entries.length === 0}
-						<tr>
-							<td colspan="5" class="empty-cell">No entries match the current filters.</td>
-						</tr>
-					{/if}
-				</tbody>
-			</table>
-		</div>
-
-		{#if totalPages > 1}
-			<div class="pagination">
-				<button class="page-btn" onclick={() => goToPage(page - 1)} disabled={page === 0 || loading}>
-					← Prev
-				</button>
-				<span class="page-info">Page {page + 1} of {totalPages}</span>
-				<button class="page-btn" onclick={() => goToPage(page + 1)} disabled={page >= totalPages - 1 || loading}>
-					Next →
-				</button>
+						{#if !loading && initialLoaded && entries.length === 0}
+							<tr>
+								<td colspan="5" class="empty-cell">No entries match the current filters.</td>
+							</tr>
+						{/if}
+					</tbody>
+				</table>
 			</div>
-		{/if}
+
+			{#if totalPages > 1}
+				<div class="pagination">
+					<button
+						class="page-btn"
+						onclick={() => goToPage(page - 1)}
+						disabled={page === 0 || loading}
+					>
+						← Prev
+					</button>
+					<span class="page-info">Page {page + 1} of {totalPages}</span>
+					<button
+						class="page-btn"
+						onclick={() => goToPage(page + 1)}
+						disabled={page >= totalPages - 1 || loading}
+					>
+						Next →
+					</button>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -428,10 +455,22 @@
 		white-space: nowrap;
 	}
 
-	.action-tag.file  { background-color: color-mix(in srgb, var(--color-info)    12%, transparent); color: var(--color-info);    }
-	.action-tag.tag   { background-color: color-mix(in srgb, #7ECBA1              12%, transparent); color: #7ECBA1;              }
-	.action-tag.pool  { background-color: color-mix(in srgb, var(--color-warning) 12%, transparent); color: var(--color-warning); }
-	.action-tag.cat   { background-color: color-mix(in srgb, var(--color-danger)  12%, transparent); color: var(--color-danger);  }
+	.action-tag.file {
+		background-color: color-mix(in srgb, var(--color-info) 12%, transparent);
+		color: var(--color-info);
+	}
+	.action-tag.tag {
+		background-color: color-mix(in srgb, #7ecba1 12%, transparent);
+		color: #7ecba1;
+	}
+	.action-tag.pool {
+		background-color: color-mix(in srgb, var(--color-warning) 12%, transparent);
+		color: var(--color-warning);
+	}
+	.action-tag.cat {
+		background-color: color-mix(in srgb, var(--color-danger) 12%, transparent);
+		color: var(--color-danger);
+	}
 
 	.obj-type-cell {
 		color: var(--color-text-muted);
@@ -466,7 +505,11 @@
 		animation: spin 0.7s linear infinite;
 	}
 
-	@keyframes spin { to { transform: rotate(360deg); } }
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 
 	.pagination {
 		display: flex;

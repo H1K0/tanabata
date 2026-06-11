@@ -23,7 +23,7 @@
 		onOrderToggle,
 		onFilterToggle,
 		onUpload,
-		onTrash,
+		onTrash
 	}: Props = $props();
 </script>
 
@@ -39,8 +39,14 @@
 	{#if onUpload}
 		<button class="upload-btn icon-btn" onclick={onUpload} title="Upload files">
 			<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<path d="M8 2v9M4 6l4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-				<path d="M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+				<path
+					d="M8 2v9M4 6l4-4 4 4"
+					stroke="currentColor"
+					stroke-width="1.8"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+				<path d="M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
 			</svg>
 		</button>
 	{/if}
@@ -48,7 +54,13 @@
 	{#if onTrash}
 		<button class="icon-btn trash-btn" onclick={onTrash} title="Trash">
 			<svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-				<path d="M2 4h11M5 4V2.5h5V4M5.5 7v4.5M9.5 7v4.5M3 4l.8 9h7.4l.8-9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+				<path
+					d="M2 4h11M5 4V2.5h5V4M5.5 7v4.5M9.5 7v4.5M3 4l.8 9h7.4l.8-9"
+					stroke="currentColor"
+					stroke-width="1.6"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
 			</svg>
 		</button>
 	{/if}
@@ -64,14 +76,30 @@
 			{/each}
 		</select>
 
-		<button class="icon-btn order-btn" onclick={onOrderToggle} title={order === 'asc' ? 'Ascending' : 'Descending'}>
+		<button
+			class="icon-btn order-btn"
+			onclick={onOrderToggle}
+			title={order === 'asc' ? 'Ascending' : 'Descending'}
+		>
 			{#if order === 'asc'}
 				<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-					<path d="M4 10L8 6L12 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+					<path
+						d="M4 10L8 6L12 10"
+						stroke="currentColor"
+						stroke-width="1.8"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
 				</svg>
 			{:else}
 				<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-					<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+					<path
+						d="M4 6L8 10L12 6"
+						stroke="currentColor"
+						stroke-width="1.8"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
 				</svg>
 			{/if}
 		</button>
@@ -83,7 +111,12 @@
 			title="Filter"
 		>
 			<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+				<path
+					d="M2 4h12M4 8h8M6 12h4"
+					stroke="currentColor"
+					stroke-width="1.8"
+					stroke-linecap="round"
+				/>
 			</svg>
 		</button>
 	</div>

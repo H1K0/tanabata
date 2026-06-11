@@ -26,14 +26,14 @@
 		allTags.filter(
 			(t) =>
 				!assignedIds.has(t.id) &&
-				(!search.trim() || t.name?.toLowerCase().includes(search.toLowerCase())),
-		),
+				(!search.trim() || t.name?.toLowerCase().includes(search.toLowerCase()))
+		)
 	);
 
 	let filteredAssigned = $derived(
 		search.trim()
 			? fileTags.filter((t) => t.name?.toLowerCase().includes(search.toLowerCase()))
-			: fileTags,
+			: fileTags
 	);
 
 	async function handleAdd(tagId: string) {
@@ -93,7 +93,12 @@
 		{#if search}
 			<button class="search-clear" onclick={() => (search = '')} aria-label="Clear search">
 				<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-					<path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+					<path
+						d="M2 2l10 10M12 2L2 12"
+						stroke="currentColor"
+						stroke-width="1.8"
+						stroke-linecap="round"
+					/>
 				</svg>
 			</button>
 		{/if}

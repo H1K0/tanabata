@@ -59,17 +59,17 @@ func main() {
 	}
 
 	// Repositories
-	userRepo     := postgres.NewUserRepo(pool)
-	sessionRepo  := postgres.NewSessionRepo(pool)
-	fileRepo     := postgres.NewFileRepo(pool)
-	mimeRepo     := postgres.NewMimeRepo(pool)
-	aclRepo      := postgres.NewACLRepo(pool)
-	auditRepo    := postgres.NewAuditRepo(pool)
-	tagRepo      := postgres.NewTagRepo(pool)
-	tagRuleRepo  := postgres.NewTagRuleRepo(pool)
+	userRepo := postgres.NewUserRepo(pool)
+	sessionRepo := postgres.NewSessionRepo(pool)
+	fileRepo := postgres.NewFileRepo(pool)
+	mimeRepo := postgres.NewMimeRepo(pool)
+	aclRepo := postgres.NewACLRepo(pool)
+	auditRepo := postgres.NewAuditRepo(pool)
+	tagRepo := postgres.NewTagRepo(pool)
+	tagRuleRepo := postgres.NewTagRuleRepo(pool)
 	categoryRepo := postgres.NewCategoryRepo(pool)
-	poolRepo     := postgres.NewPoolRepo(pool)
-	transactor   := postgres.NewTransactor(pool)
+	poolRepo := postgres.NewPoolRepo(pool)
+	transactor := postgres.NewTransactor(pool)
 
 	// Services
 	authSvc := service.NewAuthService(
@@ -79,12 +79,12 @@ func main() {
 		cfg.JWTAccessTTL,
 		cfg.JWTRefreshTTL,
 	)
-	aclSvc      := service.NewACLService(aclRepo, fileRepo, tagRepo, categoryRepo, poolRepo, transactor)
-	auditSvc    := service.NewAuditService(auditRepo)
-	tagSvc      := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
+	aclSvc := service.NewACLService(aclRepo, fileRepo, tagRepo, categoryRepo, poolRepo, transactor)
+	auditSvc := service.NewAuditService(auditRepo)
+	tagSvc := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
 	categorySvc := service.NewCategoryService(categoryRepo, tagRepo, aclSvc, auditSvc)
-	poolSvc     := service.NewPoolService(poolRepo, aclSvc, auditSvc)
-	fileSvc     := service.NewFileService(
+	poolSvc := service.NewPoolService(poolRepo, aclSvc, auditSvc)
+	fileSvc := service.NewFileService(
 		fileRepo,
 		mimeRepo,
 		diskStorage,
@@ -103,15 +103,15 @@ func main() {
 	}
 
 	// Handlers
-	authMiddleware  := handler.NewAuthMiddleware(authSvc)
-	authHandler     := handler.NewAuthHandler(authSvc)
-	fileHandler     := handler.NewFileHandler(fileSvc, tagSvc, cfg.MaxUploadBytes)
-	tagHandler      := handler.NewTagHandler(tagSvc, fileSvc)
+	authMiddleware := handler.NewAuthMiddleware(authSvc)
+	authHandler := handler.NewAuthHandler(authSvc)
+	fileHandler := handler.NewFileHandler(fileSvc, tagSvc, cfg.MaxUploadBytes)
+	tagHandler := handler.NewTagHandler(tagSvc, fileSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
-	poolHandler     := handler.NewPoolHandler(poolSvc)
-	userHandler     := handler.NewUserHandler(userSvc)
-	aclHandler      := handler.NewACLHandler(aclSvc)
-	auditHandler    := handler.NewAuditHandler(auditSvc)
+	poolHandler := handler.NewPoolHandler(poolSvc)
+	userHandler := handler.NewUserHandler(userSvc)
+	aclHandler := handler.NewACLHandler(aclSvc)
+	auditHandler := handler.NewAuditHandler(auditSvc)
 
 	r := handler.NewRouter(
 		authMiddleware, authHandler,

@@ -8,7 +8,7 @@ export async function login(name: string, password: string): Promise<void> {
 	authStore.update((s) => ({
 		...s,
 		accessToken: tokens.access_token ?? null,
-		refreshToken: tokens.refresh_token ?? null,
+		refreshToken: tokens.refresh_token ?? null
 	}));
 }
 
@@ -28,7 +28,7 @@ export async function refresh(): Promise<void> {
 	authStore.update((s) => ({
 		...s,
 		accessToken: tokens.access_token ?? null,
-		refreshToken: tokens.refresh_token ?? null,
+		refreshToken: tokens.refresh_token ?? null
 	}));
 }
 

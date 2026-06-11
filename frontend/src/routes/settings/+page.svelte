@@ -32,7 +32,7 @@
 			const updated = await api.patch<User>('/users/me', body);
 			authStore.update((s) => ({
 				...s,
-				user: s.user ? { ...s.user, name: updated.name ?? s.user.name } : s.user,
+				user: s.user ? { ...s.user, name: updated.name ?? s.user.name } : s.user
 			}));
 			password = '';
 			passwordConfirm = '';
@@ -108,7 +108,7 @@
 			month: 'short',
 			day: 'numeric',
 			hour: '2-digit',
-			minute: '2-digit',
+			minute: '2-digit'
 		});
 	}
 
@@ -120,7 +120,8 @@
 			ua.match(/\b(MSIE|Trident)\b/)?.[0] ??
 			ua.slice(0, 40);
 		const os =
-			ua.match(/\((Windows[^;)]*|Mac OS X [^;)]*|Linux[^;)]*|Android [^;)]*|iOS [^;)]*)/)?.[1] ?? '';
+			ua.match(/\((Windows[^;)]*|Mac OS X [^;)]*|Linux[^;)]*|Android [^;)]*|iOS [^;)]*)/)?.[1] ??
+			'';
 		return os ? `${browser} · ${os}` : browser;
 	}
 </script>
@@ -207,14 +208,24 @@
 				{#if $themeStore === 'light'}
 					<!-- Sun icon -->
 					<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-						<circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/>
-						<path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.22 3.22l1.41 1.41M13.36 13.36l1.42 1.42M3.22 14.78l1.41-1.41M13.36 4.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+						<circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5" />
+						<path
+							d="M9 1v2M9 15v2M1 9h2M15 9h2M3.22 3.22l1.41 1.41M13.36 13.36l1.42 1.42M3.22 14.78l1.41-1.41M13.36 4.64l1.42-1.42"
+							stroke="currentColor"
+							stroke-width="1.5"
+							stroke-linecap="round"
+						/>
 					</svg>
 					Switch to dark
 				{:else}
 					<!-- Moon icon -->
 					<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-						<path d="M15 11.5A7 7 0 0 1 6.5 3a7.001 7.001 0 1 0 8.5 8.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+						<path
+							d="M15 11.5A7 7 0 0 1 6.5 3a7.001 7.001 0 1 0 8.5 8.5z"
+							stroke="currentColor"
+							stroke-width="1.5"
+							stroke-linejoin="round"
+						/>
 					</svg>
 					Switch to light
 				{/if}
@@ -225,7 +236,10 @@
 	<!-- ====== PWA ====== -->
 	<section class="card">
 		<h2 class="section-title">App cache</h2>
-		<p class="hint-text">Clear service worker and cached assets, then reload. Useful if the app feels stale after an update.</p>
+		<p class="hint-text">
+			Clear service worker and cached assets, then reload. Useful if the app feels stale after an
+			update.
+		</p>
 		<div class="row-actions">
 			<button class="btn danger-outline" onclick={resetPwa} disabled={pwaResetting}>
 				{pwaResetting ? 'Clearing…' : 'Clear PWA cache'}
@@ -259,7 +273,10 @@
 		<div class="toggle-row">
 			<div>
 				<span class="toggle-label">Apply new tag rules to existing files</span>
-				<p class="hint-text">When a tag rule is created or activated, automatically add the implied tag to all files that already have the source tag.</p>
+				<p class="hint-text">
+					When a tag rule is created or activated, automatically add the implied tag to all files
+					that already have the source tag.
+				</p>
 			</div>
 			<button
 				class="toggle"
@@ -267,7 +284,8 @@
 				role="switch"
 				aria-checked={$appSettings.tagRuleApplyToExisting}
 				aria-label="Apply activated tag rules to existing files"
-				onclick={() => appSettings.update((s) => ({ ...s, tagRuleApplyToExisting: !s.tagRuleApplyToExisting }))}
+				onclick={() =>
+					appSettings.update((s) => ({ ...s, tagRuleApplyToExisting: !s.tagRuleApplyToExisting }))}
 			>
 				<span class="thumb"></span>
 			</button>
@@ -429,9 +447,15 @@
 		padding: 6px 0;
 	}
 
-	.msg.error { color: var(--color-danger); }
-	.msg.success { color: #7ECBA1; }
-	.msg.muted { color: var(--color-text-muted); }
+	.msg.error {
+		color: var(--color-danger);
+	}
+	.msg.success {
+		color: #7ecba1;
+	}
+	.msg.muted {
+		color: var(--color-text-muted);
+	}
 
 	/* ---- Appearance toggle ---- */
 	.toggle-row {

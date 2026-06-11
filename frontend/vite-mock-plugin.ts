@@ -23,7 +23,7 @@ function json(res: ServerResponse, status: number, body: unknown) {
 	const payload = JSON.stringify(body);
 	res.writeHead(status, {
 		'Content-Type': 'application/json',
-		'Content-Length': Buffer.byteLength(payload),
+		'Content-Length': Buffer.byteLength(payload)
 	});
 	res.end(payload);
 }
@@ -39,7 +39,7 @@ const MOCK_REFRESH_TOKEN = 'mock-refresh-token';
 const TOKEN_PAIR = {
 	access_token: MOCK_ACCESS_TOKEN,
 	refresh_token: MOCK_REFRESH_TOKEN,
-	expires_in: 900,
+	expires_in: 900
 };
 
 const ME = {
@@ -47,7 +47,7 @@ const ME = {
 	name: 'admin',
 	is_admin: true,
 	can_create: true,
-	is_blocked: false,
+	is_blocked: false
 };
 
 type MockUser = {
@@ -59,17 +59,27 @@ type MockUser = {
 };
 
 const mockUsersArr: MockUser[] = [
-	{ id: 1, name: 'admin',   is_admin: true,  can_create: true,  is_blocked: false },
-	{ id: 2, name: 'alice',   is_admin: false, can_create: true,  is_blocked: false },
-	{ id: 3, name: 'bob',     is_admin: false, can_create: true,  is_blocked: false },
-	{ id: 4, name: 'charlie', is_admin: false, can_create: false, is_blocked: true  },
-	{ id: 5, name: 'diana',   is_admin: false, can_create: true,  is_blocked: false },
+	{ id: 1, name: 'admin', is_admin: true, can_create: true, is_blocked: false },
+	{ id: 2, name: 'alice', is_admin: false, can_create: true, is_blocked: false },
+	{ id: 3, name: 'bob', is_admin: false, can_create: true, is_blocked: false },
+	{ id: 4, name: 'charlie', is_admin: false, can_create: false, is_blocked: true },
+	{ id: 5, name: 'diana', is_admin: false, can_create: true, is_blocked: false }
 ];
 
 const AUDIT_ACTIONS = [
-	'file_create', 'file_edit', 'file_delete', 'file_tag_add', 'file_tag_remove',
-	'tag_create', 'tag_edit', 'tag_delete', 'pool_create', 'pool_edit', 'pool_delete',
-	'category_create', 'category_edit',
+	'file_create',
+	'file_edit',
+	'file_delete',
+	'file_tag_add',
+	'file_tag_remove',
+	'tag_create',
+	'tag_edit',
+	'tag_delete',
+	'pool_create',
+	'pool_edit',
+	'pool_delete',
+	'category_create',
+	'category_edit'
 ];
 const AUDIT_OBJECT_TYPES = ['file', 'tag', 'pool', 'category'];
 
@@ -96,13 +106,21 @@ const mockAuditLog: MockAuditEntry[] = Array.from({ length: 80 }, (_, i) => {
 		object_type: objType,
 		object_id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`,
 		details: null,
-		performed_at: new Date(Date.now() - i * 1_800_000).toISOString(),
+		performed_at: new Date(Date.now() - i * 1_800_000).toISOString()
 	};
 });
 
 const THUMB_COLORS = [
-	'#9592B5', '#4DC7ED', '#DB6060', '#F5E872', '#7ECBA1',
-	'#E08C5A', '#A67CB8', '#5A9ED4', '#C4A44A', '#6DB89E',
+	'#9592B5',
+	'#4DC7ED',
+	'#DB6060',
+	'#F5E872',
+	'#7ECBA1',
+	'#E08C5A',
+	'#A67CB8',
+	'#5A9ED4',
+	'#C4A44A',
+	'#6DB89E'
 ];
 
 function mockThumbSvg(id: string): string {
@@ -135,7 +153,7 @@ type MockFile = {
 // Trash — pre-seeded with a few deleted files
 const MOCK_TRASH: MockFile[] = Array.from({ length: 6 }, (_, i) => {
 	const mimes = ['image/jpeg', 'image/png', 'image/webp'];
-	const exts  = ['jpg',        'png',       'webp'      ];
+	const exts = ['jpg', 'png', 'webp'];
 	const mi = i % mimes.length;
 	const id = `00000000-0000-7000-8000-trash${String(i + 1).padStart(7, '0')}`;
 	return {
@@ -153,13 +171,13 @@ const MOCK_TRASH: MockFile[] = Array.from({ length: 6 }, (_, i) => {
 		is_public: false,
 		is_deleted: true,
 		created_at: new Date(Date.now() - (i + 80) * 3_600_000).toISOString(),
-		position: 0,
+		position: 0
 	};
 });
 
 const MOCK_FILES: MockFile[] = Array.from({ length: 500 }, (_, i) => {
 	const mimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
-	const exts  = ['jpg',        'png',       'webp',       'mp4'      ];
+	const exts = ['jpg', 'png', 'webp', 'mp4'];
 	const mi = i % mimes.length;
 	const id = `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`;
 	return {
@@ -176,67 +194,343 @@ const MOCK_FILES: MockFile[] = Array.from({ length: 500 }, (_, i) => {
 		creator_name: 'admin',
 		is_public: false,
 		is_deleted: false,
-		created_at: new Date(Date.now() - i * 3_600_000).toISOString(),
+		created_at: new Date(Date.now() - i * 3_600_000).toISOString()
 	};
 });
 
 const TAG_NAMES = [
-	'nature', 'portrait', 'travel', 'architecture', 'food', 'street', 'macro',
-	'landscape', 'wildlife', 'urban', 'abstract', 'black-and-white', 'night',
-	'golden-hour', 'blue-hour', 'aerial', 'underwater', 'infrared', 'long-exposure',
-	'panorama', 'astrophotography', 'documentary', 'editorial', 'fashion', 'wedding',
-	'newborn', 'maternity', 'family', 'pet', 'sport', 'concert', 'theatre',
-	'interior', 'exterior', 'product', 'still-life', 'automotive', 'aviation',
-	'marine', 'industrial', 'medical', 'scientific', 'satellite', 'drone',
-	'film', 'analog', 'polaroid', 'tilt-shift', 'fisheye', 'telephoto',
-	'wide-angle', 'bokeh', 'silhouette', 'reflection', 'shadow', 'texture',
-	'pattern', 'color', 'minimal', 'surreal', 'conceptual', 'fine-art',
-	'photojournalism', 'war', 'protest', 'people', 'crowd', 'solitude',
-	'children', 'elderly', 'culture', 'tradition', 'festival', 'religion',
-	'asia', 'europe', 'africa', 'americas', 'oceania', 'arctic', 'desert',
-	'forest', 'mountain', 'ocean', 'lake', 'river', 'waterfall', 'cave',
-	'volcano', 'canyon', 'glacier', 'field', 'garden', 'park', 'city',
-	'village', 'ruins', 'bridge', 'road', 'railway', 'harbor', 'airport',
-	'market', 'cafe', 'restaurant', 'bar', 'museum', 'library', 'school',
-	'hospital', 'church', 'mosque', 'temple', 'shrine', 'cemetery', 'stadium',
-	'spring', 'summer', 'autumn', 'winter', 'rain', 'snow', 'fog', 'storm',
-	'sunrise', 'sunset', 'cloudy', 'clear', 'rainbow', 'lightning', 'wind',
-	'cat', 'dog', 'bird', 'horse', 'fish', 'insect', 'reptile', 'mammal',
-	'flower', 'tree', 'grass', 'moss', 'mushroom', 'fruit', 'vegetable',
-	'fire', 'water', 'earth', 'air', 'smoke', 'ice', 'stone', 'wood', 'metal',
-	'glass', 'fabric', 'paper', 'plastic', 'ceramic', 'leather', 'concrete',
-	'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink',
-	'brown', 'white', 'grey', 'dark', 'bright', 'pastel', 'vivid', 'muted',
-	'raw', 'edited', 'hdr', 'composite', 'retouched', 'unedited', 'scanned',
-	'selfie', 'candid', 'posed', 'staged', 'spontaneous', 'planned', 'series',
+	'nature',
+	'portrait',
+	'travel',
+	'architecture',
+	'food',
+	'street',
+	'macro',
+	'landscape',
+	'wildlife',
+	'urban',
+	'abstract',
+	'black-and-white',
+	'night',
+	'golden-hour',
+	'blue-hour',
+	'aerial',
+	'underwater',
+	'infrared',
+	'long-exposure',
+	'panorama',
+	'astrophotography',
+	'documentary',
+	'editorial',
+	'fashion',
+	'wedding',
+	'newborn',
+	'maternity',
+	'family',
+	'pet',
+	'sport',
+	'concert',
+	'theatre',
+	'interior',
+	'exterior',
+	'product',
+	'still-life',
+	'automotive',
+	'aviation',
+	'marine',
+	'industrial',
+	'medical',
+	'scientific',
+	'satellite',
+	'drone',
+	'film',
+	'analog',
+	'polaroid',
+	'tilt-shift',
+	'fisheye',
+	'telephoto',
+	'wide-angle',
+	'bokeh',
+	'silhouette',
+	'reflection',
+	'shadow',
+	'texture',
+	'pattern',
+	'color',
+	'minimal',
+	'surreal',
+	'conceptual',
+	'fine-art',
+	'photojournalism',
+	'war',
+	'protest',
+	'people',
+	'crowd',
+	'solitude',
+	'children',
+	'elderly',
+	'culture',
+	'tradition',
+	'festival',
+	'religion',
+	'asia',
+	'europe',
+	'africa',
+	'americas',
+	'oceania',
+	'arctic',
+	'desert',
+	'forest',
+	'mountain',
+	'ocean',
+	'lake',
+	'river',
+	'waterfall',
+	'cave',
+	'volcano',
+	'canyon',
+	'glacier',
+	'field',
+	'garden',
+	'park',
+	'city',
+	'village',
+	'ruins',
+	'bridge',
+	'road',
+	'railway',
+	'harbor',
+	'airport',
+	'market',
+	'cafe',
+	'restaurant',
+	'bar',
+	'museum',
+	'library',
+	'school',
+	'hospital',
+	'church',
+	'mosque',
+	'temple',
+	'shrine',
+	'cemetery',
+	'stadium',
+	'spring',
+	'summer',
+	'autumn',
+	'winter',
+	'rain',
+	'snow',
+	'fog',
+	'storm',
+	'sunrise',
+	'sunset',
+	'cloudy',
+	'clear',
+	'rainbow',
+	'lightning',
+	'wind',
+	'cat',
+	'dog',
+	'bird',
+	'horse',
+	'fish',
+	'insect',
+	'reptile',
+	'mammal',
+	'flower',
+	'tree',
+	'grass',
+	'moss',
+	'mushroom',
+	'fruit',
+	'vegetable',
+	'fire',
+	'water',
+	'earth',
+	'air',
+	'smoke',
+	'ice',
+	'stone',
+	'wood',
+	'metal',
+	'glass',
+	'fabric',
+	'paper',
+	'plastic',
+	'ceramic',
+	'leather',
+	'concrete',
+	'red',
+	'orange',
+	'yellow',
+	'green',
+	'cyan',
+	'blue',
+	'purple',
+	'pink',
+	'brown',
+	'white',
+	'grey',
+	'dark',
+	'bright',
+	'pastel',
+	'vivid',
+	'muted',
+	'raw',
+	'edited',
+	'hdr',
+	'composite',
+	'retouched',
+	'unedited',
+	'scanned',
+	'selfie',
+	'candid',
+	'posed',
+	'staged',
+	'spontaneous',
+	'planned',
+	'series'
 ];
 
 const TAG_COLORS = [
-	'7ECBA1', '9592B5', '4DC7ED', 'E08C5A', 'DB6060',
-	'F5E872', 'A67CB8', '5A9ED4', 'C4A44A', '6DB89E',
-	'E07090', '70B0E0', 'C0A060', '80C080', 'D080B0',
+	'7ECBA1',
+	'9592B5',
+	'4DC7ED',
+	'E08C5A',
+	'DB6060',
+	'F5E872',
+	'A67CB8',
+	'5A9ED4',
+	'C4A44A',
+	'6DB89E',
+	'E07090',
+	'70B0E0',
+	'C0A060',
+	'80C080',
+	'D080B0'
 ];
 
 const MOCK_CATEGORIES = [
-	{ id: '00000000-0000-7000-8002-000000000001', name: 'Style', color: '9592B5', notes: null, created_at: new Date().toISOString() },
-	{ id: '00000000-0000-7000-8002-000000000002', name: 'Subject', color: '4DC7ED', notes: null, created_at: new Date().toISOString() },
-	{ id: '00000000-0000-7000-8002-000000000003', name: 'Location', color: '7ECBA1', notes: null, created_at: new Date().toISOString() },
-	{ id: '00000000-0000-7000-8002-000000000004', name: 'Season', color: 'E08C5A', notes: null, created_at: new Date().toISOString() },
-	{ id: '00000000-0000-7000-8002-000000000005', name: 'Color', color: 'DB6060', notes: null, created_at: new Date().toISOString() },
+	{
+		id: '00000000-0000-7000-8002-000000000001',
+		name: 'Style',
+		color: '9592B5',
+		notes: null,
+		created_at: new Date().toISOString()
+	},
+	{
+		id: '00000000-0000-7000-8002-000000000002',
+		name: 'Subject',
+		color: '4DC7ED',
+		notes: null,
+		created_at: new Date().toISOString()
+	},
+	{
+		id: '00000000-0000-7000-8002-000000000003',
+		name: 'Location',
+		color: '7ECBA1',
+		notes: null,
+		created_at: new Date().toISOString()
+	},
+	{
+		id: '00000000-0000-7000-8002-000000000004',
+		name: 'Season',
+		color: 'E08C5A',
+		notes: null,
+		created_at: new Date().toISOString()
+	},
+	{
+		id: '00000000-0000-7000-8002-000000000005',
+		name: 'Color',
+		color: 'DB6060',
+		notes: null,
+		created_at: new Date().toISOString()
+	}
 ];
 
 // Assign some tags to categories
 const CATEGORY_ASSIGNMENTS: Record<string, string> = {};
 TAG_NAMES.forEach((name, i) => {
-	if (['film', 'analog', 'polaroid', 'bokeh', 'silhouette', 'long-exposure', 'tilt-shift', 'fisheye', 'telephoto', 'wide-angle', 'macro', 'infrared', 'hdr', 'composite'].includes(name))
+	if (
+		[
+			'film',
+			'analog',
+			'polaroid',
+			'bokeh',
+			'silhouette',
+			'long-exposure',
+			'tilt-shift',
+			'fisheye',
+			'telephoto',
+			'wide-angle',
+			'macro',
+			'infrared',
+			'hdr',
+			'composite'
+		].includes(name)
+	)
 		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[0].id; // Style
-	else if (['portrait', 'wildlife', 'people', 'children', 'elderly', 'cat', 'dog', 'bird', 'horse', 'flower', 'tree', 'insect', 'reptile', 'mammal'].includes(name))
+	else if (
+		[
+			'portrait',
+			'wildlife',
+			'people',
+			'children',
+			'elderly',
+			'cat',
+			'dog',
+			'bird',
+			'horse',
+			'flower',
+			'tree',
+			'insect',
+			'reptile',
+			'mammal'
+		].includes(name)
+	)
 		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[1].id; // Subject
-	else if (['asia', 'europe', 'africa', 'americas', 'oceania', 'arctic', 'desert', 'forest', 'mountain', 'ocean', 'lake', 'river', 'city', 'village'].includes(name))
+	else if (
+		[
+			'asia',
+			'europe',
+			'africa',
+			'americas',
+			'oceania',
+			'arctic',
+			'desert',
+			'forest',
+			'mountain',
+			'ocean',
+			'lake',
+			'river',
+			'city',
+			'village'
+		].includes(name)
+	)
 		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[2].id; // Location
 	else if (['spring', 'summer', 'autumn', 'winter'].includes(name))
 		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[3].id; // Season
-	else if (['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'brown', 'white', 'grey', 'dark', 'bright', 'pastel', 'vivid', 'muted'].includes(name))
+	else if (
+		[
+			'red',
+			'orange',
+			'yellow',
+			'green',
+			'cyan',
+			'blue',
+			'purple',
+			'pink',
+			'brown',
+			'white',
+			'grey',
+			'dark',
+			'bright',
+			'pastel',
+			'vivid',
+			'muted'
+		].includes(name)
+	)
 		CATEGORY_ASSIGNMENTS[name] = MOCK_CATEGORIES[4].id; // Color
 });
 
@@ -269,7 +563,7 @@ const mockTagsArr: MockTag[] = TAG_NAMES.map((name, i) => {
 		category_name: cat?.name ?? null,
 		category_color: cat?.color ?? null,
 		is_public: false,
-		created_at: new Date(Date.now() - i * 3_600_000).toISOString(),
+		created_at: new Date(Date.now() - i * 3_600_000).toISOString()
 	};
 });
 
@@ -280,7 +574,7 @@ const MOCK_TAGS = mockTagsArr;
 const tagRules = new Map<string, Map<string, boolean>>();
 
 // Mutable in-memory state for file metadata and tags
-const fileOverrides = new Map<string, Partial<typeof MOCK_FILES[0]>>();
+const fileOverrides = new Map<string, Partial<(typeof MOCK_FILES)[0]>>();
 const fileTags = new Map<string, Set<string>>(); // fileId → Set<tagId>
 
 type MockPool = {
@@ -313,9 +607,36 @@ type PoolFile = {
 };
 
 const mockPoolsArr: MockPool[] = [
-	{ id: '00000000-0000-7000-8003-000000000001', name: 'Best of 2024', notes: 'Top picks from last year', is_public: false, file_count: 0, creator_id: 1, creator_name: 'admin', created_at: new Date(Date.now() - 10 * 86400000).toISOString() },
-	{ id: '00000000-0000-7000-8003-000000000002', name: 'Portfolio', notes: null, is_public: true, file_count: 0, creator_id: 1, creator_name: 'admin', created_at: new Date(Date.now() - 5 * 86400000).toISOString() },
-	{ id: '00000000-0000-7000-8003-000000000003', name: 'Work in Progress', notes: 'Drafts and experiments', is_public: false, file_count: 0, creator_id: 1, creator_name: 'admin', created_at: new Date(Date.now() - 2 * 86400000).toISOString() },
+	{
+		id: '00000000-0000-7000-8003-000000000001',
+		name: 'Best of 2024',
+		notes: 'Top picks from last year',
+		is_public: false,
+		file_count: 0,
+		creator_id: 1,
+		creator_name: 'admin',
+		created_at: new Date(Date.now() - 10 * 86400000).toISOString()
+	},
+	{
+		id: '00000000-0000-7000-8003-000000000002',
+		name: 'Portfolio',
+		notes: null,
+		is_public: true,
+		file_count: 0,
+		creator_id: 1,
+		creator_name: 'admin',
+		created_at: new Date(Date.now() - 5 * 86400000).toISOString()
+	},
+	{
+		id: '00000000-0000-7000-8003-000000000003',
+		name: 'Work in Progress',
+		notes: 'Drafts and experiments',
+		is_public: false,
+		file_count: 0,
+		creator_id: 1,
+		creator_name: 'admin',
+		created_at: new Date(Date.now() - 2 * 86400000).toISOString()
+	}
 ];
 
 // Pool files: Map<poolId, PoolFile[]> ordered by position
@@ -323,8 +644,20 @@ const poolFilesMap = new Map<string, PoolFile[]>();
 
 // Seed some files into first two pools
 function seedPoolFiles() {
-	const p1Files: PoolFile[] = MOCK_FILES.slice(0, 8).map((f, i) => ({ ...f, metadata: null, exif: {}, phash: null, position: i + 1 }));
-	const p2Files: PoolFile[] = MOCK_FILES.slice(5, 14).map((f, i) => ({ ...f, metadata: null, exif: {}, phash: null, position: i + 1 }));
+	const p1Files: PoolFile[] = MOCK_FILES.slice(0, 8).map((f, i) => ({
+		...f,
+		metadata: null,
+		exif: {},
+		phash: null,
+		position: i + 1
+	}));
+	const p2Files: PoolFile[] = MOCK_FILES.slice(5, 14).map((f, i) => ({
+		...f,
+		metadata: null,
+		exif: {},
+		phash: null,
+		position: i + 1
+	}));
 	poolFilesMap.set(mockPoolsArr[0].id, p1Files);
 	poolFilesMap.set(mockPoolsArr[1].id, p2Files);
 	mockPoolsArr[0].file_count = p1Files.length;
@@ -381,10 +714,10 @@ export function mockApiPlugin(): Plugin {
 								started_at: new Date().toISOString(),
 								expires_at: null,
 								last_activity: new Date().toISOString(),
-								is_current: true,
-							},
+								is_current: true
+							}
 						],
-						total: 1,
+						total: 1
 					});
 				}
 
@@ -410,7 +743,10 @@ export function mockApiPlugin(): Plugin {
 				const thumbMatch = path.match(/^\/files\/([^/]+)\/thumbnail$/);
 				if (method === 'GET' && thumbMatch) {
 					const svg = mockThumbSvg(thumbMatch[1]);
-					res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Content-Length': Buffer.byteLength(svg) });
+					res.writeHead(200, {
+						'Content-Type': 'image/svg+xml',
+						'Content-Length': Buffer.byteLength(svg)
+					});
 					return res.end(svg);
 				}
 
@@ -424,7 +760,10 @@ export function mockApiPlugin(): Plugin {
   <rect width="800" height="600" fill="${color}"/>
   <text x="400" y="315" text-anchor="middle" font-family="monospace" font-size="48" fill="rgba(0,0,0,0.35)">${label}</text>
 </svg>`;
-					res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Content-Length': Buffer.byteLength(svg) });
+					res.writeHead(200, {
+						'Content-Type': 'image/svg+xml',
+						'Content-Length': Buffer.byteLength(svg)
+					});
 					return res.end(svg);
 				}
 
@@ -432,7 +771,11 @@ export function mockApiPlugin(): Plugin {
 				const fileTagsGetMatch = path.match(/^\/files\/([^/]+)\/tags$/);
 				if (method === 'GET' && fileTagsGetMatch) {
 					const ids = fileTags.get(fileTagsGetMatch[1]) ?? new Set<string>();
-					return json(res, 200, MOCK_TAGS.filter((t) => ids.has(t.id)));
+					return json(
+						res,
+						200,
+						MOCK_TAGS.filter((t) => ids.has(t.id))
+					);
 				}
 
 				// PUT /files/{id}/tags/{tag_id}  — add tag
@@ -442,7 +785,11 @@ export function mockApiPlugin(): Plugin {
 					if (!fileTags.has(fid)) fileTags.set(fid, new Set());
 					fileTags.get(fid)!.add(tid);
 					const ids = fileTags.get(fid)!;
-					return json(res, 200, MOCK_TAGS.filter((t) => ids.has(t.id)));
+					return json(
+						res,
+						200,
+						MOCK_TAGS.filter((t) => ids.has(t.id))
+					);
 				}
 
 				// DELETE /files/{id}/tags/{tag_id}  — remove tag
@@ -491,7 +838,11 @@ export function mockApiPlugin(): Plugin {
 
 				// POST /files/bulk/tags
 				if (method === 'POST' && path === '/files/bulk/tags') {
-					const body = (await readBody(req)) as { file_ids?: string[]; action?: string; tag_ids?: string[] };
+					const body = (await readBody(req)) as {
+						file_ids?: string[];
+						action?: string;
+						tag_ids?: string[];
+					};
 					const fileIds = body.file_ids ?? [];
 					const tagIds = body.tag_ids ?? [];
 					const action = body.action ?? 'add';
@@ -569,7 +920,7 @@ export function mockApiPlugin(): Plugin {
 						creator_name: 'admin',
 						is_public: false,
 						is_deleted: false,
-						created_at: new Date().toISOString(),
+						created_at: new Date().toISOString()
 					};
 					MOCK_FILES.unshift(newFile);
 					return json(res, 201, newFile);
@@ -585,8 +936,10 @@ export function mockApiPlugin(): Plugin {
 						const offset = cursor ? Number(Buffer.from(cursor, 'base64').toString()) : 0;
 						const slice = MOCK_TRASH.slice(offset, offset + limit);
 						const nextOffset = offset + slice.length;
-						const next_cursor = nextOffset < MOCK_TRASH.length
-							? Buffer.from(String(nextOffset)).toString('base64') : null;
+						const next_cursor =
+							nextOffset < MOCK_TRASH.length
+								? Buffer.from(String(nextOffset)).toString('base64')
+								: null;
 						return json(res, 200, { items: slice, next_cursor, prev_cursor: null });
 					}
 					const anchor = qs.get('anchor');
@@ -596,13 +949,15 @@ export function mockApiPlugin(): Plugin {
 					if (anchor) {
 						// Anchor mode: return the anchor file surrounded by neighbors
 						const anchorIdx = MOCK_FILES.findIndex((f) => f.id === anchor);
-						if (anchorIdx < 0) return json(res, 404, { code: 'not_found', message: 'Anchor not found' });
+						if (anchorIdx < 0)
+							return json(res, 404, { code: 'not_found', message: 'Anchor not found' });
 						const from = Math.max(0, anchorIdx - Math.floor(limit / 2));
 						const slice = MOCK_FILES.slice(from, from + limit);
-						const next_cursor = from + slice.length < MOCK_FILES.length
-							? Buffer.from(String(from + slice.length)).toString('base64') : null;
-						const prev_cursor = from > 0
-							? Buffer.from(String(from)).toString('base64') : null;
+						const next_cursor =
+							from + slice.length < MOCK_FILES.length
+								? Buffer.from(String(from + slice.length)).toString('base64')
+								: null;
+						const prev_cursor = from > 0 ? Buffer.from(String(from)).toString('base64') : null;
 						return json(res, 200, { items: slice, next_cursor, prev_cursor });
 					}
 
@@ -612,18 +967,18 @@ export function mockApiPlugin(): Plugin {
 						const end = Number(Buffer.from(cursor, 'base64').toString());
 						const start = Math.max(0, end - limit);
 						const slice = MOCK_FILES.slice(start, end);
-						const prev_cursor = start > 0
-							? Buffer.from(String(start)).toString('base64') : null;
+						const prev_cursor = start > 0 ? Buffer.from(String(start)).toString('base64') : null;
 						const next_cursor = Buffer.from(String(end)).toString('base64');
 						return json(res, 200, { items: slice, next_cursor, prev_cursor });
 					}
 					const offset = cursor ? Number(Buffer.from(cursor, 'base64').toString()) : 0;
 					const slice = MOCK_FILES.slice(offset, offset + limit);
 					const nextOffset = offset + slice.length;
-					const next_cursor = nextOffset < MOCK_FILES.length
-						? Buffer.from(String(nextOffset)).toString('base64') : null;
-					const prev_cursor = offset > 0
-						? Buffer.from(String(offset)).toString('base64') : null;
+					const next_cursor =
+						nextOffset < MOCK_FILES.length
+							? Buffer.from(String(nextOffset)).toString('base64')
+							: null;
+					const prev_cursor = offset > 0 ? Buffer.from(String(offset)).toString('base64') : null;
 					return json(res, 200, { items: slice, next_cursor, prev_cursor });
 				}
 
@@ -634,7 +989,12 @@ export function mockApiPlugin(): Plugin {
 					const ruleMap = tagRules.get(tid) ?? new Map<string, boolean>();
 					const items = [...ruleMap.entries()].map(([thenId, isActive]) => {
 						const t = MOCK_TAGS.find((x) => x.id === thenId);
-						return { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: isActive };
+						return {
+							tag_id: tid,
+							then_tag_id: thenId,
+							then_tag_name: t?.name ?? null,
+							is_active: isActive
+						};
 					});
 					return json(res, 200, items);
 				}
@@ -649,7 +1009,12 @@ export function mockApiPlugin(): Plugin {
 					if (!tagRules.has(tid)) tagRules.set(tid, new Map());
 					tagRules.get(tid)!.set(thenId, isActive);
 					const t = MOCK_TAGS.find((x) => x.id === thenId);
-					return json(res, 201, { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: isActive });
+					return json(res, 201, {
+						tag_id: tid,
+						then_tag_id: thenId,
+						then_tag_name: t?.name ?? null,
+						is_active: isActive
+					});
 				}
 
 				// PATCH /tags/{id}/rules/{then_id}  — activate / deactivate
@@ -659,10 +1024,16 @@ export function mockApiPlugin(): Plugin {
 					const body = (await readBody(req)) as Record<string, unknown>;
 					const isActive = body.is_active as boolean;
 					const ruleMap = tagRules.get(tid);
-					if (!ruleMap?.has(thenId)) return json(res, 404, { code: 'not_found', message: 'Rule not found' });
+					if (!ruleMap?.has(thenId))
+						return json(res, 404, { code: 'not_found', message: 'Rule not found' });
 					ruleMap.set(thenId, isActive);
 					const t = MOCK_TAGS.find((x) => x.id === thenId);
-					return json(res, 200, { tag_id: tid, then_tag_id: thenId, then_tag_name: t?.name ?? null, is_active: isActive });
+					return json(res, 200, {
+						tag_id: tid,
+						then_tag_id: thenId,
+						then_tag_name: t?.name ?? null,
+						is_active: isActive
+					});
 				}
 
 				// DELETE /tags/{id}/rules/{then_id}
@@ -692,7 +1063,7 @@ export function mockApiPlugin(): Plugin {
 					Object.assign(MOCK_TAGS[idx], {
 						...body,
 						category_name: cat?.name ?? null,
-						category_color: cat?.color ?? null,
+						category_color: cat?.color ?? null
 					});
 					return json(res, 200, MOCK_TAGS[idx]);
 				}
@@ -720,10 +1091,19 @@ export function mockApiPlugin(): Plugin {
 
 					filtered.sort((a, b) => {
 						let av: string, bv: string;
-						if (sort === 'color') { av = a.color; bv = b.color; }
-						else if (sort === 'category_name') { av = a.category_name ?? ''; bv = b.category_name ?? ''; }
-						else if (sort === 'created') { av = a.created_at; bv = b.created_at; }
-						else { av = a.name; bv = b.name; }
+						if (sort === 'color') {
+							av = a.color;
+							bv = b.color;
+						} else if (sort === 'category_name') {
+							av = a.category_name ?? '';
+							bv = b.category_name ?? '';
+						} else if (sort === 'created') {
+							av = a.created_at;
+							bv = b.created_at;
+						} else {
+							av = a.name;
+							bv = b.name;
+						}
 						const cmp = av.localeCompare(bv);
 						return order === 'desc' ? -cmp : cmp;
 					});
@@ -746,7 +1126,7 @@ export function mockApiPlugin(): Plugin {
 						category_name: cat?.name ?? null,
 						category_color: cat?.color ?? null,
 						is_public: body.is_public ?? false,
-						created_at: new Date().toISOString(),
+						created_at: new Date().toISOString()
 					};
 					MOCK_TAGS.unshift(newTag);
 					return json(res, 201, newTag);
@@ -778,7 +1158,7 @@ export function mockApiPlugin(): Plugin {
 				if (method === 'PATCH' && catPatchMatch) {
 					const idx = MOCK_CATEGORIES.findIndex((c) => c.id === catPatchMatch[1]);
 					if (idx < 0) return json(res, 404, { code: 'not_found', message: 'Category not found' });
-					const body = (await readBody(req)) as Partial<typeof MOCK_CATEGORIES[0]>;
+					const body = (await readBody(req)) as Partial<(typeof MOCK_CATEGORIES)[0]>;
 					Object.assign(MOCK_CATEGORIES[idx], body);
 					// Sync category_name/color on affected tags
 					const cat = MOCK_CATEGORIES[idx];
@@ -824,9 +1204,16 @@ export function mockApiPlugin(): Plugin {
 
 					filtered.sort((a, b) => {
 						let av: string, bv: string;
-						if (sort === 'color') { av = a.color; bv = b.color; }
-						else if (sort === 'created') { av = a.created_at; bv = b.created_at; }
-						else { av = a.name; bv = b.name; }
+						if (sort === 'color') {
+							av = a.color;
+							bv = b.color;
+						} else if (sort === 'created') {
+							av = a.created_at;
+							bv = b.created_at;
+						} else {
+							av = a.name;
+							bv = b.name;
+						}
 						const cmp = av.localeCompare(bv);
 						return order === 'desc' ? -cmp : cmp;
 					});
@@ -837,13 +1224,13 @@ export function mockApiPlugin(): Plugin {
 
 				// POST /categories
 				if (method === 'POST' && path === '/categories') {
-					const body = (await readBody(req)) as Partial<typeof MOCK_CATEGORIES[0]>;
+					const body = (await readBody(req)) as Partial<(typeof MOCK_CATEGORIES)[0]>;
 					const newCat = {
 						id: `00000000-0000-7000-8002-${String(Date.now()).slice(-12)}`,
 						name: body.name ?? 'Unnamed',
 						color: body.color ?? '9592B5',
 						notes: body.notes ?? null,
-						created_at: new Date().toISOString(),
+						created_at: new Date().toISOString()
 					};
 					MOCK_CATEGORIES.unshift(newCat);
 					return json(res, 201, newCat);
@@ -862,8 +1249,8 @@ export function mockApiPlugin(): Plugin {
 					const offset = cursor ? Number(Buffer.from(cursor, 'base64').toString()) : 0;
 					const slice = files.slice(offset, offset + limit);
 					const nextOffset = offset + slice.length;
-					const next_cursor = nextOffset < files.length
-						? Buffer.from(String(nextOffset)).toString('base64') : null;
+					const next_cursor =
+						nextOffset < files.length ? Buffer.from(String(nextOffset)).toString('base64') : null;
 					return json(res, 200, { items: slice, next_cursor, prev_cursor: null });
 				}
 
@@ -878,7 +1265,9 @@ export function mockApiPlugin(): Plugin {
 					const files = poolFilesMap.get(pid) ?? [];
 					const updated = files.filter((f) => !toRemove.has(f.id));
 					// Reassign positions
-					updated.forEach((f, i) => { f.position = i + 1; });
+					updated.forEach((f, i) => {
+						f.position = i + 1;
+					});
 					poolFilesMap.set(pid, updated);
 					pool.file_count = updated.length;
 					return noContent(res);
@@ -899,7 +1288,9 @@ export function mockApiPlugin(): Plugin {
 						const f = byId.get(id);
 						if (f) reordered.push(f);
 					}
-					reordered.forEach((f, i) => { f.position = i + 1; });
+					reordered.forEach((f, i) => {
+						f.position = i + 1;
+					});
 					poolFilesMap.set(pid, reordered);
 					return noContent(res);
 				}
@@ -914,7 +1305,7 @@ export function mockApiPlugin(): Plugin {
 					const files = poolFilesMap.get(pid) ?? [];
 					const existing = new Set(files.map((f) => f.id));
 					let pos = files.length;
-					for (const fid of (body.file_ids ?? [])) {
+					for (const fid of body.file_ids ?? []) {
 						if (existing.has(fid)) continue;
 						const base = MOCK_FILES.find((f) => f.id === fid);
 						if (!base) continue;
@@ -991,7 +1382,7 @@ export function mockApiPlugin(): Plugin {
 						file_count: 0,
 						creator_id: 1,
 						creator_name: 'admin',
-						created_at: new Date().toISOString(),
+						created_at: new Date().toISOString()
 					};
 					mockPoolsArr.unshift(newPool);
 					return json(res, 201, newPool);
@@ -1040,7 +1431,7 @@ export function mockApiPlugin(): Plugin {
 						name: body.name ?? 'unnamed',
 						is_admin: body.is_admin ?? false,
 						can_create: body.can_create ?? false,
-						is_blocked: false,
+						is_blocked: false
 					};
 					mockUsersArr.push(newUser);
 					return json(res, 201, newUser);
@@ -1074,8 +1465,11 @@ export function mockApiPlugin(): Plugin {
 				}
 
 				// Fallback: 404
-				return json(res, 404, { code: 'not_found', message: `Mock: no handler for ${method} ${path}` });
+				return json(res, 404, {
+					code: 'not_found',
+					message: `Mock: no handler for ${method} ${path}`
+				});
 			});
-		},
+		}
 	};
 }

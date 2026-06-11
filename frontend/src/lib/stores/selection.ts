@@ -8,7 +8,7 @@ interface SelectionState {
 function createSelectionStore() {
 	const { subscribe, update, set } = writable<SelectionState>({
 		active: false,
-		ids: new Set(),
+		ids: new Set()
 	});
 
 	return {
@@ -55,7 +55,7 @@ function createSelectionStore() {
 
 		clear() {
 			set({ active: false, ids: new Set() });
-		},
+		}
 	};
 }
 

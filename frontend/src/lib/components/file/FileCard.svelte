@@ -22,7 +22,7 @@
 		selected = false,
 		selectionMode = false,
 		onTap,
-		onLongPress,
+		onLongPress
 	}: Props = $props();
 
 	let imgSrc = $state<string | null>(null);
@@ -34,7 +34,7 @@
 		let cancelled = false;
 
 		fetch(`/api/v1/files/${file.id}/thumbnail`, {
-			headers: token ? { Authorization: `Bearer ${token}` } : {},
+			headers: token ? { Authorization: `Bearer ${token}` } : {}
 		})
 			.then((res) => (res.ok ? res.blob() : null))
 			.then((blob) => {
@@ -111,7 +111,10 @@
 	data-file-index={index}
 	onpointerdown={onPointerDown}
 	onpointermove={onPointerMoveInternal}
-	onpointerup={() => { cancelPress(); didLongPress = false; }}
+	onpointerup={() => {
+		cancelPress();
+		didLongPress = false;
+	}}
 	onpointerleave={cancelPress}
 	oncontextmenu={(e) => e.preventDefault()}
 	onclick={onClick}
@@ -128,14 +131,27 @@
 	{#if selected}
 		<div class="check" aria-hidden="true">
 			<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-				<circle cx="9" cy="9" r="8.5" fill="rgba(0,0,0,0.55)" stroke="white" stroke-width="1"/>
-				<path d="M5 9l3 3 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+				<circle cx="9" cy="9" r="8.5" fill="rgba(0,0,0,0.55)" stroke="white" stroke-width="1" />
+				<path
+					d="M5 9l3 3 5-5"
+					stroke="white"
+					stroke-width="1.8"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
 			</svg>
 		</div>
 	{:else if selectionMode}
 		<div class="check" aria-hidden="true">
 			<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-				<circle cx="9" cy="9" r="8.5" fill="rgba(0,0,0,0.35)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+				<circle
+					cx="9"
+					cy="9"
+					r="8.5"
+					fill="rgba(0,0,0,0.35)"
+					stroke="rgba(255,255,255,0.5)"
+					stroke-width="1"
+				/>
 			</svg>
 		</div>
 	{/if}
@@ -207,7 +223,11 @@
 	}
 
 	@keyframes shimmer {
-		0% { background-position: 200% 0; }
-		100% { background-position: -200% 0; }
+		0% {
+			background-position: 200% 0;
+		}
+		100% {
+			background-position: -200% 0;
+		}
 	}
 </style>

@@ -89,16 +89,16 @@ type fileJSON struct {
 
 func toTagJSON(t domain.Tag) tagJSON {
 	j := tagJSON{
-		ID:          t.ID.String(),
-		Name:        t.Name,
-		Notes:       t.Notes,
-		Color:       t.Color,
+		ID:            t.ID.String(),
+		Name:          t.Name,
+		Notes:         t.Notes,
+		Color:         t.Color,
 		CategoryName:  t.CategoryName,
 		CategoryColor: t.CategoryColor,
-		CreatorID:   t.CreatorID,
-		CreatorName: t.CreatorName,
-		IsPublic:    t.IsPublic,
-		CreatedAt:   t.CreatedAt.Format(time.RFC3339),
+		CreatorID:     t.CreatorID,
+		CreatorName:   t.CreatorName,
+		IsPublic:      t.IsPublic,
+		CreatedAt:     t.CreatedAt.Format(time.RFC3339),
 	}
 	if t.CategoryID != nil {
 		s := t.CategoryID.String()

@@ -16,9 +16,7 @@ const SHELL = ['/', ...build, ...files];
 
 // ---- Install: pre-cache the app shell ----
 self.addEventListener('install', (event) => {
-	event.waitUntil(
-		caches.open(CACHE).then((cache) => cache.addAll(SHELL))
-	);
+	event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
 	// Activate immediately without waiting for old tabs to close.
 	self.skipWaiting();
 });
@@ -26,9 +24,9 @@ self.addEventListener('install', (event) => {
 // ---- Activate: remove stale caches from previous versions ----
 self.addEventListener('activate', (event) => {
 	event.waitUntil(
-		caches.keys().then((keys) =>
-			Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-		)
+		caches
+			.keys()
+			.then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
 	);
 	self.clients.claim();
 });

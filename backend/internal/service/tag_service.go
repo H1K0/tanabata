@@ -10,15 +10,15 @@ import (
 	"tanabata/backend/internal/port"
 )
 
-const tagObjectType    = "tag"
-const tagObjectTypeID  int16 = 2 // second row in 007_seed_data.sql object_types
+const tagObjectType = "tag"
+const tagObjectTypeID int16 = 2 // second row in 007_seed_data.sql object_types
 
 // TagParams holds the fields for creating or patching a tag.
 type TagParams struct {
 	Name       string
 	Notes      *string
-	Color      *string          // nil = no change; pointer to empty string = clear
-	CategoryID *uuid.UUID       // nil = no change; Nil UUID = unassign
+	Color      *string    // nil = no change; pointer to empty string = clear
+	CategoryID *uuid.UUID // nil = no change; Nil UUID = unassign
 	Metadata   json.RawMessage
 	IsPublic   *bool
 }

@@ -10,14 +10,14 @@ import (
 	"tanabata/backend/internal/port"
 )
 
-const categoryObjectType          = "category"
-const categoryObjectTypeID int16  = 3 // third row in 007_seed_data.sql object_types
+const categoryObjectType = "category"
+const categoryObjectTypeID int16 = 3 // third row in 007_seed_data.sql object_types
 
 // CategoryParams holds the fields for creating or patching a category.
 type CategoryParams struct {
 	Name     string
 	Notes    *string
-	Color    *string         // nil = no change; pointer to empty string = clear
+	Color    *string // nil = no change; pointer to empty string = clear
 	Metadata json.RawMessage
 	IsPublic *bool
 }

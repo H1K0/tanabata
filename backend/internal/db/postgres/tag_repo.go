@@ -23,16 +23,16 @@ import (
 
 type tagRow struct {
 	ID            uuid.UUID  `db:"id"`
-	Name          string      `db:"name"`
-	Notes         *string     `db:"notes"`
-	Color         *string     `db:"color"`
+	Name          string     `db:"name"`
+	Notes         *string    `db:"notes"`
+	Color         *string    `db:"color"`
 	CategoryID    *uuid.UUID `db:"category_id"`
-	CategoryName  *string     `db:"category_name"`
-	CategoryColor *string     `db:"category_color"`
-	Metadata      []byte      `db:"metadata"`
-	CreatorID     int16       `db:"creator_id"`
-	CreatorName   string      `db:"creator_name"`
-	IsPublic      bool        `db:"is_public"`
+	CategoryName  *string    `db:"category_name"`
+	CategoryColor *string    `db:"category_color"`
+	Metadata      []byte     `db:"metadata"`
+	CreatorID     int16      `db:"creator_id"`
+	CreatorName   string     `db:"creator_name"`
+	IsPublic      bool       `db:"is_public"`
 }
 
 type tagRowWithTotal struct {
@@ -43,8 +43,8 @@ type tagRowWithTotal struct {
 type tagRuleRow struct {
 	WhenTagID   uuid.UUID `db:"when_tag_id"`
 	ThenTagID   uuid.UUID `db:"then_tag_id"`
-	ThenTagName string     `db:"then_tag_name"`
-	IsActive    bool       `db:"is_active"`
+	ThenTagName string    `db:"then_tag_name"`
+	IsActive    bool      `db:"is_active"`
 }
 
 // ---------------------------------------------------------------------------

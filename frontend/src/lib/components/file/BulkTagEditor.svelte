@@ -33,8 +33,8 @@
 				api.get<TagOffsetPage>('/tags?limit=200&sort=name&order=asc'),
 				api.post<{ common_tag_ids: string[]; partial_tag_ids: string[] }>(
 					'/files/bulk/common-tags',
-					{ file_ids: fileIds },
-				),
+					{ file_ids: fileIds }
+				)
 			]);
 			allTags = tagsRes.items ?? [];
 			commonIds = new Set(commonRes.common_tag_ids ?? []);
@@ -53,16 +53,16 @@
 		allTags.filter(
 			(t) =>
 				assignedIds.has(t.id ?? '') &&
-				(!search.trim() || t.name?.toLowerCase().includes(search.toLowerCase())),
-		),
+				(!search.trim() || t.name?.toLowerCase().includes(search.toLowerCase()))
+		)
 	);
 
 	let availableTags = $derived(
 		allTags.filter(
 			(t) =>
 				!assignedIds.has(t.id ?? '') &&
-				(!search.trim() || t.name?.toLowerCase().includes(search.toLowerCase())),
-		),
+				(!search.trim() || t.name?.toLowerCase().includes(search.toLowerCase()))
+		)
 	);
 
 	function tagStyle(tag: Tag) {
@@ -132,8 +132,10 @@
 							class="tag assigned"
 							class:partial={isPartial}
 							style={tagStyle(tag)}
-							onclick={() => isPartial ? promotePartial(tag.id!) : remove(tag.id!)}
-							title={isPartial ? 'Partial — click to add to all files' : 'Click to remove from all files'}
+							onclick={() => (isPartial ? promotePartial(tag.id!) : remove(tag.id!))}
+							title={isPartial
+								? 'Partial — click to add to all files'
+								: 'Click to remove from all files'}
 						>
 							{tag.name}
 							{#if isPartial}
@@ -159,7 +161,12 @@
 			{#if search}
 				<button class="search-clear" onclick={() => (search = '')} aria-label="Clear search">
 					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-						<path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+						<path
+							d="M2 2l10 10M12 2L2 12"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+						/>
 					</svg>
 				</button>
 			{/if}

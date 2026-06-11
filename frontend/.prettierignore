@@ -1,0 +1,11 @@
+# Build output and dependencies
+.svelte-kit
+build
+node_modules
+package-lock.json
+
+# Generated from openapi.yaml — formatting would be overwritten on regen
+src/lib/api/schema.ts
+
+# Static assets (fonts, icons, manifest, robots)
+static

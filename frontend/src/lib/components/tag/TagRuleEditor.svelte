@@ -31,8 +31,8 @@
 			(t) =>
 				t.id !== tagId &&
 				!usedIds.has(t.id) &&
-				(!search.trim() || t.name?.toLowerCase().includes(search.toLowerCase())),
-		),
+				(!search.trim() || t.name?.toLowerCase().includes(search.toLowerCase()))
+		)
 	);
 
 	function tagForId(id: string | undefined) {
@@ -47,7 +47,7 @@
 			const rule = await api.post<TagRule>(`/tags/${tagId}/rules`, {
 				then_tag_id: thenTagId,
 				is_active: true,
-				apply_to_existing: $appSettings.tagRuleApplyToExisting,
+				apply_to_existing: $appSettings.tagRuleApplyToExisting
 			});
 			onRulesChange([...rules, rule]);
 			search = '';
@@ -68,7 +68,7 @@
 			const body: Record<string, unknown> = { is_active: activating };
 			if (activating) body.apply_to_existing = $appSettings.tagRuleApplyToExisting;
 			const updated = await api.patch<TagRule>(`/tags/${tagId}/rules/${thenTagId}`, body);
-			onRulesChange(rules.map((r) => r.then_tag_id === thenTagId ? updated : r));
+			onRulesChange(rules.map((r) => (r.then_tag_id === thenTagId ? updated : r)));
 		} catch (e) {
 			error = e instanceof ApiError ? e.message : 'Failed to update rule';
 		} finally {
@@ -92,9 +92,7 @@
 </script>
 
 <div class="editor" class:busy>
-	<p class="desc">
-		When this tag is applied, also apply:
-	</p>
+	<p class="desc">When this tag is applied, also apply:</p>
 
 	{#if error}
 		<p class="error" role="alert">{error}</p>
@@ -120,20 +118,20 @@
 					>
 						{#if rule.is_active}
 							<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-								<circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/>
-								<circle cx="6" cy="6" r="2.5" fill="currentColor"/>
+								<circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5" />
+								<circle cx="6" cy="6" r="2.5" fill="currentColor" />
 							</svg>
 						{:else}
 							<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-								<circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5"/>
+								<circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5" />
 							</svg>
 						{/if}
 					</button>
 					<button
 						class="remove-btn"
 						onclick={() => removeRule(rule.then_tag_id!)}
-						aria-label="Remove rule"
-					>×</button>
+						aria-label="Remove rule">×</button
+					>
 				</div>
 			{/each}
 		</div>
@@ -155,7 +153,12 @@
 			{#if search}
 				<button class="search-clear" onclick={() => (search = '')} aria-label="Clear search">
 					<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-						<path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+						<path
+							d="M2 2l10 10M12 2L2 12"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+						/>
 					</svg>
 				</button>
 			{/if}

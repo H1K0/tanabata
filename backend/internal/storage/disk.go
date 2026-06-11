@@ -5,12 +5,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	_ "golang.org/x/image/webp" // register WebP decoder
 	"image"
 	"image/color"
+	_ "image/gif" // register GIF decoder
 	"image/jpeg"
-	_ "image/gif"                    // register GIF decoder
-	_ "image/png"                    // register PNG decoder
-	_ "golang.org/x/image/webp"      // register WebP decoder
+	_ "image/png" // register PNG decoder
 	"io"
 	"os"
 	"os/exec"

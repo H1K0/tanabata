@@ -23,8 +23,8 @@
 				user: {
 					id: me.id!,
 					name: me.name!,
-					isAdmin: me.is_admin ?? false,
-				},
+					isAdmin: me.is_admin ?? false
+				}
 			}));
 			await goto('/files');
 		} catch (err) {
@@ -106,8 +106,12 @@
 		user-select: none;
 	}
 
-	.decoration.left  { left: 0; }
-	.decoration.right { right: 0; }
+	.decoration.left {
+		left: 0;
+	}
+	.decoration.right {
+		right: 0;
+	}
 
 	form {
 		position: relative;
@@ -157,7 +161,9 @@
 		box-sizing: border-box;
 	}
 
-	input::placeholder { color: var(--color-text-muted); }
+	input::placeholder {
+		color: var(--color-text-muted);
+	}
 
 	input:focus {
 		border-color: var(--color-accent);

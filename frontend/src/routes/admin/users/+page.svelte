@@ -46,7 +46,7 @@
 				name: newName.trim(),
 				password: newPassword.trim(),
 				can_create: newCanCreate,
-				is_admin: newIsAdmin,
+				is_admin: newIsAdmin
 			});
 			users = [u, ...users];
 			total++;
@@ -73,7 +73,9 @@
 		}
 	}
 
-	$effect(() => { void load(); });
+	$effect(() => {
+		void load();
+	});
 </script>
 
 <svelte:head><title>Users — Admin | Tanabata</title></svelte:head>
@@ -90,8 +92,20 @@
 		<div class="create-form">
 			{#if createError}<p class="form-error" role="alert">{createError}</p>{/if}
 			<div class="form-row">
-				<input class="input" type="text" placeholder="Username" bind:value={newName} autocomplete="off" />
-				<input class="input" type="password" placeholder="Password" bind:value={newPassword} autocomplete="new-password" />
+				<input
+					class="input"
+					type="text"
+					placeholder="Username"
+					bind:value={newName}
+					autocomplete="off"
+				/>
+				<input
+					class="input"
+					type="password"
+					placeholder="Password"
+					bind:value={newPassword}
+					autocomplete="new-password"
+				/>
 			</div>
 			<div class="form-row checks">
 				<label class="check-label">
@@ -140,7 +154,11 @@
 							</button>
 						</td>
 						<td>
-							<span class="badge" class:admin={u.is_admin} class:creator={!u.is_admin && u.can_create}>
+							<span
+								class="badge"
+								class:admin={u.is_admin}
+								class:creator={!u.is_admin && u.can_create}
+							>
 								{u.is_admin ? 'Admin' : u.can_create ? 'Creator' : 'Viewer'}
 							</span>
 						</td>
@@ -154,12 +172,27 @@
 						<td class="actions-cell">
 							<button class="icon-btn" onclick={() => goto(`/admin/users/${u.id}`)} title="Edit">
 								<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-									<path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+									<path
+										d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z"
+										stroke="currentColor"
+										stroke-width="1.4"
+										stroke-linejoin="round"
+									/>
 								</svg>
 							</button>
-							<button class="icon-btn danger" onclick={() => (confirmDeleteUser = u)} title="Delete">
+							<button
+								class="icon-btn danger"
+								onclick={() => (confirmDeleteUser = u)}
+								title="Delete"
+							>
 								<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-									<path d="M2 4h10M5 4V2.5h4V4M5.5 6.5v4M8.5 6.5v4M3 4l.8 7.5h6.4L11 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+									<path
+										d="M2 4h10M5 4V2.5h4V4M5.5 6.5v4M8.5 6.5v4M3 4l.8 7.5h6.4L11 4"
+										stroke="currentColor"
+										stroke-width="1.4"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
 								</svg>
 							</button>
 						</td>
@@ -265,7 +298,10 @@
 		white-space: nowrap;
 	}
 
-	.btn:disabled { opacity: 0.5; cursor: default; }
+	.btn:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
 
 	.btn.primary {
 		background-color: var(--color-accent);
@@ -348,8 +384,8 @@
 	}
 
 	.badge.active {
-		background-color: color-mix(in srgb, #7ECBA1 15%, transparent);
-		color: #7ECBA1;
+		background-color: color-mix(in srgb, #7ecba1 15%, transparent);
+		color: #7ecba1;
 	}
 
 	.badge.blocked {
@@ -402,14 +438,21 @@
 		animation: spin 0.7s linear infinite;
 	}
 
-	@keyframes spin { to { transform: rotate(360deg); } }
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 
-	.error, .empty {
+	.error,
+	.empty {
 		font-size: 0.875rem;
 		color: var(--color-text-muted);
 		text-align: center;
 		padding: 40px 0;
 	}
 
-	.error { color: var(--color-danger); }
+	.error {
+		color: var(--color-danger);
+	}
 </style>

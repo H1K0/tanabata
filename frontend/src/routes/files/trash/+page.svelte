@@ -55,7 +55,7 @@
 		// In trash, tap always selects (no detail page)
 		if (e.shiftKey && lastSelectedIdx !== null) {
 			const from = Math.min(lastSelectedIdx, idx);
-			const to   = Math.max(lastSelectedIdx, idx);
+			const to = Math.max(lastSelectedIdx, idx);
 			for (let i = from; i <= to; i++) {
 				if (files[i]?.id) selectionStore.select(files[i].id!);
 			}
@@ -93,7 +93,9 @@
 			else selectionStore.deselect(files[idx].id!);
 			lastSelectedIdx = idx;
 		}
-		function onTouchEnd() { dragSelecting = false; }
+		function onTouchEnd() {
+			dragSelecting = false;
+		}
 		document.addEventListener('touchmove', onTouchMove, { passive: false });
 		document.addEventListener('touchend', onTouchEnd);
 		document.addEventListener('touchcancel', onTouchEnd);
@@ -145,7 +147,13 @@
 
 <div class="page">
 	<header>
-		<button class="back-btn" onclick={() => { selectionStore.exit(); goto('/files'); }}>
+		<button
+			class="back-btn"
+			onclick={() => {
+				selectionStore.exit();
+				goto('/files');
+			}}
+		>
 			← Files
 		</button>
 		<span class="title">Trash</span>
@@ -190,14 +198,27 @@
 			<span class="sel-num">{$selectionCount}</span>
 			<span class="sel-label">selected</span>
 			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-				<path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+				<path
+					d="M2 2l10 10M12 2L2 12"
+					stroke="currentColor"
+					stroke-width="1.8"
+					stroke-linecap="round"
+				/>
 			</svg>
 		</button>
 		<div class="sel-spacer"></div>
-		<button class="sel-action restore" onclick={() => (confirmRestore = true)} disabled={actionBusy}>
+		<button
+			class="sel-action restore"
+			onclick={() => (confirmRestore = true)}
+			disabled={actionBusy}
+		>
 			Restore
 		</button>
-		<button class="sel-action perm-delete" onclick={() => (confirmPermDelete = true)} disabled={actionBusy}>
+		<button
+			class="sel-action perm-delete"
+			onclick={() => (confirmPermDelete = true)}
+			disabled={actionBusy}
+		>
 			Delete permanently
 		</button>
 	</div>
@@ -254,7 +275,9 @@
 		border-radius: 6px;
 	}
 
-	.back-btn:hover { color: var(--color-accent); }
+	.back-btn:hover {
+		color: var(--color-accent);
+	}
 
 	.title {
 		font-size: 0.9rem;
@@ -275,7 +298,10 @@
 		cursor: pointer;
 	}
 
-	.select-btn:hover { color: var(--color-text-primary); border-color: var(--color-accent); }
+	.select-btn:hover {
+		color: var(--color-text-primary);
+		border-color: var(--color-accent);
+	}
 
 	.select-btn.active {
 		background-color: color-mix(in srgb, var(--color-accent) 25%, var(--color-bg-elevated));
@@ -335,8 +361,14 @@
 	}
 
 	@keyframes slide-up {
-		from { transform: translateY(12px); opacity: 0; }
-		to   { transform: translateY(0);    opacity: 1; }
+		from {
+			transform: translateY(12px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
 	}
 
 	.sel-count {
@@ -363,9 +395,13 @@
 		color: var(--color-text-primary);
 	}
 
-	.sel-label { font-size: 0.85rem; }
+	.sel-label {
+		font-size: 0.85rem;
+	}
 
-	.sel-spacer { flex: 1; }
+	.sel-spacer {
+		flex: 1;
+	}
 
 	.sel-action {
 		background: none;
@@ -378,14 +414,17 @@
 		font-weight: 600;
 	}
 
-	.sel-action:disabled { opacity: 0.5; cursor: default; }
+	.sel-action:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
 
 	.sel-action.restore {
-		color: #7ECBA1;
+		color: #7ecba1;
 	}
 
 	.sel-action.restore:hover:not(:disabled) {
-		background-color: color-mix(in srgb, #7ECBA1 15%, transparent);
+		background-color: color-mix(in srgb, #7ecba1 15%, transparent);
 	}
 
 	.sel-action.perm-delete {

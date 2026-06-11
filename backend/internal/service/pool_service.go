@@ -10,7 +10,7 @@ import (
 	"tanabata/backend/internal/port"
 )
 
-const poolObjectType         = "pool"
+const poolObjectType = "pool"
 const poolObjectTypeID int16 = 4 // fourth row in 007_seed_data.sql object_types
 
 // PoolParams holds the fields for creating or patching a pool.

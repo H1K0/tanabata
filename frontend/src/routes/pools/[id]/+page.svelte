@@ -9,7 +9,13 @@
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { parseDslFilter } from '$lib/utils/dsl';
-	import type { Pool, PoolFile, PoolFileCursorPage, File as FileType, FileCursorPage } from '$lib/api/types';
+	import type {
+		Pool,
+		PoolFile,
+		PoolFileCursorPage,
+		File as FileType,
+		FileCursorPage
+	} from '$lib/api/types';
 
 	let poolId = $derived(page.params.id);
 
@@ -72,15 +78,18 @@
 		filesError = '';
 		selectedIds = new Set();
 		editOpen = false;
-		void api.get<Pool>(`/pools/${id}`).then((p) => {
-			pool = p;
-			name = p.name ?? '';
-			notes = p.notes ?? '';
-			isPublic = p.is_public ?? false;
-			loaded = true;
-		}).catch((e) => {
-			loadError = e instanceof ApiError ? e.message : 'Failed to load pool';
-		});
+		void api
+			.get<Pool>(`/pools/${id}`)
+			.then((p) => {
+				pool = p;
+				name = p.name ?? '';
+				notes = p.notes ?? '';
+				isPublic = p.is_public ?? false;
+				loaded = true;
+			})
+			.catch((e) => {
+				loadError = e instanceof ApiError ? e.message : 'Failed to load pool';
+			});
 	});
 
 	// Reset files when filter changes
@@ -126,7 +135,7 @@
 			const updated = await api.patch<Pool>(`/pools/${poolId}`, {
 				name: name.trim(),
 				notes: notes.trim() || null,
-				is_public: isPublic,
+				is_public: isPublic
 			});
 			pool = updated;
 			editOpen = false;
@@ -218,7 +227,7 @@
 	let activeIdx = $derived(activeFileId ? files.findIndex((f) => f.id === activeFileId) : -1);
 	let viewerPrevId = $derived(activeIdx > 0 ? (files[activeIdx - 1]?.id ?? null) : null);
 	let viewerNextId = $derived(
-		activeIdx >= 0 && activeIdx < files.length - 1 ? (files[activeIdx + 1]?.id ?? null) : null,
+		activeIdx >= 0 && activeIdx < files.length - 1 ? (files[activeIdx + 1]?.id ?? null) : null
 	);
 
 	function openFile(file: PoolFile) {
@@ -303,7 +312,7 @@
 		reorderPending = true;
 		try {
 			await api.put(`/pools/${poolId}/files/reorder`, {
-				file_ids: files.map((f) => f.id),
+				file_ids: files.map((f) => f.id)
 			});
 		} catch {
 			// non-critical — positions may be out of sync
@@ -398,7 +407,13 @@
 			<header class="top-bar">
 				<button class="back-btn" onclick={closeAddMode} aria-label="Close">
 					<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-						<path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+						<path
+							d="M12 4L6 10L12 16"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
 					</svg>
 				</button>
 				<span class="header-title">Add files to "{pool?.name ?? ''}"</span>
@@ -417,7 +432,12 @@
 					{#if addSearch}
 						<button class="search-clear" onclick={() => (addSearch = '')} aria-label="Clear">
 							<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-								<path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+								<path
+									d="M2 2l10 10M12 2L2 12"
+									stroke="currentColor"
+									stroke-width="1.8"
+									stroke-linecap="round"
+								/>
 							</svg>
 						</button>
 					{/if}
@@ -427,10 +447,7 @@
 			<main class="add-main">
 				<div class="grid">
 					{#each addFiles as file, i (file.id)}
-						<div
-							class="add-card-wrap"
-							class:already-in={inPoolIds.has(file.id ?? '')}
-						>
+						<div class="add-card-wrap" class:already-in={inPoolIds.has(file.id ?? '')}>
 							<FileCard
 								{file}
 								index={i}
@@ -461,25 +478,41 @@
 			{/if}
 		</div>
 
-	<!-- ====== NORMAL POOL VIEW ====== -->
+		<!-- ====== NORMAL POOL VIEW ====== -->
 	{:else}
 		<header class="top-bar">
 			<button class="back-btn" onclick={() => goto('/pools')} aria-label="Back">
 				<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-					<path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					<path
+						d="M12 4L6 10L12 16"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
 				</svg>
 			</button>
 			<span class="header-title">{pool?.name ?? 'Pool'}</span>
 			<div class="header-actions">
 				<button class="icon-text-btn" onclick={() => (editOpen = !editOpen)}>
 					<svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-						<path d="M10.5 2.5l2 2-8 8H2.5v-2l8-8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+						<path
+							d="M10.5 2.5l2 2-8 8H2.5v-2l8-8z"
+							stroke="currentColor"
+							stroke-width="1.5"
+							stroke-linejoin="round"
+						/>
 					</svg>
 					Edit
 				</button>
 				<button class="icon-text-btn add-btn" onclick={openAddMode}>
 					<svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-						<path d="M7.5 2v11M2 7.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+						<path
+							d="M7.5 2v11M2 7.5h11"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+						/>
 					</svg>
 					Add
 				</button>
@@ -489,7 +522,9 @@
 		{#if loadError}
 			<p class="load-error" role="alert">{loadError}</p>
 		{:else if !loaded}
-			<div class="loading-row"><span class="spinner" role="status" aria-label="Loading"></span></div>
+			<div class="loading-row">
+				<span class="spinner" role="status" aria-label="Loading"></span>
+			</div>
 		{:else}
 			<!-- Edit form -->
 			{#if editOpen}
@@ -499,15 +534,37 @@
 					{/if}
 					<div class="field">
 						<label class="label" for="name">Name <span class="required">*</span></label>
-						<input id="name" class="input" type="text" bind:value={name} required placeholder="Pool name" autocomplete="off" />
+						<input
+							id="name"
+							class="input"
+							type="text"
+							bind:value={name}
+							required
+							placeholder="Pool name"
+							autocomplete="off"
+						/>
 					</div>
 					<div class="field">
 						<label class="label" for="notes">Notes</label>
-						<textarea id="notes" class="textarea" rows="2" bind:value={notes} placeholder="Optional notes…"></textarea>
+						<textarea
+							id="notes"
+							class="textarea"
+							rows="2"
+							bind:value={notes}
+							placeholder="Optional notes…"
+						></textarea>
 					</div>
 					<div class="toggle-row">
 						<span class="label">Public</span>
-						<button type="button" class="toggle" class:on={isPublic} onclick={() => (isPublic = !isPublic)} role="switch" aria-checked={isPublic} aria-label="Public">
+						<button
+							type="button"
+							class="toggle"
+							class:on={isPublic}
+							onclick={() => (isPublic = !isPublic)}
+							role="switch"
+							aria-checked={isPublic}
+							aria-label="Public"
+						>
 							<span class="thumb"></span>
 						</button>
 					</div>
@@ -532,12 +589,12 @@
 					{#if canReorder && files.length > 1}
 						<span class="reorder-hint" title="Drag thumbnails to reorder">
 							<svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
-								<circle cx="4" cy="3" r="1" fill="currentColor"/>
-								<circle cx="9" cy="3" r="1" fill="currentColor"/>
-								<circle cx="4" cy="6.5" r="1" fill="currentColor"/>
-								<circle cx="9" cy="6.5" r="1" fill="currentColor"/>
-								<circle cx="4" cy="10" r="1" fill="currentColor"/>
-								<circle cx="9" cy="10" r="1" fill="currentColor"/>
+								<circle cx="4" cy="3" r="1" fill="currentColor" />
+								<circle cx="9" cy="3" r="1" fill="currentColor" />
+								<circle cx="4" cy="6.5" r="1" fill="currentColor" />
+								<circle cx="9" cy="6.5" r="1" fill="currentColor" />
+								<circle cx="4" cy="10" r="1" fill="currentColor" />
+								<circle cx="9" cy="10" r="1" fill="currentColor" />
 							</svg>
 							reorder
 						</span>
@@ -549,7 +606,12 @@
 						title="Filter"
 					>
 						<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-							<path d="M1 3h12M3 7h8M5 11h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+							<path
+								d="M1 3h12M3 7h8M5 11h4"
+								stroke="currentColor"
+								stroke-width="1.8"
+								stroke-linecap="round"
+							/>
 						</svg>
 						Filter
 					</button>
@@ -557,11 +619,7 @@
 			</div>
 
 			{#if filterOpen}
-				<FilterBar
-					value={filterParam}
-					onApply={applyFilter}
-					onClose={() => (filterOpen = false)}
-				/>
+				<FilterBar value={filterParam} onApply={applyFilter} onClose={() => (filterOpen = false)} />
 			{/if}
 
 			<!-- File grid -->
@@ -585,10 +643,10 @@
 							ondragend={canReorder ? onDragEnd : undefined}
 						>
 							<FileCard
-								file={file}
+								{file}
 								index={i}
 								selected={selectedIds.has(file.id ?? '')}
-								selectionMode={selectionMode}
+								{selectionMode}
 								onTap={(e) => handleTap(file, i, e)}
 								onLongPress={() => handleLongPress(file, i)}
 							/>
@@ -625,11 +683,22 @@
 <!-- Selection bar (remove mode) -->
 {#if selectionMode && !addMode}
 	<div class="selection-bar" role="toolbar">
-		<button class="sel-cancel" onclick={() => { selectedIds = new Set(); lastSelectedIdx = null; }}>
+		<button
+			class="sel-cancel"
+			onclick={() => {
+				selectedIds = new Set();
+				lastSelectedIdx = null;
+			}}
+		>
 			<span class="sel-num">{selectedIds.size}</span>
 			<span class="sel-label">selected</span>
 			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-				<path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+				<path
+					d="M2 2l10 10M12 2L2 12"
+					stroke="currentColor"
+					stroke-width="1.8"
+					stroke-linecap="round"
+				/>
 			</svg>
 		</button>
 		<div class="sel-spacer"></div>
@@ -705,7 +774,9 @@
 		cursor: pointer;
 		flex-shrink: 0;
 	}
-	.back-btn:hover { background-color: color-mix(in srgb, var(--color-accent) 15%, transparent); }
+	.back-btn:hover {
+		background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
+	}
 
 	.header-title {
 		flex: 1;
@@ -759,7 +830,11 @@
 		flex-shrink: 0;
 	}
 
-	.field { display: flex; flex-direction: column; gap: 5px; }
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
 
 	.label {
 		font-size: 0.72rem;
@@ -768,7 +843,9 @@
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
 	}
-	.required { color: var(--color-danger); }
+	.required {
+		color: var(--color-danger);
+	}
 
 	.input {
 		width: 100%;
@@ -783,7 +860,9 @@
 		font-family: inherit;
 		outline: none;
 	}
-	.input:focus { border-color: var(--color-accent); }
+	.input:focus {
+		border-color: var(--color-accent);
+	}
 
 	.textarea {
 		width: 100%;
@@ -799,14 +878,18 @@
 		outline: none;
 		min-height: 60px;
 	}
-	.textarea:focus { border-color: var(--color-accent); }
+	.textarea:focus {
+		border-color: var(--color-accent);
+	}
 
 	.toggle-row {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 	}
-	.toggle-row .label { margin: 0; }
+	.toggle-row .label {
+		margin: 0;
+	}
 
 	.toggle {
 		position: relative;
@@ -819,7 +902,9 @@
 		transition: background-color 0.2s;
 		flex-shrink: 0;
 	}
-	.toggle.on { background-color: var(--color-accent); }
+	.toggle.on {
+		background-color: var(--color-accent);
+	}
 	.thumb {
 		position: absolute;
 		top: 3px;
@@ -830,9 +915,14 @@
 		background-color: #fff;
 		transition: transform 0.2s;
 	}
-	.toggle.on .thumb { transform: translateX(18px); }
+	.toggle.on .thumb {
+		transform: translateX(18px);
+	}
 
-	.action-row { display: flex; gap: 8px; }
+	.action-row {
+		display: flex;
+		gap: 8px;
+	}
 
 	.submit-btn {
 		flex: 1;
@@ -846,8 +936,13 @@
 		font-family: inherit;
 		cursor: pointer;
 	}
-	.submit-btn:hover:not(:disabled) { background-color: var(--color-accent-hover); }
-	.submit-btn:disabled { opacity: 0.4; cursor: default; }
+	.submit-btn:hover:not(:disabled) {
+		background-color: var(--color-accent-hover);
+	}
+	.submit-btn:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
 
 	.delete-btn {
 		height: 38px;
@@ -861,8 +956,13 @@
 		font-family: inherit;
 		cursor: pointer;
 	}
-	.delete-btn:hover:not(:disabled) { background-color: color-mix(in srgb, var(--color-danger) 12%, transparent); }
-	.delete-btn:disabled { opacity: 0.4; cursor: default; }
+	.delete-btn:hover:not(:disabled) {
+		background-color: color-mix(in srgb, var(--color-danger) 12%, transparent);
+	}
+	.delete-btn:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
 
 	/* ---- Files header ---- */
 	.files-header {
@@ -975,7 +1075,11 @@
 		border-radius: 50%;
 		animation: spin 0.7s linear infinite;
 	}
-	@keyframes spin { to { transform: rotate(360deg); } }
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 
 	.load-error,
 	.error {
@@ -1010,8 +1114,14 @@
 	}
 
 	@keyframes slide-up {
-		from { transform: translateY(12px); opacity: 0; }
-		to   { transform: translateY(0);    opacity: 1; }
+		from {
+			transform: translateY(12px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
 	}
 
 	.sel-cancel {
@@ -1037,9 +1147,13 @@
 		color: var(--color-text-primary);
 	}
 
-	.sel-label { font-size: 0.85rem; }
+	.sel-label {
+		font-size: 0.85rem;
+	}
 
-	.sel-spacer { flex: 1; }
+	.sel-spacer {
+		flex: 1;
+	}
 
 	.sel-action {
 		background: none;
@@ -1094,7 +1208,9 @@
 		font-family: inherit;
 		outline: none;
 	}
-	.search-input:focus { border-color: var(--color-accent); }
+	.search-input:focus {
+		border-color: var(--color-accent);
+	}
 
 	.search-clear {
 		position: absolute;
@@ -1111,7 +1227,9 @@
 		cursor: pointer;
 		padding: 0;
 	}
-	.search-clear:hover { color: var(--color-text-primary); }
+	.search-clear:hover {
+		color: var(--color-text-primary);
+	}
 
 	.add-main {
 		flex: 1;
@@ -1163,5 +1281,7 @@
 		cursor: pointer;
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 	}
-	.add-confirm-btn:hover { background-color: var(--color-accent-hover); }
+	.add-confirm-btn:hover {
+		background-color: var(--color-accent-hover);
+	}
 </style>

@@ -50,13 +50,11 @@
 			id: uid(),
 			name: f.name,
 			progress: 0,
-			status: 'uploading',
+			status: 'uploading'
 		}));
 		queue = [...queue, ...items];
 
-		await Promise.all(
-			files.map((file, i) => uploadOne(file, items[i].id)),
-		);
+		await Promise.all(files.map((file, i) => uploadOne(file, items[i].id)));
 	}
 
 	async function uploadOne(file: globalThis.File, itemId: string) {
@@ -64,10 +62,8 @@
 		fd.append('file', file);
 
 		try {
-			const result = await uploadWithProgress<ApiFile>(
-				'/files',
-				fd,
-				(pct) => updateItem(itemId, { progress: pct }),
+			const result = await uploadWithProgress<ApiFile>('/files', fd, (pct) =>
+				updateItem(itemId, { progress: pct })
 			);
 			updateItem(itemId, { status: 'done', progress: 100 });
 			onUploaded(result);
@@ -144,8 +140,14 @@
 		<div class="drop-overlay" aria-hidden="true">
 			<div class="drop-label">
 				<svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-					<path d="M18 4v20M10 14l8-10 8 10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-					<path d="M6 28h24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+					<path
+						d="M18 4v20M10 14l8-10 8 10"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+					<path d="M6 28h24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
 				</svg>
 				Drop files to upload
 			</div>
@@ -171,7 +173,11 @@
 
 		<ul class="upload-list">
 			{#each queue as item (item.id)}
-				<li class="upload-item" class:done={item.status === 'done'} class:error={item.status === 'error'}>
+				<li
+					class="upload-item"
+					class:done={item.status === 'done'}
+					class:error={item.status === 'error'}
+				>
 					<span class="item-name" title={item.name}>{item.name}</span>
 					<div class="item-right">
 						{#if item.status === 'uploading'}
@@ -180,8 +186,21 @@
 							</div>
 							<span class="pct">{item.progress}%</span>
 						{:else if item.status === 'done'}
-							<svg class="icon-ok" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-label="Done">
-								<path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+							<svg
+								class="icon-ok"
+								width="16"
+								height="16"
+								viewBox="0 0 16 16"
+								fill="none"
+								aria-label="Done"
+							>
+								<path
+									d="M3 8l4 4 6-6"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								/>
 							</svg>
 						{:else}
 							<span class="err-msg" title={item.error}>{item.error}</span>
@@ -243,8 +262,14 @@
 	}
 
 	@keyframes slide-up {
-		from { transform: translateY(10px); opacity: 0; }
-		to   { transform: translateY(0);    opacity: 1; }
+		from {
+			transform: translateY(10px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
 	}
 
 	.panel-header {

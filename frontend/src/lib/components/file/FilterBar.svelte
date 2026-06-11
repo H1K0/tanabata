@@ -18,11 +18,7 @@
 	let search = $state('');
 	let tokens = $state<string[]>(parseDslFilter(value));
 	let tagNames = $derived(
-		new Map(
-			tags
-				.filter((t) => t.id && t.name)
-				.map((t) => [t.id as string, t.name as string]),
-		),
+		new Map(tags.filter((t) => t.id && t.name).map((t) => [t.id as string, t.name as string]))
 	);
 
 	$effect(() => {
@@ -36,9 +32,7 @@
 	});
 
 	let filteredTags = $derived(
-		search.trim()
-			? tags.filter((t) => t.name?.toLowerCase().includes(search.toLowerCase()))
-			: tags,
+		search.trim() ? tags.filter((t) => t.name?.toLowerCase().includes(search.toLowerCase())) : tags
 	);
 
 	function addToken(t: string) {
@@ -143,7 +137,11 @@
 		{#each filteredTags as tag (tag.id)}
 			<button
 				class="token tag-token"
-				style="background-color: {tag.color ? '#' + tag.color : tag.category_color ? '#' + tag.category_color : 'var(--color-tag-default)'}"
+				style="background-color: {tag.color
+					? '#' + tag.color
+					: tag.category_color
+						? '#' + tag.category_color
+						: 'var(--color-tag-default)'}"
 				onclick={() => addToken(`t=${tag.id}`)}
 			>
 				{tag.name}
@@ -214,7 +212,9 @@
 		font-weight: 600;
 		cursor: grab;
 		user-select: none;
-		transition: opacity 0.15s, outline 0.1s;
+		transition:
+			opacity 0.15s,
+			outline 0.1s;
 		outline: 2px solid transparent;
 	}
 

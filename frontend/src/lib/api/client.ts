@@ -18,7 +18,7 @@ export class ApiError extends Error {
 		public readonly status: number,
 		public readonly code: string,
 		message: string,
-		public readonly details?: Array<{ field?: string; message?: string }>,
+		public readonly details?: Array<{ field?: string; message?: string }>
 	) {
 		super(message);
 		this.name = 'ApiError';
@@ -38,7 +38,7 @@ async function refreshTokens(): Promise<void> {
 	const res = await fetch(`${BASE}/auth/refresh`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ refresh_token: refreshToken }),
+		body: JSON.stringify({ refresh_token: refreshToken })
 	});
 
 	if (!res.ok) {
@@ -50,7 +50,7 @@ async function refreshTokens(): Promise<void> {
 	authStore.update((s) => ({
 		...s,
 		accessToken: data.access_token ?? null,
-		refreshToken: data.refresh_token ?? null,
+		refreshToken: data.refresh_token ?? null
 	}));
 }
 
@@ -64,7 +64,7 @@ function buildHeaders(init: RequestInit | undefined, accessToken: string | null)
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
 	let res = await fetch(BASE + path, {
 		...init,
-		headers: buildHeaders(init, get(authStore).accessToken),
+		headers: buildHeaders(init, get(authStore).accessToken)
 	});
 
 	if (res.status === 401) {
@@ -81,18 +81,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 		res = await fetch(BASE + path, {
 			...init,
-			headers: buildHeaders(init, get(authStore).accessToken),
+			headers: buildHeaders(init, get(authStore).accessToken)
 		});
 	}
 
 	if (!res.ok) {
-		let body: { code?: string; message?: string; details?: Array<{ field?: string; message?: string }> } = {};
+		let body: {
+			code?: string;
+			message?: string;
+			details?: Array<{ field?: string; message?: string }>;
+		} = {};
 		try {
 			body = await res.json();
 		} catch {
 			// ignore parse failure
 		}
-		throw new ApiError(res.status, body.code ?? 'error', body.message ?? res.statusText, body.details);
+		throw new ApiError(
+			res.status,
+			body.code ?? 'error',
+			body.message ?? res.statusText,
+			body.details
+		);
 	}
 
 	if (res.status === 204) return undefined as T;
@@ -103,7 +112,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export function uploadWithProgress<T>(
 	path: string,
 	formData: FormData,
-	onProgress: (pct: number) => void,
+	onProgress: (pct: number) => void
 ): Promise<T> {
 	return new Promise((resolve, reject) => {
 		const token = get(authStore).accessToken;
@@ -126,7 +135,9 @@ export function uploadWithProgress<T>(
 				let body: { code?: string; message?: string } = {};
 				try {
 					body = JSON.parse(xhr.responseText);
-				} catch { /* ignore */ }
+				} catch {
+					/* ignore */
+				}
 				reject(new ApiError(xhr.status, body.code ?? 'error', body.message ?? xhr.statusText));
 			}
 		};
@@ -146,5 +157,5 @@ export const api = {
 		request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
 	delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 	upload: <T>(path: string, formData: FormData) =>
-		request<T>(path, { method: 'POST', body: formData }),
+		request<T>(path, { method: 'POST', body: formData })
 };

@@ -142,7 +142,7 @@ func makeCursor(r fileRow, sort, order string) fileCursor {
 		}
 	case "mime":
 		val = r.MIMEType
-	// "created": val is empty; f.id is the sort key.
+		// "created": val is empty; f.id is the sort key.
 	}
 	return fileCursor{Sort: sort, Order: order, ID: r.ID.String(), Val: val}
 }
@@ -569,7 +569,7 @@ func (r *FileRepo) List(ctx context.Context, params domain.FileListParams) (*dom
 			cursorVal = av.OriginalName
 		case "mime":
 			cursorVal = av.MIMEType
-		// "created": cursorVal stays ""; cursorID is the sort key.
+			// "created": cursorVal stays ""; cursorID is the sort key.
 		}
 		hasCursor = true
 		isAnchor = true

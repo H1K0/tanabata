@@ -6,7 +6,7 @@
 
 	const tabs = [
 		{ href: '/admin/users', label: 'Users' },
-		{ href: '/admin/audit', label: 'Audit log' },
+		{ href: '/admin/audit', label: 'Audit log' }
 	];
 </script>
 
@@ -14,17 +14,21 @@
 	<nav class="admin-nav">
 		<button class="back-btn" onclick={() => goto('/files')} aria-label="Back to files">
 			<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+				<path
+					d="M10 3L5 8L10 13"
+					stroke="currentColor"
+					stroke-width="1.8"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
 			</svg>
 		</button>
 		<span class="admin-title">Admin</span>
 		<div class="tabs">
 			{#each tabs as tab}
-				<a
-					href={tab.href}
-					class="tab"
-					class:active={$page.url.pathname.startsWith(tab.href)}
-				>{tab.label}</a>
+				<a href={tab.href} class="tab" class:active={$page.url.pathname.startsWith(tab.href)}
+					>{tab.label}</a
+				>
 			{/each}
 		</div>
 	</nav>

@@ -42,7 +42,7 @@
 	let dirty = $state(false);
 
 	let exifEntries = $derived(
-		file?.exif ? Object.entries(file.exif as Record<string, unknown>) : [],
+		file?.exif ? Object.entries(file.exif as Record<string, unknown>) : []
 	);
 
 	// ---- Load (re-runs whenever the file changes, i.e. paging) ----
@@ -88,7 +88,7 @@
 		const token = get(authStore).accessToken;
 		try {
 			const res = await fetch(`/api/v1/files/${id}/preview`, {
-				headers: token ? { Authorization: `Bearer ${token}` } : {},
+				headers: token ? { Authorization: `Bearer ${token}` } : {}
 			});
 			if (res.ok && fileId === id) {
 				previewSrc = URL.createObjectURL(await res.blob());
@@ -129,13 +129,13 @@
 			(entries) => {
 				tagsVisible = entries[0]?.isIntersecting ?? false;
 			},
-			{ rootMargin: '200px' },
+			{ rootMargin: '200px' }
 		);
 		observer.observe(node);
 		return {
 			destroy() {
 				observer.disconnect();
-			},
+			}
 		};
 	}
 
@@ -158,10 +158,8 @@
 		try {
 			const updated = await api.patch<File>(`/files/${file.id}`, {
 				notes: notes.trim() || null,
-				content_datetime: contentDatetime
-					? new Date(contentDatetime).toISOString()
-					: undefined,
-				is_public: isPublic,
+				content_datetime: contentDatetime ? new Date(contentDatetime).toISOString() : undefined,
+				is_public: isPublic
 			});
 			file = updated;
 			dirty = false;
@@ -206,7 +204,13 @@
 	<div class="top-bar">
 		<button class="back-btn" onclick={onClose} aria-label="Back to files">
 			<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-				<path d="M12 4L6 10L12 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+				<path
+					d="M12 4L6 10L12 16"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
 			</svg>
 		</button>
 		<span class="filename">{file?.original_name ?? ''}</span>
@@ -230,7 +234,13 @@
 				aria-label="Previous file"
 			>
 				<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-					<path d="M11 3L5 9L11 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					<path
+						d="M11 3L5 9L11 15"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
 				</svg>
 			</button>
 		{/if}
@@ -241,7 +251,13 @@
 				aria-label="Next file"
 			>
 				<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-					<path d="M7 3L13 9L7 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+					<path
+						d="M7 3L13 9L7 15"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
 				</svg>
 			</button>
 		{/if}
@@ -290,7 +306,10 @@
 				<button
 					class="toggle"
 					class:on={isPublic}
-					onclick={() => { isPublic = !isPublic; dirty = true; }}
+					onclick={() => {
+						isPublic = !isPublic;
+						dirty = true;
+					}}
 					role="switch"
 					aria-checked={isPublic}
 					aria-label="Public"
@@ -299,11 +318,7 @@
 				</button>
 			</section>
 
-			<button
-				class="save-btn"
-				onclick={save}
-				disabled={!dirty || saving}
-			>
+			<button class="save-btn" onclick={save} disabled={!dirty || saving}>
 				{saving ? 'Saving…' : 'Save changes'}
 			</button>
 
@@ -409,12 +424,7 @@
 	}
 
 	.preview-placeholder.shimmer {
-		background: linear-gradient(
-			90deg,
-			#111 25%,
-			#222 50%,
-			#111 75%
-		);
+		background: linear-gradient(90deg, #111 25%, #222 50%, #111 75%);
 		background-size: 200% 100%;
 		animation: shimmer 1.4s infinite;
 	}
@@ -445,8 +455,12 @@
 		background-color: rgba(0, 0, 0, 0.8);
 	}
 
-	.nav-prev { left: 10px; }
-	.nav-next { right: 10px; }
+	.nav-prev {
+		left: 10px;
+	}
+	.nav-next {
+		right: 10px;
+	}
 
 	/* ---- Metadata panel ---- */
 	.meta-panel {
@@ -465,7 +479,9 @@
 		padding-bottom: 10px;
 	}
 
-	.sep { opacity: 0.4; }
+	.sep {
+		opacity: 0.4;
+	}
 
 	.section {
 		padding: 10px 0;
@@ -577,7 +593,9 @@
 		cursor: pointer;
 		margin-top: 4px;
 		margin-bottom: 4px;
-		transition: background-color 0.15s, opacity 0.15s;
+		transition:
+			background-color 0.15s,
+			opacity 0.15s;
 	}
 
 	.save-btn:hover:not(:disabled) {
@@ -632,7 +650,11 @@
 	}
 
 	@keyframes shimmer {
-		0% { background-position: 200% 0; }
-		100% { background-position: -200% 0; }
+		0% {
+			background-position: 200% 0;
+		}
+		100% {
+			background-position: -200% 0;
+		}
 	}
 </style>

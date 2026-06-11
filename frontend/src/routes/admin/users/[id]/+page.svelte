@@ -25,16 +25,20 @@
 		const id = userId;
 		loading = true;
 		error = '';
-		void api.get<User>(`/users/${id}`).then((u) => {
-			user = u;
-			isAdmin = u.is_admin ?? false;
-			canCreate = u.can_create ?? false;
-			isBlocked = u.is_blocked ?? false;
-		}).catch((e) => {
-			error = e instanceof ApiError ? e.message : 'Failed to load user';
-		}).finally(() => {
-			loading = false;
-		});
+		void api
+			.get<User>(`/users/${id}`)
+			.then((u) => {
+				user = u;
+				isAdmin = u.is_admin ?? false;
+				canCreate = u.can_create ?? false;
+				isBlocked = u.is_blocked ?? false;
+			})
+			.catch((e) => {
+				error = e instanceof ApiError ? e.message : 'Failed to load user';
+			})
+			.finally(() => {
+				loading = false;
+			});
 	});
 
 	async function save() {
@@ -46,7 +50,7 @@
 			const updated = await api.patch<User>(`/users/${user.id}`, {
 				is_admin: isAdmin,
 				can_create: canCreate,
-				is_blocked: isBlocked,
+				is_blocked: isBlocked
 			});
 			user = updated;
 			saveSuccess = true;
@@ -74,9 +78,7 @@
 <svelte:head><title>{user?.name ?? 'User'} — Admin | Tanabata</title></svelte:head>
 
 <div class="page">
-	<button class="back-link" onclick={() => goto('/admin/users')}>
-		← All users
-	</button>
+	<button class="back-link" onclick={() => goto('/admin/users')}> ← All users </button>
 
 	{#if error}
 		<p class="msg error" role="alert">{error}</p>
@@ -101,10 +103,12 @@
 						<p class="toggle-hint">Full access to all data and admin panel.</p>
 					</div>
 					<button
-						class="toggle" class:on={isAdmin}
-						role="switch" aria-checked={isAdmin}
-						onclick={() => (isAdmin = !isAdmin)}
-					><span class="thumb"></span></button>
+						class="toggle"
+						class:on={isAdmin}
+						role="switch"
+						aria-checked={isAdmin}
+						onclick={() => (isAdmin = !isAdmin)}><span class="thumb"></span></button
+					>
 				</div>
 
 				<div class="toggle-row">
@@ -113,10 +117,12 @@
 						<p class="toggle-hint">Can upload files and create tags, pools, categories.</p>
 					</div>
 					<button
-						class="toggle" class:on={canCreate}
-						role="switch" aria-checked={canCreate}
-						onclick={() => (canCreate = !canCreate)}
-					><span class="thumb"></span></button>
+						class="toggle"
+						class:on={canCreate}
+						role="switch"
+						aria-checked={canCreate}
+						onclick={() => (canCreate = !canCreate)}><span class="thumb"></span></button
+					>
 				</div>
 			</div>
 
@@ -129,10 +135,13 @@
 						<p class="toggle-hint">Blocked users cannot log in.</p>
 					</div>
 					<button
-						class="toggle" class:on={isBlocked} class:danger={isBlocked}
-						role="switch" aria-checked={isBlocked}
-						onclick={() => (isBlocked = !isBlocked)}
-					><span class="thumb"></span></button>
+						class="toggle"
+						class:on={isBlocked}
+						class:danger={isBlocked}
+						role="switch"
+						aria-checked={isBlocked}
+						onclick={() => (isBlocked = !isBlocked)}><span class="thumb"></span></button
+					>
 				</div>
 			</div>
 
@@ -140,7 +149,11 @@
 				<button class="btn primary" onclick={save} disabled={saving}>
 					{saving ? 'Saving…' : 'Save changes'}
 				</button>
-				<button class="btn danger-outline" onclick={() => (confirmDelete = true)} disabled={deleting}>
+				<button
+					class="btn danger-outline"
+					onclick={() => (confirmDelete = true)}
+					disabled={deleting}
+				>
 					{deleting ? 'Deleting…' : 'Delete user'}
 				</button>
 			</div>
@@ -179,7 +192,9 @@
 		font-family: inherit;
 	}
 
-	.back-link:hover { color: var(--color-accent); }
+	.back-link:hover {
+		color: var(--color-accent);
+	}
 
 	.card {
 		background-color: var(--color-bg-elevated);
@@ -257,8 +272,12 @@
 		transition: background-color 0.15s;
 	}
 
-	.toggle.on { background-color: var(--color-accent); }
-	.toggle.on.danger { background-color: var(--color-danger); }
+	.toggle.on {
+		background-color: var(--color-accent);
+	}
+	.toggle.on.danger {
+		background-color: var(--color-danger);
+	}
 
 	.toggle .thumb {
 		position: absolute;
@@ -271,7 +290,9 @@
 		transition: transform 0.15s;
 	}
 
-	.toggle.on .thumb { transform: translateX(18px); }
+	.toggle.on .thumb {
+		transform: translateX(18px);
+	}
 
 	.action-row {
 		display: flex;
@@ -290,7 +311,10 @@
 		border: none;
 	}
 
-	.btn:disabled { opacity: 0.5; cursor: default; }
+	.btn:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
 
 	.btn.primary {
 		background-color: var(--color-accent);
@@ -316,8 +340,12 @@
 		margin: 0;
 	}
 
-	.msg.error { color: var(--color-danger); }
-	.msg.success { color: #7ECBA1; }
+	.msg.error {
+		color: var(--color-danger);
+	}
+	.msg.success {
+		color: #7ecba1;
+	}
 
 	.loading {
 		display: flex;
@@ -335,5 +363,9 @@
 		animation: spin 0.7s linear infinite;
 	}
 
-	@keyframes spin { to { transform: rotate(360deg); } }
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 </style>
