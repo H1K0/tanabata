@@ -955,6 +955,34 @@ func TestImportFromFolder(t *testing.T) {
 	assert.True(t, ct.Equal(mtime), "content_datetime %v should equal mtime %v", ct, mtime)
 }
 
+// TestContentRangeRequests verifies the original-content endpoint answers a
+// byte-range request with 206 Partial Content (so the browser can seek within
+// audio/video) rather than streaming the whole body.
+func TestContentRangeRequests(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	h := setupSuite(t)
+	token := h.login("admin", "admin")
+	file := h.uploadJPEG(token, "clip.jpg")
+	id := file["id"].(string)
+
+	req, err := http.NewRequest("GET", h.url("/files/"+id+"/content?inline=1"), nil)
+	require.NoError(t, err)
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Range", "bytes=0-9")
+	resp, err := h.client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+
+	assert.Equal(t, http.StatusPartialContent, resp.StatusCode)
+	assert.Equal(t, "bytes", resp.Header.Get("Accept-Ranges"))
+	assert.Regexp(t, `^bytes 0-9/\d+$`, resp.Header.Get("Content-Range"))
+	require.Len(t, body, 10)
+	assert.Equal(t, minimalJPEG()[:10], body)
+}
+
 // TestBlockRevokesActiveSessions verifies that blocking a user immediately
 // invalidates their outstanding access tokens.
 func TestBlockRevokesActiveSessions(t *testing.T) {

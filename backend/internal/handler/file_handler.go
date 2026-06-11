@@ -407,9 +407,20 @@ func (h *FileHandler) GetContent(c *gin.Context) {
 	if c.Query("inline") == "1" {
 		disposition = "inline"
 	}
+	name := ""
 	if res.OriginalName != nil {
+		name = *res.OriginalName
 		c.Header("Content-Disposition",
-			fmt.Sprintf("%s; filename=%q", disposition, *res.OriginalName))
+			fmt.Sprintf("%s; filename=%q", disposition, name))
+	}
+
+	// Serve with byte-range support when the body is seekable (it is for the
+	// disk store): http.ServeContent advertises Accept-Ranges and answers Range
+	// requests with 206 Partial Content, which is what lets the browser scrub and
+	// seek within audio/video. Fall back to a plain stream otherwise.
+	if seeker, ok := res.Body.(io.ReadSeeker); ok {
+		http.ServeContent(c.Writer, c.Request, name, time.Time{}, seeker)
+		return
 	}
 	c.Status(http.StatusOK)
 	io.Copy(c.Writer, res.Body) //nolint:errcheck
