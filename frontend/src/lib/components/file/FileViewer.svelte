@@ -4,6 +4,7 @@
 	import { api, ApiError } from '$lib/api/client';
 	import { authStore } from '$lib/stores/auth';
 	import TagPicker from '$lib/components/file/TagPicker.svelte';
+	import PoolPicker from '$lib/components/file/PoolPicker.svelte';
 	import type { File, Tag } from '$lib/api/types';
 
 	interface Props {
@@ -26,6 +27,7 @@
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state('');
+	let poolPickerOpen = $state(false);
 
 	// Tags are loaded lazily — the Tags section sits below a full-viewport
 	// preview, so fetching them on open just hammers the DB for data the user
@@ -196,6 +198,17 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		// While the pool picker is open it owns the keyboard: Escape closes it
+		// (even from its search field), and every other key is swallowed so the
+		// viewer's shortcuts don't fire behind the modal. Typing still works —
+		// non-Escape keys aren't prevented, only ignored here.
+		if (poolPickerOpen) {
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				poolPickerOpen = false;
+			}
+			return;
+		}
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 		if (e.ctrlKey || e.metaKey || e.altKey) return;
 		// Letter keys are matched by physical position (e.code) so j/k/e work on any
@@ -265,6 +278,32 @@
 			</svg>
 		</button>
 		<span class="filename">{file?.original_name ?? ''}</span>
+		{#if file}
+			<button
+				class="pool-btn"
+				onclick={() => (poolPickerOpen = true)}
+				aria-label="Add to pool"
+				title="Add to pool"
+			>
+				<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+					<rect
+						x="3"
+						y="5"
+						width="14"
+						height="11"
+						rx="2"
+						stroke="currentColor"
+						stroke-width="1.6"
+					/>
+					<path
+						d="M10 8.5v4M8 10.5h4"
+						stroke="currentColor"
+						stroke-width="1.6"
+						stroke-linecap="round"
+					/>
+				</svg>
+			</button>
+		{/if}
 	</div>
 
 	<!-- Preview -->
@@ -409,6 +448,10 @@
 	</div>
 </div>
 
+{#if poolPickerOpen && file}
+	<PoolPicker fileIds={[file.id!]} onClose={() => (poolPickerOpen = false)} />
+{/if}
+
 <style>
 	.viewer-page {
 		display: flex;
@@ -455,6 +498,25 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.pool-btn {
+		margin-left: auto;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border-radius: 8px;
+		border: none;
+		background: none;
+		color: var(--color-text-primary);
+		cursor: pointer;
+		flex-shrink: 0;
+	}
+
+	.pool-btn:hover {
+		background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
 	}
 
 	/* ---- Preview ---- */
