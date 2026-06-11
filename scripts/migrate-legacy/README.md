@@ -56,7 +56,7 @@ psql "$NEW_DSN" -v ON_ERROR_STOP=1 -f transform.sql
 | `mime`                | `core.mime_types`       | id **uuid → smallint** (remapped by `name`); types not already seeded are added |
 | `categories`          | `data.categories`       | id kept; `is_private` → **`is_public`** (inverted) |
 | `tags`                | `data.tags`             | id + `category_id` kept; inverted privacy |
-| `autotags`            | `data.tag_rules`        | `parent_id` → `when_tag_id`, `child_id` → `then_tag_id` |
+| `autotags`            | `data.tag_rules`        | `child_id` → `when_tag_id`, `parent_id` → `then_tag_id` (old: adding the child pulled in the parent) |
 | `files`               | `data.files`            | id kept; `datetime` → `content_datetime`; `orig_name` → `original_name`; **EXIF** lifted from `metadata->'exif'` into the `exif` column, the rest stays as user `metadata` |
 | `file_tag`            | `data.file_tag`         | orphan rows skipped |
 | `pools`               | `data.pools`            | id kept; `parent_id` + `created` preserved under `metadata` (see below) |

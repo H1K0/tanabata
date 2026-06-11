@@ -92,14 +92,17 @@ JOIN user_id_map um ON um.old_id = t.creator_id
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- 5. Tag rules (old `autotags`): parent -> when_tag, child -> then_tag.
+-- 5. Tag rules (old `autotags`).  In the old schema adding the child tag pulled
+--    in its parent (tfm__add_file_to_tag_recursive: for child_id = t_id it adds
+--    parent_id). The new model is "when_tag applied -> then_tag follows", so the
+--    trigger child becomes when_tag and the auto-applied parent becomes then_tag.
 --    Skip rules whose tags didn't migrate.
 -- ---------------------------------------------------------------------------
 INSERT INTO data.tag_rules (when_tag_id, then_tag_id, is_active)
-SELECT a.parent_id, a.child_id, a.is_active
+SELECT a.child_id, a.parent_id, a.is_active
 FROM legacy.autotags a
-WHERE EXISTS (SELECT 1 FROM data.tags t WHERE t.id = a.parent_id)
-  AND EXISTS (SELECT 1 FROM data.tags t WHERE t.id = a.child_id)
+WHERE EXISTS (SELECT 1 FROM data.tags t WHERE t.id = a.child_id)
+  AND EXISTS (SELECT 1 FROM data.tags t WHERE t.id = a.parent_id)
 ON CONFLICT (when_tag_id, then_tag_id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
