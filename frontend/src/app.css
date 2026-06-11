@@ -19,15 +19,18 @@
 }
 
 :root[data-theme="light"] {
-  --color-bg-primary: #f5f5f5;
-  --color-bg-secondary: #ffffff;
-  --color-bg-elevated: #e8e8ec;
+  /* Muted, faintly lavender-tinted surfaces — not a glaring near-white, the same
+     way the dark theme's background isn't pure black. Page sits on the dimmest
+     surface; sheets are brighter to pop, chips a touch darker for definition. */
+  --color-bg-primary: #e4e2ec;
+  --color-bg-secondary: #f2f1f6;
+  --color-bg-elevated: #d8d6e2;
   --color-accent: #6B68A0;
   --color-accent-hover: #5A578F;
   --color-text-primary: #111118;
   --color-text-muted: #555566;
-  --color-tag-default: #ccccdd;
-  --color-nav-bg: rgba(240, 240, 245, 0.85);
+  --color-tag-default: #cbcad9;
+  --color-nav-bg: rgba(228, 226, 236, 0.85);
   --color-nav-active: rgba(90, 87, 143, 0.22);
 }
 
