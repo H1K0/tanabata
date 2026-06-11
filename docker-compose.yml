@@ -23,6 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: tfm
     restart: unless-stopped
 
     # All application config (secrets, DATABASE_URL, tunables) comes from .env.
