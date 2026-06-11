@@ -39,16 +39,139 @@
 	// ---- Bulk tag editor ----
 	let tagEditorOpen = $state(false);
 
-	// Escape dismisses one layer at a time: an open overlay (tag editor / pool
-	// picker / delete confirm) first, then the selection. The file viewer owns
-	// its own Escape, so we bail out while it's up.
-	function handleEscape(e: KeyboardEvent) {
-		if (e.key !== 'Escape') return;
-		if (tagEditorOpen) tagEditorOpen = false;
-		else if (poolPickerOpen) poolPickerOpen = false;
-		else if (confirmDeleteFiles) confirmDeleteFiles = false;
-		else if (activeFileId) return;
-		else if ($selectionActive) selectionStore.exit();
+	// ---- Keyboard roving focus ----
+	// The id of the grid's keyboard-focused file, plus a flag that gates the focus
+	// ring so it only shows once the user actually starts navigating by keyboard.
+	let focusedId = $state<string | null>(null);
+	let kbActive = $state(false);
+
+	function isFormTarget(t: EventTarget | null): boolean {
+		return (
+			t instanceof HTMLElement &&
+			(t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'].includes(t.tagName))
+		);
+	}
+
+	function gridCols(): number {
+		const w = scrollContainer?.clientWidth ?? 0;
+		return Math.max(1, Math.floor((w || 360) / CARD_PITCH));
+	}
+
+	function focusedFile(): File | undefined {
+		return focusedId ? files.find((f) => f.id === focusedId) : undefined;
+	}
+
+	// Move the roving focus by `delta` positions, clamped to the loaded grid, and
+	// scroll the new card into view. Pulls the next page when nearing the end.
+	function moveFocus(delta: number) {
+		if (files.length === 0) return;
+		kbActive = true;
+		const cur = focusedId ? files.findIndex((f) => f.id === focusedId) : -1;
+		const next = Math.max(0, Math.min(files.length - 1, cur < 0 ? 0 : cur + delta));
+		focusedId = files[next]?.id ?? null;
+		if (next >= files.length - gridCols() * 2 && hasMore && !loading) void loadMore();
+		const id = focusedId;
+		requestAnimationFrame(() => {
+			const idx = files.findIndex((f) => f.id === id);
+			scrollContainer
+				?.querySelector<HTMLElement>(`[data-file-index="${idx}"]`)
+				?.scrollIntoView({ block: 'nearest' });
+		});
+	}
+
+	// Action keys operate on the selection; with nothing selected they fall back to
+	// the focused card (selecting it first so the bulk sheets have a target).
+	function ensureSelectedFocused() {
+		const f = focusedFile();
+		if (f?.id && !$selectionStore.ids.has(f.id)) selectionStore.select(f.id);
+	}
+
+	function openTagEditor() {
+		tagEditorOpen = true;
+		void tick().then(() => document.querySelector<HTMLInputElement>('.tag-sheet input')?.focus());
+	}
+
+	function openFilterAndFocus() {
+		filterOpen = true;
+		void tick().then(() => document.querySelector<HTMLInputElement>('.bar .search')?.focus());
+	}
+
+	// Single window handler for the grid: Escape peels one layer at a time (overlay
+	// → selection; the viewer owns its own Escape), and the rest drives roving
+	// focus + bulk actions while the bare list is in front.
+	function handleKey(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			if (tagEditorOpen) tagEditorOpen = false;
+			else if (poolPickerOpen) poolPickerOpen = false;
+			else if (confirmDeleteFiles) confirmDeleteFiles = false;
+			else if (activeFileId) return;
+			else if ($selectionActive) selectionStore.exit();
+			return;
+		}
+
+		if (activeFileId || tagEditorOpen || poolPickerOpen || confirmDeleteFiles) return;
+		if (isFormTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+
+		switch (e.key) {
+			case 'ArrowRight':
+				e.preventDefault();
+				moveFocus(1);
+				break;
+			case 'ArrowLeft':
+				e.preventDefault();
+				moveFocus(-1);
+				break;
+			case 'ArrowDown':
+				e.preventDefault();
+				moveFocus(gridCols());
+				break;
+			case 'ArrowUp':
+				e.preventDefault();
+				moveFocus(-gridCols());
+				break;
+			case 'Enter': {
+				const f = focusedFile();
+				if (f) {
+					e.preventDefault();
+					openFile(f);
+				}
+				break;
+			}
+			case ' ':
+			case 'x': {
+				const f = focusedFile();
+				if (f?.id) {
+					e.preventDefault();
+					selectionStore.toggle(f.id);
+				}
+				break;
+			}
+			case 'e':
+				if ($selectionActive || focusedFile()) {
+					e.preventDefault();
+					ensureSelectedFocused();
+					openTagEditor();
+				}
+				break;
+			case 'p':
+				if ($selectionActive || focusedFile()) {
+					e.preventDefault();
+					ensureSelectedFocused();
+					void openPoolPicker();
+				}
+				break;
+			case 'Delete':
+				if ($selectionActive || focusedFile()) {
+					e.preventDefault();
+					ensureSelectedFocused();
+					confirmDeleteFiles = true;
+				}
+				break;
+			case '/':
+				e.preventDefault();
+				openFilterAndFocus();
+				break;
+		}
 	}
 
 	// ---- Add to pool picker ----
@@ -635,7 +758,7 @@
 	});
 </script>
 
-<svelte:window onkeydown={handleEscape} />
+<svelte:window onkeydown={handleKey} />
 
 <svelte:head>
 	<title>Files | Tanabata</title>
@@ -668,13 +791,15 @@
 				<InfiniteScroll {loading} hasMore={hasPrev} onLoadMore={loadPrev} edge="top" />
 			{/if}
 
-			<div class="grid">
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="grid" onpointerdowncapture={() => (kbActive = false)}>
 				{#each files as file, i (file.id)}
 					<FileCard
 						{file}
 						index={i}
 						selected={$selectionStore.ids.has(file.id ?? '')}
 						selectionMode={$selectionActive}
+						focused={kbActive && file.id === focusedId}
 						onTap={(e) => handleTap(file, i, e)}
 						onLongPress={(pt) => handleLongPress(file, i, pt)}
 					/>
@@ -706,7 +831,7 @@
 
 {#if $selectionActive}
 	<SelectionBar
-		onEditTags={() => (tagEditorOpen = true)}
+		onEditTags={openTagEditor}
 		onAddToPool={openPoolPicker}
 		onDelete={() => (confirmDeleteFiles = true)}
 	/>

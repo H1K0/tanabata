@@ -11,6 +11,8 @@
 		index: number;
 		selected?: boolean;
 		selectionMode?: boolean;
+		/** Roving keyboard-focus ring (shown only during keyboard navigation). */
+		focused?: boolean;
 		onTap?: (e: MouseEvent) => void;
 		/** Called when long-press fires; receives the pointerType of the gesture. */
 		onLongPress?: (pointerType: string) => void;
@@ -21,6 +23,7 @@
 		index,
 		selected = false,
 		selectionMode = false,
+		focused = false,
 		onTap,
 		onLongPress
 	}: Props = $props();
@@ -108,6 +111,7 @@
 	class="card"
 	class:loaded={!!imgSrc}
 	class:selected
+	class:focused
 	data-file-index={index}
 	onpointerdown={onPointerDown}
 	onpointermove={onPointerMoveInternal}
@@ -213,6 +217,12 @@
 
 	.card.selected .overlay {
 		background-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+	}
+
+	.card.focused {
+		outline: 3px solid var(--color-accent);
+		outline-offset: -3px;
+		z-index: 1;
 	}
 
 	.check {
