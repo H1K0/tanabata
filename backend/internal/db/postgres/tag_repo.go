@@ -155,6 +155,13 @@ func (r *TagRepo) listTags(ctx context.Context, params port.OffsetParams, catego
 	}
 	sortCol := tagSortColumn(params.Sort)
 
+	// When sorting by category, break ties within a category by the tag's own
+	// name (same direction), so tags are grouped by category then alphabetical.
+	secondarySort := ""
+	if params.Sort == "category_name" {
+		secondarySort = fmt.Sprintf("t.name %s, ", order)
+	}
+
 	args := []any{}
 	n := 1
 	var conditions []string
@@ -204,8 +211,8 @@ FROM data.tags t
 LEFT JOIN data.categories c ON c.id = t.category_id
 JOIN      core.users u ON u.id = t.creator_id
 %s
-ORDER BY %s %s NULLS LAST, t.id ASC
-LIMIT $%d OFFSET $%d`, where, sortCol, order, n, n+1)
+ORDER BY %s %s NULLS LAST, %st.id ASC
+LIMIT $%d OFFSET $%d`, where, sortCol, order, secondarySort, n, n+1)
 
 	args = append(args, limit, offset)
 

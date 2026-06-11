@@ -807,6 +807,56 @@ func TestRecordTagUses(t *testing.T) {
 	assert.Equal(t, 2, h.countTagUses(ctx), "pagination should not add tag_uses rows")
 }
 
+// TestTagSortByCategoryThenName verifies the category_name sort groups tags by
+// category and orders them by their own name within each category, with
+// uncategorized tags last (NULLS LAST).
+func TestTagSortByCategoryThenName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	mkCategory := func(name string) string {
+		resp := h.doJSON("POST", "/categories", map[string]any{"name": name}, adminToken)
+		require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+		var c map[string]any
+		resp.decode(t, &c)
+		return c["id"].(string)
+	}
+	mkTag := func(name string, categoryID *string) {
+		body := map[string]any{"name": name}
+		if categoryID != nil {
+			body["category_id"] = *categoryID
+		}
+		resp := h.doJSON("POST", "/tags", body, adminToken)
+		require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	}
+
+	alpha := mkCategory("Alpha")
+	bravo := mkCategory("Bravo")
+
+	// Insert out of order to prove the sort, not insertion order, decides output.
+	mkTag("zebra", &alpha)
+	mkTag("mid", &bravo)
+	mkTag("solo", nil) // uncategorized
+	mkTag("ant", &alpha)
+
+	resp := h.doJSON("GET", "/tags?sort=category_name&order=asc", nil, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	var page map[string]any
+	resp.decode(t, &page)
+
+	items := page["items"].([]any)
+	names := make([]string, len(items))
+	for i, it := range items {
+		names[i] = it.(map[string]any)["name"].(string)
+	}
+	// Alpha (ant, zebra) → Bravo (mid) → uncategorized (solo) last.
+	assert.Equal(t, []string{"ant", "zebra", "mid", "solo"}, names)
+}
+
 // TestBulkTagAutoRule verifies the bulk add path also applies then_tags.
 func TestBulkTagAutoRule(t *testing.T) {
 	if testing.Short() {
