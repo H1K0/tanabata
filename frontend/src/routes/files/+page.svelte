@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { afterNavigate, goto, pushState, replaceState } from '$app/navigation';
+	import { afterNavigate, beforeNavigate, goto, pushState, replaceState } from '$app/navigation';
+	import { saveSection, takeSection } from '$lib/stores/sectionCache';
 	import { api } from '$lib/api/client';
 	import { ApiError } from '$lib/api/client';
 	import FileCard from '$lib/components/file/FileCard.svelte';
@@ -18,6 +19,17 @@
 	import { parseDslFilter } from '$lib/utils/dsl';
 	import type { File, FileCursorPage, Pool, PoolOffsetPage } from '$lib/api/types';
 	import { appSettings } from '$lib/stores/appSettings';
+
+	// What the section cache stores for the Files grid. `resetKey` guards against
+	// restoring under a different sort/filter than was captured.
+	interface FilesSnapshot {
+		resetKey: string;
+		files: File[];
+		nextCursor: string | null;
+		hasMore: boolean;
+		prevCursor: string | null;
+		hasPrev: boolean;
+	}
 
 	let scrollContainer = $state<HTMLElement | undefined>();
 
@@ -113,6 +125,11 @@
 	let resetKey = $derived(`${sortState.sort}|${sortState.order}|${filterParam ?? ''}`);
 	let prevKey = $state('');
 
+	// Scroll offset to reapply once the restored grid has painted (set when a
+	// cached snapshot is rehydrated; consumed in afterNavigate so it wins over
+	// SvelteKit's own scroll-to-top).
+	let pendingScroll: number | null = null;
+
 	// Reset + reload when the query (sort/order/filter) changes or on first mount.
 	// The viewer opens as an overlay now (the list is never unmounted), so there's
 	// no snapshot to restore — except a deep-link return carrying an anchor.
@@ -121,6 +138,26 @@
 		if (key === prevKey) return;
 		const firstRun = prevKey === '';
 		prevKey = key;
+
+		// Returning to this section: rehydrate the loaded grid + cursors + scroll
+		// from the section cache instead of refetching, as long as the snapshot was
+		// taken under the same sort/filter. Skip when arriving on an anchor, which
+		// has its own (deep-link) restore path below.
+		if (firstRun && !anchorParam) {
+			const snap = takeSection<FilesSnapshot>('files');
+			if (snap && snap.data.resetKey === key && snap.data.files.length > 0) {
+				files = snap.data.files;
+				nextCursor = snap.data.nextCursor;
+				hasMore = snap.data.hasMore;
+				prevCursor = snap.data.prevCursor;
+				hasPrev = snap.data.hasPrev;
+				// Hold the load guards shut until the scroll is reapplied, so the
+				// InfiniteScroll sentinels can't fire a stray page load at the top.
+				loading = true;
+				pendingScroll = snap.scrollTop;
+				return;
+			}
+		}
 
 		files = [];
 		nextCursor = null;
@@ -149,8 +186,51 @@
 		if (anchor) {
 			scrollToFile(anchor);
 			consumeAnchor();
+			return;
+		}
+		// Reapply a cached scroll position after a section-cache rehydrate.
+		if (pendingScroll != null) {
+			restoreScrollTop(pendingScroll);
+			pendingScroll = null;
 		}
 	});
+
+	// Snapshot the loaded grid, cursors and scroll position on the way out, so
+	// returning to this section restores them instead of refetching. Skipped for
+	// the shallow-routed viewer (pushState doesn't trigger a navigation) — only
+	// real departures to another route reach here.
+	beforeNavigate((nav) => {
+		// Staying on the list (a sort/filter query change via goto) isn't a
+		// departure — nothing to snapshot.
+		if (nav.to?.url.pathname === '/files') return;
+		if (files.length === 0) return;
+		const scroller = getScroller();
+		saveSection<FilesSnapshot>('files', scroller.scrollTop, {
+			resetKey,
+			files,
+			nextCursor,
+			hasMore,
+			prevCursor,
+			hasPrev
+		});
+	});
+
+	// Reapply a restored scroll offset, retrying across frames because the grid
+	// may not be laid out yet right after rehydrate. Releases the load guard once
+	// applied so InfiniteScroll can resume.
+	function restoreScrollTop(top: number) {
+		let tries = 10;
+		const apply = () => {
+			const scroller = getScroller();
+			if (scroller.scrollHeight > top + scroller.clientHeight || tries-- <= 0) {
+				scroller.scrollTop = top;
+				loading = false;
+				return;
+			}
+			requestAnimationFrame(apply);
+		};
+		requestAnimationFrame(apply);
+	}
 
 	// Scroll the grid so the given file is centred. Uses scrollIntoView (works
 	// whether the actual scroller is <main> or the window) and retries across
