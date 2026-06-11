@@ -1,8 +1,9 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { afterNavigate } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { themeStore, toggleTheme } from '$lib/stores/theme';
+	import KeyboardHelp from '$lib/components/layout/KeyboardHelp.svelte';
 
 	let { children } = $props();
 
@@ -51,9 +52,83 @@
 		const item = navItems.find((it) => it.match === url.pathname);
 		if (item) lastUrl[item.match] = url.pathname + url.search;
 	});
+
+	// ---- Global keyboard navigation -----------------------------------------
+	let helpOpen = $state(false);
+
+	// g-then-letter and 1–5 jump between sections; both honour the remembered
+	// per-section URL so you land back on the same filter/scroll.
+	const G_MAP: Record<string, string> = {
+		c: '/categories',
+		t: '/tags',
+		f: '/files',
+		p: '/pools',
+		s: '/settings'
+	};
+	const NUM_MAP = navItems.map((it) => it.match); // 1→categories … 5→settings
+
+	let pendingG = false;
+	let gTimer: ReturnType<typeof setTimeout> | undefined;
+
+	function go(match: string) {
+		goto(lastUrl[match] ?? match);
+	}
+
+	function isEditable(t: EventTarget | null): boolean {
+		return (
+			t instanceof HTMLElement &&
+			(t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))
+		);
+	}
+
+	function onGlobalKey(e: KeyboardEvent) {
+		if (helpOpen && e.key === 'Escape') {
+			helpOpen = false;
+			return;
+		}
+		// Stay out of the way while typing or when a browser/OS combo is held.
+		if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+		if (isLogin) return;
+
+		if (e.key === '?') {
+			helpOpen = !helpOpen;
+			e.preventDefault();
+			return;
+		}
+
+		if (pendingG) {
+			pendingG = false;
+			clearTimeout(gTimer);
+			const dest = G_MAP[e.key.toLowerCase()];
+			if (dest) {
+				e.preventDefault();
+				go(dest);
+			}
+			return;
+		}
+		if (e.key === 'g') {
+			pendingG = true;
+			clearTimeout(gTimer);
+			gTimer = setTimeout(() => (pendingG = false), 1000);
+			return;
+		}
+		if (e.key >= '1' && e.key <= '5') {
+			const dest = NUM_MAP[Number(e.key) - 1];
+			if (dest) {
+				e.preventDefault();
+				go(dest);
+			}
+		}
+	}
 </script>
 
+<svelte:window onkeydown={onGlobalKey} />
+
 {@render children()}
+
+{#if helpOpen}
+	<KeyboardHelp onClose={() => (helpOpen = false)} />
+{/if}
 
 {#if !isLogin && !isAdmin}
 	<footer>
