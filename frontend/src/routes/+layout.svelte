@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/stores';
+	import { afterNavigate } from '$app/navigation';
 	import { themeStore, toggleTheme } from '$lib/stores/theme';
 
 	let { children } = $props();
@@ -35,6 +36,21 @@
 
 	const isLogin = $derived($page.url.pathname === '/login');
 	const isAdmin = $derived($page.url.pathname.startsWith('/admin'));
+
+	// Remember the last list URL (with its query — filter/sort) per section, so
+	// tapping a nav item returns you to where you left off rather than the bare
+	// root. The root layout never unmounts, so this map persists across the whole
+	// session. Only the section's list root is recorded (e.g. /files, not
+	// /files/<id> or /files/trash) — the tab should reopen the list, not a
+	// sub-screen or the viewer.
+	let lastUrl = $state<Record<string, string>>({});
+
+	afterNavigate((nav) => {
+		const url = nav.to?.url;
+		if (!url) return;
+		const item = navItems.find((it) => it.match === url.pathname);
+		if (item) lastUrl[item.match] = url.pathname + url.search;
+	});
 </script>
 
 {@render children()}
@@ -43,7 +59,12 @@
 	<footer>
 		{#each navItems as item}
 			{@const active = $page.url.pathname.startsWith(item.match)}
-			<a href={item.href} class="nav" class:curr={active} aria-label={item.label}>
+			<a
+				href={lastUrl[item.match] ?? item.href}
+				class="nav"
+				class:curr={active}
+				aria-label={item.label}
+			>
 				{#if item.label === 'Categories'}
 					<svg
 						width="24"
