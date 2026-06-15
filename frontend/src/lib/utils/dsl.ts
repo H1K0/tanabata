@@ -3,8 +3,8 @@
  *
  * Token format (comma-separated inside braces):
  *   t=<uuid>        — has tag
- *   m=<mime>        — exact MIME
- *   m~<pattern>     — MIME LIKE pattern
+ *   m=<id>          — exact MIME by numeric mime_id
+ *   m~<pattern>     — MIME type-name LIKE pattern (e.g. image/%, image/png)
  *   r=1 / r=0       — needs review / review done
  *   (  )  &  |  !  — grouping / boolean operators
  *
@@ -34,6 +34,10 @@ export function tokenLabel(token: string, tagNames: Map<string, string>): string
 	if (token === ')') return ')';
 	if (token === 'r=1') return 'Needs review';
 	if (token === 'r=0') return 'Reviewed';
+	if (token === 'm~image/%') return 'Images';
+	if (token === 'm~video/%') return 'Video';
+	if (token.startsWith('m~')) return token.slice(2);
+	if (token.startsWith('m=')) return `mime #${token.slice(2)}`;
 	if (token.startsWith('t=')) {
 		const id = token.slice(2);
 		return tagNames.get(id) ?? token;

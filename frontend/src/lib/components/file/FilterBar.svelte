@@ -39,6 +39,18 @@
 		tokens = [...tokens, t];
 	}
 
+	// Free-text MIME filter. Matches against the type name (mt.name) via LIKE, so
+	// "image/png" is an exact-ish match and "image/%" / "%mp4" act as patterns.
+	// (m=<id> targets the numeric mime_id, which the UI doesn't expose.)
+	let mimeInput = $state('');
+
+	function addMime() {
+		const v = mimeInput.trim();
+		if (!v) return;
+		addToken(`m~${v}`);
+		mimeInput = '';
+	}
+
 	function removeToken(i: number) {
 		tokens = tokens.filter((_, idx) => idx !== i);
 	}
@@ -197,6 +209,28 @@
 		{/each}
 	</div>
 
+	<!-- MIME / media type — appends an m~ token like a tag/operator -->
+	<div class="mime">
+		<button class="token mime-token" onclick={() => addToken('m~image/%')}>Images</button>
+		<button class="token mime-token" onclick={() => addToken('m~video/%')}>Video</button>
+		<input
+			class="mime-input"
+			type="text"
+			placeholder="MIME, e.g. image/png"
+			bind:value={mimeInput}
+			onkeydown={(e) => {
+				if (e.key === 'Enter') {
+					e.preventDefault();
+					addMime();
+				}
+			}}
+			autocomplete="off"
+		/>
+		<button class="token op-token mime-add" onclick={addMime} disabled={!mimeInput.trim()}>
+			+ MIME
+		</button>
+	</div>
+
 	<!-- Review status (mutually-exclusive r=1 / r=0) -->
 	<div class="review-seg" role="group" aria-label="Review status">
 		<button class="seg" class:on={reviewToken === null} onclick={() => setReview(null)}>Any</button>
@@ -279,6 +313,47 @@
 	.ops {
 		display: flex;
 		gap: 4px;
+	}
+
+	.mime {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		align-items: center;
+	}
+
+	.mime-token {
+		background-color: color-mix(in srgb, var(--color-accent) 18%, var(--color-bg-elevated));
+		color: var(--color-text-primary);
+		font-weight: 600;
+	}
+
+	.mime-token:hover {
+		background-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-bg-elevated));
+	}
+
+	.mime-input {
+		flex: 1;
+		min-width: 120px;
+		box-sizing: border-box;
+		height: 26px;
+		padding: 0 8px;
+		border-radius: 5px;
+		border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+		background-color: var(--color-bg-primary);
+		color: var(--color-text-primary);
+		font-size: 0.8rem;
+		font-family: inherit;
+		outline: none;
+	}
+
+	.mime-input:focus {
+		border-color: var(--color-accent);
+	}
+
+	.mime-add:disabled {
+		opacity: 0.4;
+		cursor: default;
 	}
 
 	.review-seg {
