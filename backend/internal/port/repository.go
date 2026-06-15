@@ -101,6 +101,10 @@ type TagRuleRepo interface {
 	// are both true, the full transitive expansion of thenTagID is retroactively
 	// applied to all files that already carry whenTagID.
 	SetActive(ctx context.Context, whenTagID, thenTagID uuid.UUID, active, applyToExisting bool) error
+	// ApplyToExisting retroactively applies the full transitive expansion of
+	// thenTagID (following active rules) to every file that already carries
+	// whenTagID. Used when a rule is created or activated with apply_to_existing.
+	ApplyToExisting(ctx context.Context, whenTagID, thenTagID uuid.UUID) error
 	Delete(ctx context.Context, whenTagID, thenTagID uuid.UUID) error
 }
 

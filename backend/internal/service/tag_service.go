@@ -192,16 +192,32 @@ func (s *TagService) ListRules(ctx context.Context, tagID uuid.UUID) ([]domain.T
 	return s.rules.ListByTag(ctx, tagID)
 }
 
-// CreateRule adds a tag rule. If applyToExisting is true, the then_tag is
-// retroactively applied to all files that already carry the when_tag.
-// Retroactive application requires a FileRepo; it is deferred until wired
-// in a future iteration (see port.FileRepo.ListByTag).
-func (s *TagService) CreateRule(ctx context.Context, whenTagID, thenTagID uuid.UUID, isActive, _ bool) (*domain.TagRule, error) {
-	return s.rules.Create(ctx, domain.TagRule{
-		WhenTagID: whenTagID,
-		ThenTagID: thenTagID,
-		IsActive:  isActive,
+// CreateRule adds a tag rule. When the rule is active and applyToExisting is
+// true, the full transitive expansion of thenTagID is retroactively applied to
+// every file already carrying whenTagID — same semantics as activating an
+// existing rule via SetRuleActive. The insert and retroactive apply run in one
+// transaction so a file is never left half-tagged.
+func (s *TagService) CreateRule(ctx context.Context, whenTagID, thenTagID uuid.UUID, isActive, applyToExisting bool) (*domain.TagRule, error) {
+	var created *domain.TagRule
+	err := s.tx.WithTx(ctx, func(ctx context.Context) error {
+		rule, err := s.rules.Create(ctx, domain.TagRule{
+			WhenTagID: whenTagID,
+			ThenTagID: thenTagID,
+			IsActive:  isActive,
+		})
+		if err != nil {
+			return err
+		}
+		created = rule
+		if isActive && applyToExisting {
+			return s.rules.ApplyToExisting(ctx, whenTagID, thenTagID)
+		}
+		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return created, nil
 }
 
 // SetRuleActive toggles a rule's is_active flag and returns the updated rule.

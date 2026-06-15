@@ -674,6 +674,94 @@ func TestTagRuleActivateApplyToExisting(t *testing.T) {
 	assert.ElementsMatch(t, []string{"animal", "living-thing", "organism"}, tagNames())
 }
 
+// TestTagRuleCreateApplyToExisting verifies that *creating* a rule with
+// apply_to_existing=true retroactively tags existing files — the same contract
+// as activating one (TestTagRuleActivateApplyToExisting), exercised through the
+// POST path. Also checks that apply_to_existing=false and an inactive rule both
+// leave existing files untouched.
+func TestTagRuleCreateApplyToExisting(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	tok := h.login("admin", "admin")
+
+	mkTag := func(name string) string {
+		resp := h.doJSON("POST", "/tags", map[string]any{"name": name}, tok)
+		require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+		var obj map[string]any
+		resp.decode(t, &obj)
+		return obj["id"].(string)
+	}
+	tagA := mkTag("animal")
+	tagB := mkTag("living-thing")
+	tagC := mkTag("organism")
+
+	// Rule B→C: active, so it fires transitively once B lands on the file.
+	resp := h.doJSON("POST", "/tags/"+tagB+"/rules", map[string]any{
+		"then_tag_id": tagC,
+		"is_active":   true,
+	}, tok)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+
+	// A file carrying only tag A — no A→B rule exists yet.
+	file := h.uploadJPEG(tok, "cat.jpg")
+	fileID := file["id"].(string)
+	resp = h.doJSON("PUT", "/files/"+fileID+"/tags", map[string]any{
+		"tag_ids": []string{tagA},
+	}, tok)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	tagNames := func() []string {
+		r := h.doJSON("GET", "/files/"+fileID+"/tags", nil, tok)
+		require.Equal(t, http.StatusOK, r.StatusCode)
+		var items []any
+		r.decode(t, &items)
+		names := make([]string, 0, len(items))
+		for _, it := range items {
+			names = append(names, it.(map[string]any)["name"].(string))
+		}
+		return names
+	}
+	assert.ElementsMatch(t, []string{"animal"}, tagNames())
+
+	// Creating an INACTIVE rule, even with apply_to_existing=true, must not tag.
+	resp = h.doJSON("POST", "/tags/"+tagA+"/rules", map[string]any{
+		"then_tag_id":       tagB,
+		"is_active":         false,
+		"apply_to_existing": true,
+	}, tok)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	assert.ElementsMatch(t, []string{"animal"}, tagNames(), "inactive rule must not tag existing files")
+
+	// Drop it so we can recreate as active.
+	resp = h.doJSON("DELETE", "/tags/"+tagA+"/rules/"+tagB, nil, tok)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
+
+	// Creating an ACTIVE rule with apply_to_existing=false leaves the file alone.
+	resp = h.doJSON("POST", "/tags/"+tagA+"/rules", map[string]any{
+		"then_tag_id":       tagB,
+		"is_active":         true,
+		"apply_to_existing": false,
+	}, tok)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	assert.ElementsMatch(t, []string{"animal"}, tagNames(), "apply_to_existing=false must not touch existing files")
+
+	resp = h.doJSON("DELETE", "/tags/"+tagA+"/rules/"+tagB, nil, tok)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
+
+	// Creating A→B active WITH apply_to_existing=true: the file gets B directly
+	// and C transitively via the already-active B→C rule.
+	resp = h.doJSON("POST", "/tags/"+tagA+"/rules", map[string]any{
+		"then_tag_id":       tagB,
+		"is_active":         true,
+		"apply_to_existing": true,
+	}, tok)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	assert.ElementsMatch(t, []string{"animal", "living-thing", "organism"}, tagNames())
+}
+
 // TestTagAutoRule verifies that adding a tag automatically applies then_tags.
 func TestTagAutoRule(t *testing.T) {
 	if testing.Short() {

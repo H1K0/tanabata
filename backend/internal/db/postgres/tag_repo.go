@@ -604,10 +604,14 @@ WHERE when_tag_id = $1 AND then_tag_id = $2`
 	if !active || !applyToExisting {
 		return nil
 	}
+	return r.ApplyToExisting(ctx, whenTagID, thenTagID)
+}
 
-	// Retroactively apply the full transitive expansion of thenTagID to all
-	// files that already carry whenTagID. The recursive CTE walks active rules
-	// starting from thenTagID (mirrors the Go expandTagSet BFS).
+// ApplyToExisting retroactively applies the full transitive expansion of
+// thenTagID to all files that already carry whenTagID. The recursive CTE walks
+// active rules starting from thenTagID (mirrors the Go expandTagSet BFS), so
+// inactive downstream rules are not followed. Idempotent via ON CONFLICT.
+func (r *TagRuleRepo) ApplyToExisting(ctx context.Context, whenTagID, thenTagID uuid.UUID) error {
 	const retroQuery = `
 WITH RECURSIVE expansion(tag_id) AS (
     SELECT $2::uuid
@@ -624,8 +628,9 @@ CROSS JOIN expansion e
 WHERE ft.tag_id = $1
 ON CONFLICT DO NOTHING`
 
+	q := connOrTx(ctx, r.pool)
 	if _, err := q.Exec(ctx, retroQuery, whenTagID, thenTagID); err != nil {
-		return fmt.Errorf("TagRuleRepo.SetActive retroactive apply: %w", err)
+		return fmt.Errorf("TagRuleRepo.ApplyToExisting: %w", err)
 	}
 	return nil
 }
