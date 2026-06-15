@@ -24,6 +24,10 @@
 	let file = $state<File | null>(null);
 	let fileTags = $state<Tag[]>([]);
 	let previewSrc = $state<string | null>(null);
+	// Capability token for the original-content URL, minted per file (see
+	// fetchContentToken). Outlives the 15-minute access token so a long video
+	// opened in a new tab keeps streaming.
+	let contentToken = $state<string | null>(null);
 	let loading = $state(true);
 	let saving = $state(false);
 	let error = $state('');
@@ -68,6 +72,8 @@
 		error = '';
 		// Drop the previous file's tags; they reload lazily when scrolled to.
 		fileTags = [];
+		// Invalidate the previous file's content token before re-minting.
+		contentToken = null;
 		try {
 			const fileData = await api.get<File>(`/files/${id}`);
 			if (fileId !== id) return; // paged on; ignore
@@ -79,6 +85,7 @@
 			isPublic = fileData.is_public ?? false;
 			dirty = false;
 			void fetchPreview(id);
+			void fetchContentToken(id);
 			// Log the view (activity.file_views). Fire-and-forget — never block or
 			// fail the viewer over view tracking.
 			void api.post(`/files/${id}/views`).catch(() => {});
@@ -103,13 +110,28 @@
 		}
 	}
 
+	// Mint a content token for this file so the "open original" link survives the
+	// 15-minute access-token expiry — a long video opened in a new tab keeps
+	// streaming, since the token is file-scoped and outlives session rotation.
+	// Fire-and-forget; the link falls back to the access token until it arrives.
+	async function fetchContentToken(id: string) {
+		try {
+			const res = await api.post<{ token: string; expires_in: number }>(
+				`/files/${id}/content-token`
+			);
+			if (fileId === id) contentToken = res.token;
+		} catch {
+			// non-critical — originalUrl falls back to the access token below
+		}
+	}
+
 	// Direct link to the full-resolution original, opened in a new tab. A
 	// navigation can't send the auth header, so the token rides in the query —
-	// the server accepts ?access_token= for GET media. Reactive on the token so a
-	// silent refresh keeps the link valid.
+	// the server accepts ?access_token= for GET media. Prefer the long-lived
+	// content token; fall back to the access token until it's minted.
 	let originalUrl = $derived(
 		fileId
-			? `/api/v1/files/${fileId}/content?inline=1&access_token=${encodeURIComponent($authStore.accessToken ?? '')}`
+			? `/api/v1/files/${fileId}/content?inline=1&access_token=${encodeURIComponent(contentToken ?? $authStore.accessToken ?? '')}`
 			: '#'
 	);
 
