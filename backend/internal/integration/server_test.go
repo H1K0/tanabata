@@ -151,12 +151,14 @@ func setupSuite(t *testing.T) *harness {
 	aclHandler := handler.NewACLHandler(aclSvc)
 	auditHandler := handler.NewAuditHandler(auditSvc)
 
-	r := handler.NewRouter(
+	r, err := handler.NewRouter(
 		authMiddleware, authHandler,
 		fileHandler, tagHandler, categoryHandler, poolHandler,
 		userHandler, aclHandler, auditHandler,
 		"",
+		nil,
 	)
+	require.NoError(t, err)
 
 	srv := httptest.NewServer(r)
 	t.Cleanup(srv.Close)

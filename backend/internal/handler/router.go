@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -32,9 +33,19 @@ func NewRouter(
 	aclHandler *ACLHandler,
 	auditHandler *AuditHandler,
 	staticDir string,
-) *gin.Engine {
+	trustedProxies []string,
+) (*gin.Engine, error) {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery(), securityHeaders())
+
+	// Behind a reverse proxy the client's real IP arrives in X-Forwarded-For.
+	// Trust only the proxy hop(s) so c.ClientIP() — used by the auth rate
+	// limiter — reflects the real client and can't be spoofed by a forged
+	// header from a direct caller. An empty list trusts no proxy (ClientIP is
+	// the immediate peer).
+	if err := r.SetTrustedProxies(trustedProxies); err != nil {
+		return nil, fmt.Errorf("configure trusted proxies: %w", err)
+	}
 
 	// Health check — no auth required.
 	r.GET("/health", func(c *gin.Context) {
@@ -189,5 +200,5 @@ func NewRouter(
 		r.NoRoute(spaHandler(staticDir))
 	}
 
-	return r
+	return r, nil
 }

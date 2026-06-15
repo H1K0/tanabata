@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -17,6 +18,13 @@ type Config struct {
 	JWTSecret     string
 	JWTAccessTTL  time.Duration
 	JWTRefreshTTL time.Duration
+	// TrustedProxies lists the reverse-proxy hops (CIDRs or IPs) whose
+	// X-Forwarded-For header is trusted. The auth rate limiter keys on the
+	// client IP, so this must match the proxy in front of the app — otherwise
+	// every request appears to come from the proxy (one shared bucket) or a
+	// direct caller could forge the header. Default covers loopback and the
+	// Docker bridge ranges a host reverse proxy reaches the container through.
+	TrustedProxies []string
 
 	// Initial admin bootstrap (applied on startup if the user does not exist)
 	AdminUsername string
@@ -100,6 +108,18 @@ func Load() (*Config, error) {
 		return n
 	}
 
+	parseCSV := func(key, def string) []string {
+		raw := defaultStr(key, def)
+		parts := strings.Split(raw, ",")
+		out := make([]string, 0, len(parts))
+		for _, p := range parts {
+			if p = strings.TrimSpace(p); p != "" {
+				out = append(out, p)
+			}
+		}
+		return out
+	}
+
 	parseInt64 := func(key string, def int64) int64 {
 		raw := os.Getenv(key)
 		if raw == "" {
@@ -118,6 +138,8 @@ func Load() (*Config, error) {
 		JWTSecret:     requireStr("JWT_SECRET"),
 		JWTAccessTTL:  parseDuration("JWT_ACCESS_TTL", "15m"),
 		JWTRefreshTTL: parseDuration("JWT_REFRESH_TTL", "720h"),
+
+		TrustedProxies: parseCSV("TRUSTED_PROXIES", "127.0.0.1/32,::1/128,172.16.0.0/12"),
 
 		AdminUsername: defaultStr("ADMIN_USERNAME", "admin"),
 		AdminPassword: requireStr("ADMIN_PASSWORD"),

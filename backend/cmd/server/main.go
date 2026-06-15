@@ -114,12 +114,17 @@ func main() {
 	aclHandler := handler.NewACLHandler(aclSvc)
 	auditHandler := handler.NewAuditHandler(auditSvc)
 
-	r := handler.NewRouter(
+	r, err := handler.NewRouter(
 		authMiddleware, authHandler,
 		fileHandler, tagHandler, categoryHandler, poolHandler,
 		userHandler, aclHandler, auditHandler,
 		cfg.StaticDir,
+		cfg.TrustedProxies,
 	)
+	if err != nil {
+		slog.Error("building router", "err", err)
+		os.Exit(1)
+	}
 
 	// ReadHeaderTimeout bounds slow-header (Slowloris) attacks; body read/write
 	// are left unbounded so large file uploads and downloads can stream.
