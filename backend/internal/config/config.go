@@ -92,11 +92,19 @@ func Load() (*Config, error) {
 		return def
 	}
 
+	// parseDuration parses a duration env var. Every duration in this config is a
+	// token TTL, which must be strictly positive — a zero/negative TTL would mint
+	// already-expired tokens (no login, no media playback) — so reject those here
+	// rather than fail mysteriously at runtime.
 	parseDuration := func(key, def string) time.Duration {
 		raw := defaultStr(key, def)
 		d, err := time.ParseDuration(raw)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("%s: invalid duration %q: %w", key, raw, err))
+			return 0
+		}
+		if d <= 0 {
+			errs = append(errs, fmt.Errorf("%s must be positive, got %q", key, raw))
 			return 0
 		}
 		return d
