@@ -114,6 +114,22 @@
 		void tick().then(() => document.querySelector<HTMLInputElement>('.tag-sheet input')?.focus());
 	}
 
+	// Mark the current selection as review-done (tagging finished). Best-effort
+	// optimistic update of the local list so the "needs review" badges clear.
+	async function markSelectionReviewed() {
+		const ids = [...$selectionStore.ids];
+		if (ids.length === 0) return;
+		selectionStore.exit();
+		try {
+			await api.post('/files/bulk/review', { file_ids: ids, needs_review: false });
+			files = files.map((f) =>
+				ids.includes(f.id ?? '') ? { ...f, needs_review: false } : f
+			);
+		} catch {
+			// ignore — list already reflects the intended state optimistically
+		}
+	}
+
 	function openFilterAndFocus() {
 		filterOpen = true;
 		void tick().then(() => document.querySelector<HTMLInputElement>('.bar .search')?.focus());
@@ -835,6 +851,8 @@
 			nextId={viewerNextId}
 			onNavigate={pageTo}
 			onClose={closeViewer}
+			onReviewChange={(id, nr) =>
+				(files = files.map((f) => (f.id === id ? { ...f, needs_review: nr } : f)))}
 		/>
 	</div>
 {/if}
@@ -843,6 +861,7 @@
 	<SelectionBar
 		onEditTags={openTagEditor}
 		onAddToPool={openPoolPicker}
+		onMarkReviewed={markSelectionReviewed}
 		onDelete={() => (confirmDeleteFiles = true)}
 	/>
 {/if}

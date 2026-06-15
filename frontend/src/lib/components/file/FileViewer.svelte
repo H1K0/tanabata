@@ -17,9 +17,12 @@
 		onNavigate: (id: string) => void;
 		/** Close the viewer. */
 		onClose: () => void;
+		/** Notify the parent when this file's review status is toggled here. */
+		onReviewChange?: (id: string, needsReview: boolean) => void;
 	}
 
-	let { fileId, prevId = null, nextId = null, onNavigate, onClose }: Props = $props();
+	let { fileId, prevId = null, nextId = null, onNavigate, onClose, onReviewChange }: Props =
+		$props();
 
 	let file = $state<File | null>(null);
 	let fileTags = $state<Tag[]>([]);
@@ -187,6 +190,20 @@
 		fileTags = fileTags.filter((t) => t.id !== tagId);
 	}
 
+	// ---- Review status ----
+	async function toggleReview() {
+		const id = file?.id;
+		if (!id) return;
+		const target = !file!.needs_review;
+		try {
+			await api.post('/files/bulk/review', { file_ids: [id], needs_review: target });
+			file = { ...file!, needs_review: target };
+			onReviewChange?.(id, target);
+		} catch {
+			// best-effort; leave the displayed state unchanged on failure
+		}
+	}
+
 	// ---- Save ----
 	async function save() {
 		if (!file || saving) return;
@@ -301,6 +318,24 @@
 		</button>
 		<span class="filename">{file?.original_name ?? ''}</span>
 		{#if file}
+			<button
+				class="review-btn"
+				class:needs={file.needs_review}
+				onclick={toggleReview}
+				aria-label={file.needs_review ? 'Mark as reviewed' : 'Mark as needs review'}
+				title={file.needs_review ? 'Tagging not done — mark reviewed' : 'Reviewed — mark as needs review'}
+			>
+				<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+					<circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6" />
+					<path
+						d="M6.5 10l2.2 2.2L13.5 7.5"
+						stroke="currentColor"
+						stroke-width="1.6"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+				</svg>
+			</button>
 			<button
 				class="pool-btn"
 				onclick={() => (poolPickerOpen = true)}
@@ -522,8 +557,32 @@
 		white-space: nowrap;
 	}
 
-	.pool-btn {
+	/* First of the trailing header buttons carries the auto margin that pushes the
+	   review + pool group to the right edge. */
+	.review-btn {
 		margin-left: auto;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border-radius: 8px;
+		border: none;
+		background: none;
+		color: var(--color-success); /* reviewed: solid green check */
+		cursor: pointer;
+		flex-shrink: 0;
+	}
+
+	.review-btn.needs {
+		color: var(--color-text-muted); /* not yet reviewed: dim check */
+	}
+
+	.review-btn:hover {
+		background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
+	}
+
+	.pool-btn {
 		display: flex;
 		align-items: center;
 		justify-content: center;

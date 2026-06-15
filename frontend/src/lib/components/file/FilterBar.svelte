@@ -43,6 +43,14 @@
 		tokens = tokens.filter((_, idx) => idx !== i);
 	}
 
+	// Review status is a single, mutually-exclusive r=1 / r=0 token; null = "any".
+	let reviewToken = $derived(tokens.find((t) => t === 'r=1' || t === 'r=0') ?? null);
+
+	function setReview(value: 'r=1' | 'r=0' | null) {
+		const rest = tokens.filter((t) => t !== 'r=1' && t !== 'r=0');
+		tokens = value ? [...rest, value] : rest;
+	}
+
 	function apply() {
 		onApply(buildDslFilter(tokens));
 	}
@@ -189,6 +197,17 @@
 		{/each}
 	</div>
 
+	<!-- Review status (mutually-exclusive r=1 / r=0) -->
+	<div class="review-seg" role="group" aria-label="Review status">
+		<button class="seg" class:on={reviewToken === null} onclick={() => setReview(null)}>Any</button>
+		<button class="seg" class:on={reviewToken === 'r=1'} onclick={() => setReview('r=1')}>
+			Needs review
+		</button>
+		<button class="seg" class:on={reviewToken === 'r=0'} onclick={() => setReview('r=0')}>
+			Reviewed
+		</button>
+	</div>
+
 	<!-- Tag search -->
 	<input
 		class="search"
@@ -260,6 +279,37 @@
 	.ops {
 		display: flex;
 		gap: 4px;
+	}
+
+	.review-seg {
+		display: flex;
+		gap: 2px;
+		padding: 2px;
+		border-radius: 7px;
+		background-color: var(--color-bg-elevated);
+		align-self: flex-start;
+	}
+
+	.seg {
+		height: 24px;
+		padding: 0 10px;
+		border: none;
+		border-radius: 5px;
+		background: none;
+		color: var(--color-text-muted);
+		font-family: inherit;
+		font-size: 0.78rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.seg:hover {
+		color: var(--color-text-primary);
+	}
+
+	.seg.on {
+		background-color: var(--color-accent);
+		color: var(--color-bg-primary);
 	}
 
 	.token {

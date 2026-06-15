@@ -132,6 +132,9 @@
 		<div class="placeholder loading" aria-label="Loading"></div>
 	{/if}
 	<div class="overlay"></div>
+	{#if file.needs_review}
+		<div class="review-dot" title="Needs review" aria-label="Needs review"></div>
+	{/if}
 	{#if selected}
 		<div class="check" aria-hidden="true">
 			<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -233,6 +236,19 @@
 		position: absolute;
 		top: 6px;
 		right: 6px;
+		pointer-events: none;
+	}
+
+	/* "Needs review" marker — top-left so it never overlaps the selection check. */
+	.review-dot {
+		position: absolute;
+		top: 6px;
+		left: 6px;
+		width: 9px;
+		height: 9px;
+		border-radius: 50%;
+		background-color: var(--color-warning);
+		box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.45);
 		pointer-events: none;
 	}
 

@@ -4,10 +4,11 @@
 	interface Props {
 		onEditTags: () => void;
 		onAddToPool: () => void;
+		onMarkReviewed: () => void;
 		onDelete: () => void;
 	}
 
-	let { onEditTags, onAddToPool, onDelete }: Props = $props();
+	let { onEditTags, onAddToPool, onMarkReviewed, onDelete }: Props = $props();
 </script>
 
 <div class="bar" role="toolbar" aria-label="Selection actions">
@@ -37,6 +38,7 @@
 
 		<button class="action edit-tags" onclick={onEditTags}>Edit tags</button>
 		<button class="action add-pool" onclick={onAddToPool}>Add to pool</button>
+		<button class="action mark-reviewed" onclick={onMarkReviewed}>Mark reviewed</button>
 		<button class="action delete" onclick={onDelete}>Delete</button>
 	</div>
 </div>
@@ -138,6 +140,14 @@
 
 	.add-pool:hover {
 		background-color: color-mix(in srgb, var(--color-warning) 15%, transparent);
+	}
+
+	.mark-reviewed {
+		color: var(--color-success);
+	}
+
+	.mark-reviewed:hover {
+		background-color: color-mix(in srgb, var(--color-success) 15%, transparent);
 	}
 
 	.delete {

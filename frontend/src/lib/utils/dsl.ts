@@ -5,6 +5,7 @@
  *   t=<uuid>        — has tag
  *   m=<mime>        — exact MIME
  *   m~<pattern>     — MIME LIKE pattern
+ *   r=1 / r=0       — needs review / review done
  *   (  )  &  |  !  — grouping / boolean operators
  *
  * Example: {t=uuid1,&,!,t=uuid2}  → has tag1 AND NOT tag2
@@ -31,6 +32,8 @@ export function tokenLabel(token: string, tagNames: Map<string, string>): string
 	if (token === '!') return 'NOT';
 	if (token === '(') return '(';
 	if (token === ')') return ')';
+	if (token === 'r=1') return 'Needs review';
+	if (token === 'r=0') return 'Reviewed';
 	if (token.startsWith('t=')) {
 		const id = token.slice(2);
 		return tagNames.get(id) ?? token;
