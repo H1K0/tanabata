@@ -484,32 +484,14 @@
 	// between) so there's no visible jump. Shares the `loading` guard with loadMore
 	// so the two never mutate files concurrently.
 	async function loadPrev() {
-		if (loading || !hasPrev) return;
+		if (loading || !hasPrev || !prevCursor) return;
 		loading = true;
 		try {
-			let items: File[];
-			let newPrevCursor: string | null;
-			if (prevCursor) {
-				const params = baseListParams();
-				params.set('cursor', prevCursor);
-				params.set('direction', 'backward');
-				const res = await api.get<FileCursorPage>(`/files?${params}`);
-				items = res.items ?? [];
-				newPrevCursor = res.prev_cursor ?? null;
-			} else {
-				// The head cursor was dropped when the window trimmed its top. Refetch
-				// the rows just before the current first file from an anchored window.
-				const firstId = files[0]?.id;
-				if (!firstId) {
-					hasPrev = false;
-					return;
-				}
-				const res = await fetchAnchorWindow(firstId);
-				const all = res.items ?? [];
-				const idx = all.findIndex((f) => f.id === firstId);
-				items = idx > 0 ? all.slice(0, idx) : [];
-				newPrevCursor = res.prev_cursor ?? null;
-			}
+			const params = baseListParams();
+			params.set('cursor', prevCursor);
+			params.set('direction', 'backward');
+			const res = await api.get<FileCursorPage>(`/files?${params}`);
+			const items = res.items ?? [];
 			if (items.length === 0) {
 				hasPrev = false;
 				return;
@@ -522,13 +504,11 @@
 			const beforeHeight = scroller.scrollHeight;
 
 			files = [...items, ...files];
-			prevCursor = newPrevCursor;
-			hasPrev = !!newPrevCursor;
+			prevCursor = res.prev_cursor ?? null;
+			hasPrev = !!prevCursor;
 
 			flushSync(); // apply the prepend now, before the browser paints
 			scroller.scrollTop = beforeTop + (scroller.scrollHeight - beforeHeight);
-
-			trimTail();
 		} catch {
 			hasPrev = false;
 		} finally {
@@ -550,85 +530,26 @@
 		return (document.scrollingElement as HTMLElement | null) ?? document.documentElement;
 	}
 
-	// ---- Windowing -----------------------------------------------------------
-	// The grid keeps at most ~4 viewports of rows in memory. As it grows past the
-	// cap on one end, the off-screen rows on the other end are trimmed; the cursor
-	// for the trimmed boundary is dropped (set null) and the opposite `has*` flag
-	// is raised, so scrolling back refills that side from an anchored window.
+	// ---- Loaded grid -----------------------------------------------------------
+	// The grid accumulates every loaded row for the lifetime of the visit. It is
+	// only cleared on a sort/filter change or when leaving the page (the reset
+	// effect above; the section cache restores it on return). Rows are never
+	// trimmed while scrolling, so a long drag- or shift-select can span the whole
+	// loaded list without earlier cards disappearing underneath it.
 
-	const CARD_PITCH = 162; // 160px thumbnail + 2px grid gap
-
-	function windowCap(): number {
-		const scroller = getScroller();
-		const w = scroller.clientWidth || 390;
-		const h = scroller.clientHeight || 700;
-		const cols = Math.max(1, Math.floor(w / CARD_PITCH));
-		const rows = Math.max(1, Math.ceil(h / CARD_PITCH));
-		return Math.max(4 * cols * rows, 2 * LIMIT);
-	}
-
-	// Fetch a window centred on a file (with its boundary cursors), used to refill
-	// a trimmed edge where the original cursor is no longer held.
-	function fetchAnchorWindow(anchorId: string): Promise<FileCursorPage> {
-		const a = baseListParams();
-		a.set('anchor', anchorId);
-		return api.get<FileCursorPage>(`/files?${a}`);
-	}
-
-	// Drop the off-screen rows above the viewport once the grid grew past the cap.
-	// Run after appended rows have painted so the height delta measures only the
-	// removed top; scroll is compensated so the visible rows don't jump.
-	function trimHead() {
-		const cap = windowCap();
-		if (files.length <= cap) return;
-		flushSync(); // paint the just-appended (below-fold) rows before measuring
-		const scroller = getScroller();
-		const beforeTop = scroller.scrollTop;
-		const beforeHeight = scroller.scrollHeight;
-		files = files.slice(files.length - cap);
-		prevCursor = null;
-		hasPrev = true;
-		flushSync();
-		scroller.scrollTop = beforeTop + (scroller.scrollHeight - beforeHeight);
-	}
-
-	// Symmetric to trimHead for upward growth: drop the off-screen rows below the
-	// viewport. No scroll compensation — the removed rows are past the fold.
-	function trimTail() {
-		const cap = windowCap();
-		if (files.length <= cap) return;
-		files = files.slice(0, cap);
-		nextCursor = null;
-		hasMore = true;
-	}
+	const CARD_PITCH = 162; // 160px thumbnail + 2px grid gap (used for grid math)
 
 	async function loadMore() {
 		if (loading || !hasMore) return;
 		loading = true;
 		error = '';
 		try {
-			let newItems: File[];
-			let newNextCursor: string | null;
-			if (nextCursor == null && files.length > 0) {
-				// The tail cursor was dropped when the window trimmed its bottom.
-				// Refetch the rows after the current last file from an anchored window.
-				const lastId = files[files.length - 1]?.id;
-				const res = await fetchAnchorWindow(lastId!);
-				const all = res.items ?? [];
-				const idx = all.findIndex((f) => f.id === lastId);
-				newItems = idx >= 0 ? all.slice(idx + 1) : [];
-				newNextCursor = res.next_cursor ?? null;
-			} else {
-				const params = baseListParams();
-				if (nextCursor) params.set('cursor', nextCursor);
-				const res = await api.get<FileCursorPage>(`/files?${params}`);
-				newItems = res.items ?? [];
-				newNextCursor = res.next_cursor ?? null;
-			}
-			files = [...files, ...newItems];
-			nextCursor = newNextCursor;
-			hasMore = !!newNextCursor;
-			trimHead();
+			const params = baseListParams();
+			if (nextCursor) params.set('cursor', nextCursor);
+			const res = await api.get<FileCursorPage>(`/files?${params}`);
+			files = [...files, ...(res.items ?? [])];
+			nextCursor = res.next_cursor ?? null;
+			hasMore = !!nextCursor;
 		} catch (err) {
 			error = err instanceof ApiError ? err.message : 'Failed to load files';
 			hasMore = false;
