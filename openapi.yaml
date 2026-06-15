@@ -350,7 +350,11 @@ paths:
           required: false
           schema:
             type: string
-          description: Access token, as an alternative to the Authorization header (GET only).
+          description: >
+            Access token or a file-scoped content token (obtained from POST
+            /files/{file_id}/content-token), as an alternative to the
+            Authorization header (GET only). A content token outlives the
+            access token, so long media keeps streaming past access-token expiry.
       responses:
         '200':
           description: File binary
@@ -391,6 +395,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /files/{file_id}/content-token:
+    post:
+      tags: [Files]
+      summary: Mint a content token for opening/streaming the original by URL
+      description: >
+        Returns a short-lived, single-file capability token to place in the
+        access_token query parameter of GET /files/{file_id}/content. Unlike the
+        access token it is scoped to this one file and is session-independent, so
+        it survives access-token expiry and refresh rotation — letting a long
+        video opened in a new tab keep streaming. Requires view permission on the
+        file. The token is a bearer credential for that file until it expires.
+      parameters:
+        - $ref: '#/components/parameters/file_id'
+      responses:
+        '200':
+          description: Content token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, expires_in]
+                properties:
+                  token:
+                    type: string
+                    description: Capability token for the access_token query parameter.
+                  expires_in:
+                    type: integer
+                    description: Token lifetime in seconds.
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /files/{file_id}/thumbnail:
     get:
