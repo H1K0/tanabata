@@ -35,10 +35,23 @@ services:
     environment:
       STATIC_DIR: /app/static
 
-    # The container always listens on 42776 (Dockerfile default); APP_PORT only
-    # changes the host-published port.
+    # Published on loopback only: a reverse proxy on the host (e.g. nginx) fronts
+    # the app and proxies to 127.0.0.1:${APP_PORT}. Binding to 127.0.0.1 keeps the
+    # app off the LAN/WAN — a plain "PORT:42776" would publish on 0.0.0.0 and, since
+    # Docker's DNAT rules sit ahead of the host firewall, bypass ufw/firewalld. The
+    # container always listens on 42776 (Dockerfile default); APP_PORT only changes
+    # the host-published port. Drop the 127.0.0.1 prefix if exposing it directly.
     ports:
-      - "${APP_PORT:-42776}:42776"
+      - "127.0.0.1:${APP_PORT:-42776}:42776"
+
+    # Two-tier networking. `web` is the app's public-facing bridge (reached via the
+    # published loopback port above; it also provides egress, e.g. to a host
+    # Postgres via host.docker.internal). `backend` is the private tier the app
+    # uses to reach the bundled DB. The DB sits only on `backend`, so nothing on
+    # the host-facing side can reach it.
+    networks:
+      - web
+      - backend
 
     # Wait for the bundled DB when the with-db profile is active. When using a
     # host Postgres the db service is disabled, and required:false keeps this
@@ -76,6 +89,10 @@ services:
     # the app at a Postgres running on the host instead.
     profiles: ["with-db"]
 
+    # Private back-end tier only — never on `web`, never published.
+    networks:
+      - backend
+
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-tanabata}
       POSTGRES_USER: ${POSTGRES_USER:-tanabata}
@@ -96,6 +113,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+networks:
+  # Public-facing bridge for this app. The explicit bridge name (instead of
+  # Docker's random br-<hash>) makes it identifiable on the host for tcpdump and
+  # firewall rules.
+  web:
+    driver_opts:
+      com.docker.network.bridge.name: dk-tanabata
+  # Private back-end tier (app ↔ DB). internal:true drops the gateway so the DB
+  # has no route off-host. Note: Linux caps interface names at 15 chars, and
+  # dk-tanabata-bnd is exactly 15 — a longer app name would need a shorter suffix.
+  backend:
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.name: dk-tanabata-bnd
 
 volumes:
   app_files:
