@@ -20,6 +20,7 @@ CREATE INDEX idx__files__creator_id        ON data.files USING hash (creator_id)
 CREATE INDEX idx__files__content_datetime  ON data.files USING btree (content_datetime DESC NULLS LAST);
 CREATE INDEX idx__files__is_deleted        ON data.files USING btree (is_deleted) WHERE is_deleted = true;
 CREATE INDEX idx__files__phash             ON data.files USING btree (phash) WHERE phash IS NOT NULL;
+CREATE INDEX idx__files__needs_review      ON data.files USING btree (id) WHERE needs_review = true;
 
 -- data.file_tag
 CREATE INDEX idx__file_tag__tag_id  ON data.file_tag USING hash (tag_id);
@@ -74,6 +75,7 @@ DROP INDEX IF EXISTS data.idx__file_pool__pool_id;
 DROP INDEX IF EXISTS data.idx__pools__creator_id;
 DROP INDEX IF EXISTS data.idx__file_tag__file_id;
 DROP INDEX IF EXISTS data.idx__file_tag__tag_id;
+DROP INDEX IF EXISTS data.idx__files__needs_review;
 DROP INDEX IF EXISTS data.idx__files__phash;
 DROP INDEX IF EXISTS data.idx__files__is_deleted;
 DROP INDEX IF EXISTS data.idx__files__content_datetime;

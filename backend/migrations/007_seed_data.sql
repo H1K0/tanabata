@@ -20,7 +20,7 @@ INSERT INTO activity.action_types (name) VALUES
     ('user_login'), ('user_logout'),
     -- Files
     ('file_create'), ('file_edit'), ('file_delete'), ('file_restore'),
-    ('file_permanent_delete'), ('file_replace'),
+    ('file_permanent_delete'), ('file_replace'), ('file_review'),
     -- Tags
     ('tag_create'), ('tag_edit'), ('tag_delete'),
     -- Categories

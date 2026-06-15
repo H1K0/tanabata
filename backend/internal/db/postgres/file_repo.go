@@ -36,6 +36,7 @@ type fileRow struct {
 	CreatorName     string          `db:"creator_name"`
 	IsPublic        bool            `db:"is_public"`
 	IsDeleted       bool            `db:"is_deleted"`
+	NeedsReview     bool            `db:"needs_review"`
 }
 
 // fileTagRow is used for both single-file and batch tag loading.
@@ -81,6 +82,7 @@ func toFile(r fileRow) domain.File {
 		CreatorName:     r.CreatorName,
 		IsPublic:        r.IsPublic,
 		IsDeleted:       r.IsDeleted,
+		NeedsReview:     r.NeedsReview,
 		CreatedAt:       domain.UUIDCreatedAt(r.ID),
 	}
 }
@@ -293,7 +295,7 @@ const fileSelectCTE = `
            mt.name AS mime_type, mt.extension AS mime_extension,
            r.content_datetime, r.notes, r.metadata, r.exif, r.phash,
            r.creator_id, u.name AS creator_name,
-           r.is_public, r.is_deleted
+           r.is_public, r.is_deleted, r.needs_review
     FROM r
     JOIN core.mime_types mt ON mt.id = r.mime_id
     JOIN core.users u       ON u.id  = r.creator_id`
@@ -316,7 +318,8 @@ func (r *FileRepo) Create(ctx context.Context, f *domain.File) (*domain.File, er
                 $4, $5, $6, $7, $8, $9, $10
             )
             RETURNING id, original_name, mime_id, content_datetime, notes,
-                      metadata, exif, phash, creator_id, is_public, is_deleted
+                      metadata, exif, phash, creator_id, is_public, is_deleted,
+                      needs_review
         )` + fileSelectCTE
 
 	q := connOrTx(ctx, r.pool)
@@ -346,7 +349,7 @@ func (r *FileRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.File, err
                mt.name AS mime_type, mt.extension AS mime_extension,
                f.content_datetime, f.notes, f.metadata, f.exif, f.phash,
                f.creator_id, u.name AS creator_name,
-               f.is_public, f.is_deleted
+               f.is_public, f.is_deleted, f.needs_review
         FROM data.files f
         JOIN core.mime_types mt ON mt.id = f.mime_id
         JOIN core.users u       ON u.id  = f.creator_id
@@ -389,7 +392,8 @@ func (r *FileRepo) Update(ctx context.Context, id uuid.UUID, f *domain.File) (*d
                 is_public        = $6
             WHERE id = $1
             RETURNING id, original_name, mime_id, content_datetime, notes,
-                      metadata, exif, phash, creator_id, is_public, is_deleted
+                      metadata, exif, phash, creator_id, is_public, is_deleted,
+                      needs_review
         )` + fileSelectCTE
 
 	q := connOrTx(ctx, r.pool)
@@ -414,6 +418,20 @@ func (r *FileRepo) Update(ctx context.Context, id uuid.UUID, f *domain.File) (*d
 	}
 	updated.Tags = tags
 	return &updated, nil
+}
+
+// SetNeedsReview sets the review status on the given files in one statement.
+// Trashed files are left untouched. No-op for an empty id list.
+func (r *FileRepo) SetNeedsReview(ctx context.Context, ids []uuid.UUID, value bool) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	const sqlStr = `UPDATE data.files SET needs_review = $2 WHERE id = ANY($1) AND is_deleted = false`
+	q := connOrTx(ctx, r.pool)
+	if _, err := q.Exec(ctx, sqlStr, ids, value); err != nil {
+		return fmt.Errorf("FileRepo.SetNeedsReview: %w", err)
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -444,7 +462,8 @@ func (r *FileRepo) Restore(ctx context.Context, id uuid.UUID) (*domain.File, err
             SET is_deleted = false
             WHERE id = $1 AND is_deleted = true
             RETURNING id, original_name, mime_id, content_datetime, notes,
-                      metadata, exif, phash, creator_id, is_public, is_deleted
+                      metadata, exif, phash, creator_id, is_public, is_deleted,
+                      needs_review
         )` + fileSelectCTE
 
 	q := connOrTx(ctx, r.pool)
@@ -638,7 +657,7 @@ func (r *FileRepo) List(ctx context.Context, params domain.FileListParams) (*dom
                mt.name AS mime_type, mt.extension AS mime_extension,
                f.content_datetime, f.notes, f.metadata, f.exif, f.phash,
                f.creator_id, u.name AS creator_name,
-               f.is_public, f.is_deleted
+               f.is_public, f.is_deleted, f.needs_review
         FROM data.files f
         JOIN core.mime_types mt ON mt.id = f.mime_id
         JOIN core.users u       ON u.id  = f.creator_id

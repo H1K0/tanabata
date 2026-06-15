@@ -558,6 +558,47 @@ func (s *FileService) BulkDelete(ctx context.Context, fileIDs []uuid.UUID) error
 	return nil
 }
 
+// SetNeedsReview sets the review status ("needs tagging" vs marked done) on the
+// given files. Each file is checked against edit ACL; files the caller cannot
+// edit, or that do not exist, are skipped (same forgiving semantics as
+// BulkDelete). Authorized files are updated in a single statement and each is
+// audit-logged. Works for one file (single-element slice) or many.
+func (s *FileService) SetNeedsReview(ctx context.Context, ids []uuid.UUID, value bool) error {
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+
+	authorized := make([]uuid.UUID, 0, len(ids))
+	for _, id := range ids {
+		f, err := s.files.GetByID(ctx, id)
+		if err != nil {
+			if err == domain.ErrNotFound {
+				continue
+			}
+			return err
+		}
+		ok, err := s.acl.CanEdit(ctx, userID, isAdmin, f.CreatorID, fileObjectTypeID, id)
+		if err != nil {
+			return err
+		}
+		if ok {
+			authorized = append(authorized, id)
+		}
+	}
+
+	if len(authorized) == 0 {
+		return nil
+	}
+	if err := s.files.SetNeedsReview(ctx, authorized, value); err != nil {
+		return err
+	}
+
+	objType := fileObjectType
+	details := map[string]any{"needs_review": value}
+	for i := range authorized {
+		_ = s.audit.Log(ctx, "file_review", &objType, &authorized[i], details)
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // Import
 // ---------------------------------------------------------------------------

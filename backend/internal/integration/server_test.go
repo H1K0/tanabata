@@ -21,6 +21,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1337,6 +1338,58 @@ func TestImportOrdersByMtime(t *testing.T) {
 	// Oldest first: c (2019) → b (2021) → a (2022).
 	assert.Less(t, idx["c_oldest.jpg"], idx["b_middle.jpg"], "oldest should be processed before middle")
 	assert.Less(t, idx["b_middle.jpg"], idx["a_newest.jpg"], "middle should be processed before newest")
+}
+
+// TestFileReviewStatus verifies the per-file "needs review" flag: new uploads
+// start as needs_review=true, POST /files/bulk/review clears it, and the DSL
+// filter r=0/r=1 selects reviewed/unreviewed files (also combined with others).
+func TestFileReviewStatus(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	h := setupSuite(t)
+	tok := h.login("admin", "admin")
+
+	file := h.uploadJPEG(tok, "review-me.jpg")
+	fileID := file["id"].(string)
+	assert.Equal(t, true, file["needs_review"], "new upload should need review")
+
+	getReview := func() bool {
+		r := h.doJSON("GET", "/files/"+fileID, nil, tok)
+		require.Equal(t, http.StatusOK, r.StatusCode, r.String())
+		var obj map[string]any
+		r.decode(t, &obj)
+		return obj["needs_review"].(bool)
+	}
+	listIDs := func(dsl string) []string {
+		r := h.doJSON("GET", "/files?filter="+url.QueryEscape(dsl), nil, tok)
+		require.Equal(t, http.StatusOK, r.StatusCode, r.String())
+		var page map[string]any
+		r.decode(t, &page)
+		ids := []string{}
+		for _, it := range page["items"].([]any) {
+			ids = append(ids, it.(map[string]any)["id"].(string))
+		}
+		return ids
+	}
+
+	// Before marking done: appears under r=1 (needs review), not under r=0.
+	assert.True(t, getReview())
+	assert.Contains(t, listIDs("{r=1}"), fileID)
+	assert.NotContains(t, listIDs("{r=0}"), fileID)
+
+	// Mark as reviewed (done) via the bulk endpoint (single-element list).
+	resp := h.doJSON("POST", "/files/bulk/review", map[string]any{
+		"file_ids":     []string{fileID},
+		"needs_review": false,
+	}, tok)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
+
+	// Now reviewed: appears under r=0, not r=1; combines with a MIME predicate.
+	assert.False(t, getReview(), "file should no longer need review")
+	assert.Contains(t, listIDs("{r=0}"), fileID)
+	assert.NotContains(t, listIDs("{r=1}"), fileID)
+	assert.Contains(t, listIDs("{r=0,&,m~image/%}"), fileID)
 }
 
 // TestContentRangeRequests verifies the original-content endpoint answers a

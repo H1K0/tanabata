@@ -23,6 +23,7 @@ const (
 	ftkTag       // t=<uuid>
 	ftkMimeExact // m=<int>
 	ftkMimeLike  // m~<pattern>
+	ftkReview    // r=<0|1>
 )
 
 type filterToken struct {
@@ -31,6 +32,7 @@ type filterToken struct {
 	untagged bool      // ftkTag with zero UUID → "file has no tags"
 	mimeID   int16     // ftkMimeExact
 	pattern  string    // ftkMimeLike
+	review   bool      // ftkReview → needs_review value
 }
 
 // ---------------------------------------------------------------------------
@@ -80,6 +82,8 @@ func (l *leafNode) toSQL(n int, args []any) (string, int, []any) {
 	case ftkMimeLike:
 		// mt alias comes from the JOIN in the main file query (always present).
 		return fmt.Sprintf("mt.name LIKE $%d", n), n + 1, append(args, l.tok.pattern)
+	case ftkReview:
+		return fmt.Sprintf("f.needs_review = $%d", n), n + 1, append(args, l.tok.review)
 	}
 	panic("filterNode.toSQL: unknown leaf kind")
 }
@@ -130,6 +134,15 @@ func lexFilter(dsl string) ([]filterToken, error) {
 		case strings.HasPrefix(p, "m~"):
 			// The pattern value is passed as a query parameter, so no SQL injection risk.
 			tokens = append(tokens, filterToken{kind: ftkMimeLike, pattern: p[2:]})
+		case strings.HasPrefix(p, "r="):
+			switch p[2:] {
+			case "1":
+				tokens = append(tokens, filterToken{kind: ftkReview, review: true})
+			case "0":
+				tokens = append(tokens, filterToken{kind: ftkReview, review: false})
+			default:
+				return nil, fmt.Errorf("filter: invalid review flag %q (want r=0 or r=1)", p[2:])
+			}
 		default:
 			return nil, fmt.Errorf("filter: unknown token %q", p)
 		}
@@ -241,7 +254,7 @@ func (p *filterParser) parseAtom() (filterNode, error) {
 		return expr, nil
 	}
 	switch t.kind {
-	case ftkTag, ftkMimeExact, ftkMimeLike:
+	case ftkTag, ftkMimeExact, ftkMimeLike, ftkReview:
 		p.next()
 		return &leafNode{t}, nil
 	default:

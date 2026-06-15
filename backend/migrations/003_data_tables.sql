@@ -55,7 +55,8 @@ CREATE TABLE data.files (
     creator_id       smallint     NOT NULL REFERENCES core.users(id)
                                   ON UPDATE CASCADE ON DELETE RESTRICT,
     is_public        boolean      NOT NULL DEFAULT false,
-    is_deleted       boolean      NOT NULL DEFAULT false  -- soft delete (trash)
+    is_deleted       boolean      NOT NULL DEFAULT false, -- soft delete (trash)
+    needs_review     boolean      NOT NULL DEFAULT true   -- tagging not yet marked done; cleared explicitly
 );
 
 CREATE TABLE data.file_tag (

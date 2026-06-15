@@ -29,6 +29,7 @@ type File struct {
 	CreatorName     string // denormalized from core.users
 	IsPublic        bool
 	IsDeleted       bool
+	NeedsReview     bool      // tagging not yet marked done; cleared by an explicit review action
 	CreatedAt       time.Time // extracted from UUID v7 via UUIDCreatedAt
 	Tags            []Tag     // loaded with the file
 }

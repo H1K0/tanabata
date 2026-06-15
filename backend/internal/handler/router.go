@@ -83,6 +83,7 @@ func NewRouter(
 		// Bulk + import routes registered before /:id to prevent param collision.
 		files.POST("/bulk/tags", fileHandler.BulkSetTags)
 		files.POST("/bulk/delete", fileHandler.BulkDelete)
+		files.POST("/bulk/review", fileHandler.BulkReview)
 		files.POST("/bulk/common-tags", fileHandler.CommonTags)
 		files.POST("/import", fileHandler.Import)
 

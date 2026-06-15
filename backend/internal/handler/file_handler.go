@@ -84,6 +84,7 @@ type fileJSON struct {
 	CreatorName     string          `json:"creator_name"`
 	IsPublic        bool            `json:"is_public"`
 	IsDeleted       bool            `json:"is_deleted"`
+	NeedsReview     bool            `json:"needs_review"`
 	CreatedAt       string          `json:"created_at"`
 	Tags            []tagJSON       `json:"tags"`
 }
@@ -131,6 +132,7 @@ func toFileJSON(f domain.File) fileJSON {
 		CreatorName:     f.CreatorName,
 		IsPublic:        f.IsPublic,
 		IsDeleted:       f.IsDeleted,
+		NeedsReview:     f.NeedsReview,
 		CreatedAt:       f.CreatedAt.Format(time.RFC3339),
 		Tags:            tags,
 	}
@@ -654,6 +656,33 @@ func (h *FileHandler) BulkDelete(c *gin.Context) {
 	}
 
 	if err := h.fileSvc.BulkDelete(c.Request.Context(), fileIDs); err != nil {
+		respondError(c, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// BulkReview sets the review status on one or more files. A single-file toggle
+// is just a one-element file_ids array. Files the caller cannot edit are
+// silently skipped (handled in the service).
+func (h *FileHandler) BulkReview(c *gin.Context) {
+	var body struct {
+		FileIDs     []string `json:"file_ids"     binding:"required"`
+		NeedsReview *bool    `json:"needs_review" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.NeedsReview == nil {
+		respondError(c, domain.ErrValidation)
+		return
+	}
+
+	fileIDs, err := parseUUIDs(body.FileIDs)
+	if err != nil {
+		respondError(c, domain.ErrValidation)
+		return
+	}
+
+	if err := h.fileSvc.SetNeedsReview(c.Request.Context(), fileIDs, *body.NeedsReview); err != nil {
 		respondError(c, err)
 		return
 	}
