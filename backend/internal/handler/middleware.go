@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"tanabata/backend/internal/domain"
 	"tanabata/backend/internal/service"
@@ -48,6 +49,55 @@ func (m *AuthMiddleware) Handle() gin.HandlerFunc {
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}
+}
+
+// HandleContent authenticates a file-content GET, accepting either a normal
+// access token or a content token scoped (by its fid claim) to the :id in the
+// path. The content token is what keeps a long media stream playing after the
+// short access token would have expired. View permission is still enforced in
+// the handler against the resolved user, so a content token only widens *when*
+// a file may be read by URL, never *which* files.
+func (m *AuthMiddleware) HandleContent() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := bearerToken(c)
+		if token == "" {
+			contentUnauthorized(c)
+			return
+		}
+
+		// A regular access token grants access to everything as usual.
+		if claims, err := m.authSvc.ValidateAccessToken(c.Request.Context(), token); err == nil {
+			ctx := domain.WithUser(c.Request.Context(), claims.UserID, claims.IsAdmin, claims.SessionID)
+			c.Request = c.Request.WithContext(ctx)
+			c.Next()
+			return
+		}
+
+		// Otherwise accept a content token minted for exactly this file. Normalise
+		// the path id to canonical form so it matches the minted fid claim.
+		id, err := uuid.Parse(c.Param("id"))
+		if err != nil {
+			contentUnauthorized(c)
+			return
+		}
+		claims, err := m.authSvc.ValidateContentToken(token, id.String())
+		if err != nil {
+			contentUnauthorized(c)
+			return
+		}
+		// A content token carries no session (sid 0); it is session-independent.
+		ctx := domain.WithUser(c.Request.Context(), claims.UserID, claims.IsAdmin, claims.SessionID)
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	}
+}
+
+func contentUnauthorized(c *gin.Context) {
+	c.JSON(http.StatusUnauthorized, errorBody{
+		Code:    domain.ErrUnauthorized.Code(),
+		Message: "invalid or expired token",
+	})
+	c.Abort()
 }
 
 // bearerToken extracts the access token from the Authorization header. As a

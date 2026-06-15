@@ -91,8 +91,9 @@ func NewRouter(
 		files.PATCH("/:id", fileHandler.UpdateMeta)
 		files.DELETE("/:id", fileHandler.SoftDelete)
 
-		files.GET("/:id/content", fileHandler.GetContent)
 		files.PUT("/:id/content", fileHandler.ReplaceContent)
+		// Mints a content token (strict auth) for the GET /:id/content route below.
+		files.POST("/:id/content-token", fileHandler.CreateContentToken)
 		files.GET("/:id/thumbnail", fileHandler.GetThumbnail)
 		files.GET("/:id/preview", fileHandler.GetPreview)
 		files.POST("/:id/views", fileHandler.RecordView)
@@ -104,6 +105,15 @@ func NewRouter(
 		files.PUT("/:id/tags", tagHandler.FileSetTags)
 		files.PUT("/:id/tags/:tag_id", tagHandler.FileAddTag)
 		files.DELETE("/:id/tags/:tag_id", tagHandler.FileRemoveTag)
+	}
+
+	// Serving an original is the one read that can outlive a 15-minute access
+	// token — a long video streams via repeated Range requests over many minutes.
+	// So this route alone also accepts a file-scoped content token (see
+	// HandleContent), letting the media URL stay valid for the whole playback.
+	media := v1.Group("/files", auth.HandleContent())
+	{
+		media.GET("/:id/content", fileHandler.GetContent)
 	}
 
 	// -------------------------------------------------------------------------

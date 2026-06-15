@@ -127,7 +127,7 @@ func setupSuite(t *testing.T) *harness {
 	transactor := postgres.NewTransactor(pool)
 
 	// --- Services ------------------------------------------------------------
-	authSvc := service.NewAuthService(userRepo, sessionRepo, "test-secret", 15*time.Minute, 720*time.Hour)
+	authSvc := service.NewAuthService(userRepo, sessionRepo, "test-secret", 15*time.Minute, 720*time.Hour, 6*time.Hour)
 	aclSvc := service.NewACLService(aclRepo, fileRepo, tagRepo, categoryRepo, poolRepo, transactor)
 	auditSvc := service.NewAuditService(auditRepo)
 	tagSvc := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
@@ -143,7 +143,7 @@ func setupSuite(t *testing.T) *harness {
 	// --- Handlers ------------------------------------------------------------
 	authMiddleware := handler.NewAuthMiddleware(authSvc)
 	authHandler := handler.NewAuthHandler(authSvc)
-	fileHandler := handler.NewFileHandler(fileSvc, tagSvc, 500<<20)
+	fileHandler := handler.NewFileHandler(fileSvc, tagSvc, authSvc, 500<<20)
 	tagHandler := handler.NewTagHandler(tagSvc, fileSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 	poolHandler := handler.NewPoolHandler(poolSvc)

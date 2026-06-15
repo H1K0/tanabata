@@ -79,6 +79,7 @@ func main() {
 		cfg.JWTSecret,
 		cfg.JWTAccessTTL,
 		cfg.JWTRefreshTTL,
+		cfg.ContentTokenTTL,
 	)
 	aclSvc := service.NewACLService(aclRepo, fileRepo, tagRepo, categoryRepo, poolRepo, transactor)
 	auditSvc := service.NewAuditService(auditRepo)
@@ -106,7 +107,7 @@ func main() {
 	// Handlers
 	authMiddleware := handler.NewAuthMiddleware(authSvc)
 	authHandler := handler.NewAuthHandler(authSvc)
-	fileHandler := handler.NewFileHandler(fileSvc, tagSvc, cfg.MaxUploadBytes)
+	fileHandler := handler.NewFileHandler(fileSvc, tagSvc, authSvc, cfg.MaxUploadBytes)
 	tagHandler := handler.NewTagHandler(tagSvc, fileSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 	poolHandler := handler.NewPoolHandler(poolSvc)

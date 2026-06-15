@@ -22,13 +22,14 @@ import (
 type FileHandler struct {
 	fileSvc        *service.FileService
 	tagSvc         *service.TagService
+	authSvc        *service.AuthService
 	maxUploadBytes int64
 }
 
 // NewFileHandler creates a FileHandler. maxUploadBytes caps the size of an
-// uploaded or replacement file.
-func NewFileHandler(fileSvc *service.FileService, tagSvc *service.TagService, maxUploadBytes int64) *FileHandler {
-	return &FileHandler{fileSvc: fileSvc, tagSvc: tagSvc, maxUploadBytes: maxUploadBytes}
+// uploaded or replacement file. authSvc mints content tokens for media URLs.
+func NewFileHandler(fileSvc *service.FileService, tagSvc *service.TagService, authSvc *service.AuthService, maxUploadBytes int64) *FileHandler {
+	return &FileHandler{fileSvc: fileSvc, tagSvc: tagSvc, authSvc: authSvc, maxUploadBytes: maxUploadBytes}
 }
 
 // formFileLimited reads the "file" multipart field while bounding how many bytes
@@ -381,6 +382,38 @@ func (h *FileHandler) SoftDelete(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// ---------------------------------------------------------------------------
+// POST /files/:id/content-token
+// ---------------------------------------------------------------------------
+
+// CreateContentToken mints a short-lived, single-file capability token the
+// client can put in a content URL's access_token query parameter to open or
+// stream the original by link (e.g. a long video in a new tab) without the URL
+// dying when the 15-minute access token expires. It first enforces view
+// permission via fileSvc.Get, so a token is only issued for a file the caller
+// may actually read.
+func (h *FileHandler) CreateContentToken(c *gin.Context) {
+	id, ok := parseFileID(c)
+	if !ok {
+		return
+	}
+
+	// Authorize (and confirm existence) the same way content serving does.
+	if _, err := h.fileSvc.Get(c.Request.Context(), id); err != nil {
+		respondError(c, err)
+		return
+	}
+
+	userID, isAdmin, _ := domain.UserFromContext(c.Request.Context())
+	token, expiresIn, err := h.authSvc.GenerateContentToken(id.String(), userID, isAdmin)
+	if err != nil {
+		respondError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": token, "expires_in": expiresIn})
 }
 
 // ---------------------------------------------------------------------------

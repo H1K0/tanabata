@@ -18,6 +18,13 @@ type Config struct {
 	JWTSecret     string
 	JWTAccessTTL  time.Duration
 	JWTRefreshTTL time.Duration
+	// ContentTokenTTL is how long a content token stays valid. The token is a
+	// single-file capability used to open or stream an original by URL (e.g. a
+	// long video in a new tab); it is deliberately longer-lived than the access
+	// token and independent of the session, so playback survives access-token
+	// expiry and refresh rotation. Keep it only as long as a viewing session
+	// plausibly lasts — it is a bearer credential for that one file until expiry.
+	ContentTokenTTL time.Duration
 	// TrustedProxies lists the reverse-proxy hops (CIDRs or IPs) whose
 	// X-Forwarded-For header is trusted. The auth rate limiter keys on the
 	// client IP, so this must match the proxy in front of the app — otherwise
@@ -138,6 +145,8 @@ func Load() (*Config, error) {
 		JWTSecret:     requireStr("JWT_SECRET"),
 		JWTAccessTTL:  parseDuration("JWT_ACCESS_TTL", "15m"),
 		JWTRefreshTTL: parseDuration("JWT_REFRESH_TTL", "720h"),
+
+		ContentTokenTTL: parseDuration("CONTENT_TOKEN_TTL", "6h"),
 
 		TrustedProxies: parseCSV("TRUSTED_PROXIES", "127.0.0.1/32,::1/128,172.16.0.0/12"),
 

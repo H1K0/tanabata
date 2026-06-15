@@ -20,6 +20,11 @@ import (
 const (
 	tokenTypeAccess  = "access"
 	tokenTypeRefresh = "refresh"
+	// tokenTypeContent is a file-scoped capability for reading one file's
+	// content by URL (originals / media streaming). It is not tied to a session,
+	// so it outlives the short access TTL and refresh rotation — letting a long
+	// video keep playing past access-token expiry.
+	tokenTypeContent = "content"
 )
 
 // dummyPasswordHash is a valid bcrypt hash used to equalise the cost of a login
@@ -34,6 +39,8 @@ type Claims struct {
 	IsAdmin   bool   `json:"adm"`
 	SessionID int    `json:"sid"`
 	TokenType string `json:"typ"`
+	// FileID scopes a content token to a single file; empty on access/refresh.
+	FileID string `json:"fid,omitempty"`
 }
 
 // TokenPair holds an issued access/refresh token pair with the access TTL.
@@ -50,6 +57,7 @@ type AuthService struct {
 	secret     []byte
 	accessTTL  time.Duration
 	refreshTTL time.Duration
+	contentTTL time.Duration
 }
 
 // NewAuthService creates an AuthService.
@@ -59,6 +67,7 @@ func NewAuthService(
 	jwtSecret string,
 	accessTTL time.Duration,
 	refreshTTL time.Duration,
+	contentTTL time.Duration,
 ) *AuthService {
 	return &AuthService{
 		users:      users,
@@ -66,6 +75,7 @@ func NewAuthService(
 		secret:     []byte(jwtSecret),
 		accessTTL:  accessTTL,
 		refreshTTL: refreshTTL,
+		contentTTL: contentTTL,
 	}
 }
 
@@ -233,6 +243,53 @@ func (s *AuthService) ValidateAccessToken(ctx context.Context, tokenStr string) 
 	return claims, nil
 }
 
+// GenerateContentToken issues a file-scoped capability token authorizing reads of
+// one file's content (originals / media streaming) by URL. Unlike the access
+// token it carries no session and is not validated against one, so it survives
+// refresh rotation and outlives the short access TTL — which is what lets a long
+// video keep playing. It is a bearer credential for that single file until
+// ContentTokenTTL elapses. Returns the signed token and its lifetime in seconds.
+func (s *AuthService) GenerateContentToken(fileID string, userID int16, isAdmin bool) (string, int, error) {
+	jti, err := randomJTI()
+	if err != nil {
+		return "", 0, err
+	}
+	now := time.Now()
+	claims := Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        jti,
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(s.contentTTL)),
+		},
+		UserID:    userID,
+		IsAdmin:   isAdmin,
+		TokenType: tokenTypeContent,
+		FileID:    fileID,
+	}
+	signed, err := s.signClaims(claims)
+	if err != nil {
+		return "", 0, err
+	}
+	return signed, int(s.contentTTL.Seconds()), nil
+}
+
+// ValidateContentToken parses a content token and checks it authorizes fileID.
+// It verifies the signature and expiry (via parseToken), the content token type,
+// and that the embedded file ID matches the requested file — so a token minted
+// for one file cannot read another. It is intentionally session-independent (no
+// session lookup), which is what lets it outlive access-token/session rotation.
+// Per-file view permission is still enforced downstream against the token's user.
+func (s *AuthService) ValidateContentToken(tokenStr, fileID string) (*Claims, error) {
+	claims, err := s.parseToken(tokenStr)
+	if err != nil {
+		return nil, domain.ErrUnauthorized
+	}
+	if claims.TokenType != tokenTypeContent || claims.FileID != fileID {
+		return nil, domain.ErrUnauthorized
+	}
+	return claims, nil
+}
+
 // issueToken signs a JWT with the given parameters. A random JWT ID guarantees
 // uniqueness even for tokens minted within the same second.
 func (s *AuthService) issueToken(userID int16, isAdmin bool, sessionID int, ttl time.Duration, tokenType string) (string, error) {
@@ -252,6 +309,11 @@ func (s *AuthService) issueToken(userID int16, isAdmin bool, sessionID int, ttl 
 		SessionID: sessionID,
 		TokenType: tokenType,
 	}
+	return s.signClaims(claims)
+}
+
+// signClaims signs claims into an HS256 JWT with the service secret.
+func (s *AuthService) signClaims(claims Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString(s.secret)
 	if err != nil {
