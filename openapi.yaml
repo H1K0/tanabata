@@ -27,9 +27,11 @@ info:
 
     Operators: `(`, `)`, `&` (AND), `|` (OR), `!` (NOT).
     Conditions: `t=<tag_uuid>` (has tag), `t=00000000-0000-0000-0000-000000000000` (untagged),
-    `m=<mime_id>` (exact MIME), `m~<pattern>` (MIME LIKE pattern, e.g. `m~image%`).
+    `m=<mime_id>` (exact MIME), `m~<pattern>` (MIME LIKE pattern, e.g. `m~image%`),
+    `r=1` (needs review / not yet tagged-done), `r=0` (review done).
 
     Example: `{t=uuid1,&,!,t=uuid2}` → has tag1 AND NOT tag2.
+    Example: `{r=1,&,m~image%}` → needs review AND is an image.
   version: 1.0.0
   license:
     name: Proprietary
@@ -641,6 +643,33 @@ paths:
       responses:
         '204':
           description: Files moved to trash
+
+  /files/bulk/review:
+    post:
+      tags: [Files]
+      summary: Set the review status on one or more files
+      description: >-
+        Marks the given files as needing review (`needs_review=true`) or as
+        review-done (`false`). A single-file toggle is just a one-element list.
+        Files the caller cannot edit are silently skipped.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_ids, needs_review]
+              properties:
+                file_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                needs_review:
+                  type: boolean
+      responses:
+        '204':
+          description: Review status updated
 
   /files/bulk/common-tags:
     post:
@@ -1775,6 +1804,12 @@ components:
           type: boolean
         is_deleted:
           type: boolean
+        needs_review:
+          type: boolean
+          description: >-
+            True until the file's tagging is explicitly marked done. New uploads
+            and imports start true; cleared via POST /files/bulk/review. Filter
+            with `r=1` (needs review) / `r=0` (done).
         created_at:
           type: string
           format: date-time
