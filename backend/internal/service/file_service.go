@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -589,6 +590,23 @@ func (s *FileService) Import(ctx context.Context, path string, onProgress func(I
 		return nil, fmt.Errorf("FileService.Import: read dir %q: %w", dir, err)
 	}
 
+	// Import oldest-first: process entries in ascending mtime order so the
+	// resulting records' creation order matches the files' chronological order.
+	// mtimes are cached once (re-stat'ing per comparison would be wasteful) and
+	// reused below as the content_datetime fallback. Entries whose info can't be
+	// read get a zero time (sort first); they surface their error in the loop.
+	modTimes := make(map[string]time.Time, len(entries))
+	for _, e := range entries {
+		if info, infoErr := e.Info(); infoErr == nil {
+			modTimes[e.Name()] = info.ModTime()
+		}
+	}
+	// SliceStable preserves ReadDir's name order as a deterministic tiebreak for
+	// entries sharing an mtime.
+	sort.SliceStable(entries, func(a, b int) bool {
+		return modTimes[entries[a].Name()].Before(modTimes[entries[b].Name()])
+	})
+
 	emit := func(ev ImportEvent) {
 		if onProgress != nil {
 			onProgress(ev)
@@ -646,10 +664,9 @@ func (s *FileService) Import(ctx context.Context, path string, onProgress func(I
 
 		// Preserve the file's mtime as a content_datetime fallback (used only when
 		// the file has no EXIF date) — once the source is removed below it's the
-		// only date left for non-photo files.
+		// only date left for non-photo files. Reuses the mtime cached for sorting.
 		var mtime *time.Time
-		if info, statErr := entry.Info(); statErr == nil {
-			t := info.ModTime()
+		if t, ok := modTimes[name]; ok {
 			mtime = &t
 		}
 

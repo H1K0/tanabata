@@ -1295,6 +1295,50 @@ func TestImportFromFolder(t *testing.T) {
 	assert.True(t, ct.Equal(mtime), "content_datetime %v should equal mtime %v", ct, mtime)
 }
 
+// TestImportOrdersByMtime verifies that a folder import processes files in
+// ascending mtime order, regardless of filename order. The three files are named
+// so that alphabetical order (ReadDir's default) is the reverse of mtime order;
+// the progress-event indices must follow mtime, oldest first.
+func TestImportOrdersByMtime(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+	h := setupSuite(t)
+	adminToken := h.login("admin", "admin")
+
+	// name → mtime; alphabetical order (a,b,c) is the reverse of chronological.
+	files := []struct {
+		name  string
+		mtime time.Time
+	}{
+		{"a_newest.jpg", time.Date(2022, 1, 1, 0, 0, 0, 0, time.UTC)},
+		{"b_middle.jpg", time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)},
+		{"c_oldest.jpg", time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC)},
+	}
+	for _, f := range files {
+		p := filepath.Join(h.importDir, f.name)
+		require.NoError(t, os.WriteFile(p, minimalJPEG(), 0o644))
+		require.NoError(t, os.Chtimes(p, f.mtime, f.mtime))
+	}
+
+	resp := h.doJSON("POST", "/files/import", map[string]any{}, adminToken)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	events := parseImportEvents(t, resp)
+	idx := map[string]int{}
+	for _, ev := range events {
+		if ev.Type == "file" {
+			require.Equal(t, "imported", ev.Status, "%s: %s", ev.Filename, ev.Reason)
+			idx[ev.Filename] = ev.Index
+		}
+	}
+	require.Len(t, idx, 3, resp.String())
+
+	// Oldest first: c (2019) → b (2021) → a (2022).
+	assert.Less(t, idx["c_oldest.jpg"], idx["b_middle.jpg"], "oldest should be processed before middle")
+	assert.Less(t, idx["b_middle.jpg"], idx["a_newest.jpg"], "middle should be processed before newest")
+}
+
 // TestContentRangeRequests verifies the original-content endpoint answers a
 // byte-range request with 206 Partial Content (so the browser can seek within
 // audio/video) rather than streaming the whole body.
