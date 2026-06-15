@@ -5,6 +5,7 @@
 	import type { Category, Tag, TagOffsetPage } from '$lib/api/types';
 	import TagBadge from '$lib/components/tag/TagBadge.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
+	import { createRovingGrid } from '$lib/utils/rovingGrid.svelte';
 
 	let categoryId = $derived(page.params.id);
 
@@ -74,6 +75,33 @@
 
 	let tagsHasMore = $derived(tags.length < tagsTotal);
 
+	// Keyboard nav over the category's tags — same roving-focus model as the Files
+	// grid (arrows move the ring, Enter opens the focused tag).
+	let scrollEl = $state<HTMLElement>();
+	const roving = createRovingGrid<Tag>({
+		items: () => tags,
+		container: () => scrollEl,
+		onOpen: (tag) => goto(`/tags/${tag.id}`)
+	});
+
+	function isField(t: EventTarget | null): boolean {
+		return (
+			t instanceof HTMLElement &&
+			(t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))
+		);
+	}
+
+	// Arrows / Enter drive the roving grid; Escape peels one layer — first the
+	// focus ring, then (with no ring, no dialog, not mid-edit) leaves the page,
+	// mirroring the file viewer's Escape-to-close.
+	function onKey(e: KeyboardEvent) {
+		const hadFocus = roving.focusedId !== null;
+		roving.handleKey(e);
+		if (e.key === 'Escape' && !hadFocus && !confirmDelete && !isField(e.target)) {
+			goto('/categories');
+		}
+	}
+
 	async function save() {
 		if (!name.trim() || saving) return;
 		saving = true;
@@ -106,6 +134,8 @@
 	}
 </script>
 
+<svelte:window onkeydown={onKey} />
+
 <svelte:head>
 	<title>{category?.name ?? 'Category'} | Tanabata</title>
 </svelte:head>
@@ -126,7 +156,7 @@
 		<h1 class="page-title">{category?.name ?? 'Category'}</h1>
 	</header>
 
-	<main>
+	<main bind:this={scrollEl}>
 		{#if loadError}
 			<p class="error" role="alert">{loadError}</p>
 		{:else if !loaded}
@@ -219,9 +249,16 @@
 				{:else if tags.length === 0}
 					<p class="empty-tags">No tags in this category.</p>
 				{:else}
-					<div class="tag-grid">
-						{#each tags as tag (tag.id)}
-							<TagBadge {tag} onclick={() => goto(`/tags/${tag.id}`)} size="sm" />
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div class="tag-grid" onpointerdowncapture={() => roving.clearKbActive()}>
+						{#each tags as tag, i (tag.id)}
+							<TagBadge
+								{tag}
+								index={i}
+								focused={roving.kbActive && tag.id === roving.focusedId}
+								onclick={() => goto(`/tags/${tag.id}`)}
+								size="sm"
+							/>
 						{/each}
 					</div>
 

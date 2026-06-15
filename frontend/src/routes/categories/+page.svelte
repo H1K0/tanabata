@@ -6,6 +6,7 @@
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
 	import { saveSection, takeSection, type OffsetListSnapshot } from '$lib/stores/sectionCache';
 	import { restoreListScroll } from '$lib/stores/listScroll';
+	import { createRovingGrid } from '$lib/utils/rovingGrid.svelte';
 	import type { Category, CategoryOffsetPage } from '$lib/api/types';
 
 	const LIMIT = 100;
@@ -106,7 +107,18 @@
 	}
 
 	let hasMore = $derived(categories.length < total);
+
+	// Keyboard navigation: same roving-focus model as the Files grid (arrows move
+	// the ring, Enter opens, "/" focuses search, Escape drops the ring).
+	const roving = createRovingGrid<Category>({
+		items: () => categories,
+		container: () => scrollEl,
+		onOpen: (cat) => goto(`/categories/${cat.id}`),
+		focusSearch: () => document.querySelector<HTMLInputElement>('.search-input')?.focus()
+	});
 </script>
+
+<svelte:window onkeydown={roving.handleKey} />
 
 <svelte:head>
 	<title>Categories | Tanabata</title>
@@ -192,10 +204,13 @@
 			<p class="error" role="alert">{error}</p>
 		{/if}
 
-		<div class="category-grid">
-			{#each categories as cat (cat.id)}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="category-grid" onpointerdowncapture={() => roving.clearKbActive()}>
+			{#each categories as cat, i (cat.id)}
 				<button
 					class="category-pill"
+					class:focused={roving.kbActive && cat.id === roving.focusedId}
+					data-item-index={i}
 					style={cat.color ? `background-color: #${cat.color}` : ''}
 					onclick={() => goto(`/categories/${cat.id}`)}
 				>
@@ -382,6 +397,14 @@
 
 	.category-pill:hover {
 		filter: brightness(1.15);
+	}
+
+	.category-pill.focused {
+		outline: 2px solid var(--color-text-primary);
+		outline-offset: 2px;
+		/* Keep the ring clear of the fixed bottom navbar when scrolled into view. */
+		scroll-margin-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+		scroll-margin-top: 52px;
 	}
 
 	.error {

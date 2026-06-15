@@ -5,16 +5,27 @@
 		tag: Tag;
 		onclick?: () => void;
 		size?: 'sm' | 'md';
+		/** Roving keyboard-focus ring (shown only during keyboard navigation). */
+		focused?: boolean;
+		/** Position in a roving-focus grid; exposed as data-item-index for nav. */
+		index?: number;
 	}
 
-	let { tag, onclick, size = 'md' }: Props = $props();
+	let { tag, onclick, size = 'md', focused = false, index }: Props = $props();
 
 	const color = tag.color ?? tag.category_color;
 	const style = color ? `background-color: #${color}` : '';
 </script>
 
 {#if onclick}
-	<button class="badge {size}" {style} {onclick} type="button">
+	<button
+		class="badge {size}"
+		class:focused
+		{style}
+		{onclick}
+		type="button"
+		data-item-index={index}
+	>
 		{tag.name}
 	</button>
 {:else}
@@ -52,5 +63,13 @@
 
 	button.badge:hover {
 		filter: brightness(1.15);
+	}
+
+	.badge.focused {
+		outline: 2px solid var(--color-text-primary);
+		outline-offset: 2px;
+		/* Keep the ring clear of the fixed bottom navbar when scrolled into view. */
+		scroll-margin-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+		scroll-margin-top: 52px;
 	}
 </style>

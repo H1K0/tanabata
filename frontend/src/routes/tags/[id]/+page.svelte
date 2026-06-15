@@ -88,7 +88,25 @@
 			deleting = false;
 		}
 	}
+
+	function isField(t: EventTarget | null): boolean {
+		return (
+			t instanceof HTMLElement &&
+			(t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))
+		);
+	}
+
+	// This page is an edit form (no grid to rove), so the only file-keyboard parity
+	// is Escape-to-leave — mirroring the file viewer's close — guarded so it never
+	// fires mid-edit or over the delete dialog.
+	function onKey(e: KeyboardEvent) {
+		if (e.key === 'Escape' && !confirmDelete && !isField(e.target)) {
+			goto('/tags');
+		}
+	}
 </script>
+
+<svelte:window onkeydown={onKey} />
 
 <svelte:head>
 	<title>{tag?.name ?? 'Tag'} | Tanabata</title>

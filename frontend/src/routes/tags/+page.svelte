@@ -7,6 +7,7 @@
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
 	import { saveSection, takeSection, type OffsetListSnapshot } from '$lib/stores/sectionCache';
 	import { restoreListScroll } from '$lib/stores/listScroll';
+	import { createRovingGrid } from '$lib/utils/rovingGrid.svelte';
 	import type { Tag, TagOffsetPage } from '$lib/api/types';
 
 	const LIMIT = 100;
@@ -118,7 +119,18 @@
 	}
 
 	let hasMore = $derived(tags.length < total);
+
+	// Keyboard navigation: same roving-focus model as the Files grid (arrows move
+	// the ring, Enter opens, "/" focuses search, Escape drops the ring).
+	const roving = createRovingGrid<Tag>({
+		items: () => tags,
+		container: () => scrollEl,
+		onOpen: (tag) => goto(`/tags/${tag.id}`),
+		focusSearch: () => document.querySelector<HTMLInputElement>('.search-input')?.focus()
+	});
 </script>
+
+<svelte:window onkeydown={roving.handleKey} />
 
 <svelte:head>
 	<title>Tags | Tanabata</title>
@@ -202,9 +214,15 @@
 			<p class="error" role="alert">{error}</p>
 		{/if}
 
-		<div class="tag-grid">
-			{#each tags as tag (tag.id)}
-				<TagBadge {tag} onclick={() => goto(`/tags/${tag.id}`)} />
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="tag-grid" onpointerdowncapture={() => roving.clearKbActive()}>
+			{#each tags as tag, i (tag.id)}
+				<TagBadge
+					{tag}
+					index={i}
+					focused={roving.kbActive && tag.id === roving.focusedId}
+					onclick={() => goto(`/tags/${tag.id}`)}
+				/>
 			{/each}
 		</div>
 
