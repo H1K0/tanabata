@@ -35,21 +35,28 @@
       "type": "image/png"
     },
     {
-      "src": "/images/android-icon-192x192.png",
+      "src": "/images/pwa-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/images/apple-icon-180x180.png",
-      "sizes": "180x180",
-      "type": "image/png"
+      "src": "/images/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/images/ms-icon-310x310.png",
-      "sizes": "310x310",
+      "src": "/images/pwa-maskable-192x192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
+    },
+    {
+      "src": "/images/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
