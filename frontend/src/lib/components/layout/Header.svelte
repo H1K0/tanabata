@@ -12,6 +12,7 @@
 		onFilterToggle: () => void;
 		onUpload?: () => void;
 		onTrash?: () => void;
+		onDuplicates?: () => void;
 	}
 
 	let {
@@ -23,7 +24,8 @@
 		onOrderToggle,
 		onFilterToggle,
 		onUpload,
-		onTrash
+		onTrash,
+		onDuplicates
 	}: Props = $props();
 </script>
 
@@ -47,6 +49,20 @@
 					stroke-linejoin="round"
 				/>
 				<path d="M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+			</svg>
+		</button>
+	{/if}
+
+	{#if onDuplicates}
+		<button class="icon-btn dup-btn" onclick={onDuplicates} title="Duplicates">
+			<svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+				<rect x="2" y="2" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5" />
+				<path
+					d="M5 12.5h6A1.5 1.5 0 0 0 12.5 11V5"
+					stroke="currentColor"
+					stroke-width="1.5"
+					stroke-linecap="round"
+				/>
 			</svg>
 		</button>
 	{/if}

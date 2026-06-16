@@ -722,6 +722,7 @@
 		onFilterToggle={() => (filterOpen = !filterOpen)}
 		onUpload={() => uploader?.open()}
 		onTrash={() => goto('/files/trash')}
+		onDuplicates={() => goto('/files/duplicates')}
 	/>
 
 	{#if filterOpen}
