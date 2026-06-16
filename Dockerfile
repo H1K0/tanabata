@@ -44,6 +44,9 @@ COPY backend/ ./
 # metadata) and falls back to pure-Go image processing (disintegration/imaging)
 # when vips is absent, so it stays fully static and portable across base images.
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server
+# dedup: offline maintenance CLI for duplicate detection (hash backfill + pairs
+# rescan). Shipped alongside the server so it can be run with `docker exec`.
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/dedup ./cmd/dedup
 
 # -----------------------------------------------------------------------------
 # Stage 3 — minimal runtime
@@ -68,6 +71,8 @@ WORKDIR /app
 COPY --from=frontend --chown=tanabata:tanabata /src/frontend/build /app/static
 # The server binary.
 COPY --from=backend --chown=tanabata:tanabata /out/server /app/server
+# The dedup maintenance CLI (run via `docker exec`, not the entrypoint).
+COPY --from=backend --chown=tanabata:tanabata /out/dedup /app/dedup
 
 # Data directories (overridable via FILES_PATH/THUMBS_CACHE_PATH/IMPORT_PATH).
 # Created and owned by the tanabata user so a fresh named volume inherits write access.
