@@ -21,6 +21,7 @@ INSERT INTO activity.action_types (name) VALUES
     -- Files
     ('file_create'), ('file_edit'), ('file_delete'), ('file_restore'),
     ('file_permanent_delete'), ('file_replace'), ('file_review'),
+    ('file_merge'), ('duplicate_dismiss'),
     -- Tags
     ('tag_create'), ('tag_edit'), ('tag_delete'),
     -- Categories

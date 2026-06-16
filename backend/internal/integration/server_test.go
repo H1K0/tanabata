@@ -56,6 +56,9 @@ type harness struct {
 	client    *http.Client
 	importDir string
 	pool      *pgxpool.Pool
+	// dupSvc lets duplicate tests trigger a pairs rescan directly: rebuilding the
+	// pairs table is a CLI/maintenance action with no HTTP endpoint.
+	dupSvc *service.DuplicateService
 }
 
 // setupSuite creates an ephemeral database, runs migrations, wires the full
@@ -125,6 +128,8 @@ func setupSuite(t *testing.T) *harness {
 	tagRuleRepo := postgres.NewTagRuleRepo(pool)
 	categoryRepo := postgres.NewCategoryRepo(pool)
 	poolRepo := postgres.NewPoolRepo(pool)
+	duplicatePairRepo := postgres.NewDuplicatePairRepo(pool)
+	dismissalRepo := postgres.NewDismissalRepo(pool)
 	transactor := postgres.NewTransactor(pool)
 
 	// --- Services ------------------------------------------------------------
@@ -134,6 +139,7 @@ func setupSuite(t *testing.T) *harness {
 	tagSvc := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
 	categorySvc := service.NewCategoryService(categoryRepo, tagRepo, aclSvc, auditSvc)
 	poolSvc := service.NewPoolService(poolRepo, aclSvc, auditSvc)
+	duplicateSvc := service.NewDuplicateService(fileRepo, duplicatePairRepo, dismissalRepo, aclSvc, auditSvc, transactor, 10)
 	fileSvc := service.NewFileService(fileRepo, mimeRepo, diskStorage, aclSvc, auditSvc, tagSvc, transactor, importDir)
 	userSvc := service.NewUserService(userRepo, sessionRepo, auditSvc)
 
@@ -145,6 +151,7 @@ func setupSuite(t *testing.T) *harness {
 	authMiddleware := handler.NewAuthMiddleware(authSvc)
 	authHandler := handler.NewAuthHandler(authSvc)
 	fileHandler := handler.NewFileHandler(fileSvc, tagSvc, authSvc, 500<<20)
+	duplicateHandler := handler.NewDuplicateHandler(duplicateSvc)
 	tagHandler := handler.NewTagHandler(tagSvc, fileSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 	poolHandler := handler.NewPoolHandler(poolSvc)
@@ -154,7 +161,7 @@ func setupSuite(t *testing.T) *harness {
 
 	r, err := handler.NewRouter(
 		authMiddleware, authHandler,
-		fileHandler, tagHandler, categoryHandler, poolHandler,
+		fileHandler, duplicateHandler, tagHandler, categoryHandler, poolHandler,
 		userHandler, aclHandler, auditHandler,
 		"",
 		nil,
@@ -170,6 +177,7 @@ func setupSuite(t *testing.T) *harness {
 		client:    srv.Client(),
 		importDir: importDir,
 		pool:      pool,
+		dupSvc:    duplicateSvc,
 	}
 }
 
@@ -1643,3 +1651,103 @@ var (
 	_ = freePort
 	_ = writeFile
 )
+
+// dupListResponse decodes GET /files/duplicates.
+type dupListResponse struct {
+	Items []struct {
+		Files []struct {
+			ID   string `json:"id"`
+			Tags []struct {
+				ID string `json:"id"`
+			} `json:"tags"`
+		} `json:"files"`
+	} `json:"items"`
+	Total int `json:"total"`
+}
+
+// TestDuplicateDetection exercises the full duplicate lifecycle: perceptual hashes
+// are computed on upload, a rescan builds the pairs table, the cluster surfaces,
+// a field-by-field merge unions tags and trashes the discarded file, and a
+// dismissal hides a pair permanently (surviving a re-rescan).
+//
+// minimalJPEG() is a 1×1 image, so every upload hashes identically — in a fresh
+// database any two uploads form one duplicate pair, which keeps this deterministic.
+func TestDuplicateDetection(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	ctx := context.Background()
+	admin := h.login("admin", "admin")
+
+	// --- two uploads => one duplicate pair after a rescan ---------------------
+	f1 := h.uploadJPEG(admin, "a.jpg")["id"].(string)
+	f2 := h.uploadJPEG(admin, "b.jpg")["id"].(string)
+
+	// Tag f2 so the merge has something to union onto the survivor.
+	resp := h.doJSON("POST", "/tags", map[string]any{"name": "kept", "is_public": true}, admin)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var tag map[string]any
+	resp.decode(t, &tag)
+	tagID := tag["id"].(string)
+	resp = h.doJSON("PUT", "/files/"+f2+"/tags", map[string]any{"tag_ids": []string{tagID}}, admin)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+
+	require.NoError(t, h.dupSvc.Rescan(ctx, nil))
+
+	resp = h.doJSON("GET", "/files/duplicates", nil, admin)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	var list dupListResponse
+	resp.decode(t, &list)
+	require.Equal(t, 1, list.Total, "expected one duplicate cluster: %s", resp)
+	require.Len(t, list.Items, 1)
+	require.Len(t, list.Items[0].Files, 2)
+
+	// --- resolve: keep f1, union tags from f2, trash f2 ----------------------
+	resp = h.doJSON("POST", "/files/duplicates/resolve", map[string]any{
+		"keep":             f1,
+		"discard":          f2,
+		"fields":           map[string]any{"tags": "both"},
+		"delete_discarded": true,
+	}, admin)
+	require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	var survivor struct {
+		ID   string `json:"id"`
+		Tags []struct {
+			ID string `json:"id"`
+		} `json:"tags"`
+	}
+	resp.decode(t, &survivor)
+	assert.Equal(t, f1, survivor.ID)
+	require.Len(t, survivor.Tags, 1, "survivor should have inherited the discarded file's tag")
+	assert.Equal(t, tagID, survivor.Tags[0].ID)
+
+	// f2 is now trashed, so the pair drops out of the duplicates view.
+	resp = h.doJSON("GET", "/files/duplicates", nil, admin)
+	resp.decode(t, &list)
+	assert.Equal(t, 0, list.Total, "resolved pair should no longer surface: %s", resp)
+
+	// --- dismiss: a new pair, hidden and staying hidden across a rescan -------
+	f3 := h.uploadJPEG(admin, "c.jpg")["id"].(string)
+	require.NoError(t, h.dupSvc.Rescan(ctx, nil))
+
+	resp = h.doJSON("GET", "/files/duplicates", nil, admin)
+	resp.decode(t, &list)
+	require.Equal(t, 1, list.Total, "f1 and f3 should now form a cluster: %s", resp)
+
+	resp = h.doJSON("POST", "/files/duplicates/dismiss", map[string]any{
+		"file_id_a": f1, "file_id_b": f3,
+	}, admin)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
+
+	resp = h.doJSON("GET", "/files/duplicates", nil, admin)
+	resp.decode(t, &list)
+	assert.Equal(t, 0, list.Total, "dismissed pair should be hidden")
+
+	// A rescan re-finds the pair but the dismissal still hides it.
+	require.NoError(t, h.dupSvc.Rescan(ctx, nil))
+	resp = h.doJSON("GET", "/files/duplicates", nil, admin)
+	resp.decode(t, &list)
+	assert.Equal(t, 0, list.Total, "dismissal must survive a rescan")
+}

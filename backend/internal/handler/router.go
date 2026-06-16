@@ -26,6 +26,7 @@ func NewRouter(
 	auth *AuthMiddleware,
 	authHandler *AuthHandler,
 	fileHandler *FileHandler,
+	duplicateHandler *DuplicateHandler,
 	tagHandler *TagHandler,
 	categoryHandler *CategoryHandler,
 	poolHandler *PoolHandler,
@@ -80,7 +81,11 @@ func NewRouter(
 		files.GET("", fileHandler.List)
 		files.POST("", fileHandler.Upload)
 
-		// Bulk + import routes registered before /:id to prevent param collision.
+		// Bulk + import + duplicates routes registered before /:id to prevent
+		// param collision (e.g. "duplicates" being captured as :id).
+		files.GET("/duplicates", duplicateHandler.List)
+		files.POST("/duplicates/dismiss", duplicateHandler.Dismiss)
+		files.POST("/duplicates/resolve", duplicateHandler.Resolve)
 		files.POST("/bulk/tags", fileHandler.BulkSetTags)
 		files.POST("/bulk/delete", fileHandler.BulkDelete)
 		files.POST("/bulk/review", fileHandler.BulkReview)

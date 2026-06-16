@@ -26,6 +26,12 @@ CREATE INDEX idx__files__needs_review      ON data.files USING btree (id) WHERE 
 CREATE INDEX idx__file_tag__tag_id  ON data.file_tag USING hash (tag_id);
 CREATE INDEX idx__file_tag__file_id ON data.file_tag USING hash (file_id);
 
+-- data.duplicate_pairs / data.duplicate_dismissals
+-- The composite primary keys cover lookups on file_a; these add the file_b side
+-- (used by the ON DELETE CASCADE and by the visibility join on the second file).
+CREATE INDEX idx__duplicate_pairs__file_b      ON data.duplicate_pairs      USING hash (file_b);
+CREATE INDEX idx__duplicate_dismissals__file_b ON data.duplicate_dismissals USING hash (file_b);
+
 -- data.pools
 CREATE INDEX idx__pools__creator_id ON data.pools USING hash (creator_id);
 
@@ -70,6 +76,8 @@ DROP INDEX IF EXISTS activity.idx__sessions__token_hash;
 DROP INDEX IF EXISTS activity.idx__sessions__user_id;
 DROP INDEX IF EXISTS acl.idx__acl__user;
 DROP INDEX IF EXISTS acl.idx__acl__object;
+DROP INDEX IF EXISTS data.idx__duplicate_dismissals__file_b;
+DROP INDEX IF EXISTS data.idx__duplicate_pairs__file_b;
 DROP INDEX IF EXISTS data.idx__file_pool__file_id;
 DROP INDEX IF EXISTS data.idx__file_pool__pool_id;
 DROP INDEX IF EXISTS data.idx__pools__creator_id;

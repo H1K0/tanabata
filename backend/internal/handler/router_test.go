@@ -10,7 +10,7 @@ import "testing"
 func TestNewRouterRegisters(t *testing.T) {
 	r, err := NewRouter(
 		(*AuthMiddleware)(nil), (*AuthHandler)(nil),
-		(*FileHandler)(nil), (*TagHandler)(nil), (*CategoryHandler)(nil), (*PoolHandler)(nil),
+		(*FileHandler)(nil), (*DuplicateHandler)(nil), (*TagHandler)(nil), (*CategoryHandler)(nil), (*PoolHandler)(nil),
 		(*UserHandler)(nil), (*ACLHandler)(nil), (*AuditHandler)(nil),
 		"", nil,
 	)

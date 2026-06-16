@@ -92,6 +92,31 @@ CREATE TABLE data.file_pool (
     PRIMARY KEY (file_id, pool_id)
 );
 
+-- Precomputed near-duplicate candidates (phash Hamming distance <= threshold),
+-- (re)built in full by the dedup rescan. Stored once per unordered pair with a
+-- canonical file_a < file_b ordering so a pair is never duplicated as (a,b)/(b,a).
+CREATE TABLE data.duplicate_pairs (
+    file_a   uuid     NOT NULL REFERENCES data.files(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    file_b   uuid     NOT NULL REFERENCES data.files(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    distance smallint NOT NULL,
+
+    CONSTRAINT chk__duplicate_pairs__order CHECK (file_a < file_b),
+    PRIMARY KEY (file_a, file_b)
+);
+
+-- "Not a duplicate" decisions: a global overlay that hides a candidate pair from
+-- the duplicates view. Survives rescans (the pair may be re-found but stays
+-- hidden). Same canonical file_a < file_b ordering as data.duplicate_pairs.
+CREATE TABLE data.duplicate_dismissals (
+    file_a       uuid        NOT NULL REFERENCES data.files(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    file_b       uuid        NOT NULL REFERENCES data.files(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    dismissed_by smallint    NOT NULL REFERENCES core.users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    dismissed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+
+    CONSTRAINT chk__duplicate_dismissals__order CHECK (file_a < file_b),
+    PRIMARY KEY (file_a, file_b)
+);
+
 COMMENT ON TABLE  data.categories IS 'Logical grouping of tags';
 COMMENT ON TABLE  data.tags       IS 'File labels/tags';
 COMMENT ON TABLE  data.tag_rules  IS 'Auto-tagging rules: when when_tag is assigned, then_tag follows';
@@ -99,6 +124,8 @@ COMMENT ON TABLE  data.files      IS 'Managed files; actual content stored on di
 COMMENT ON TABLE  data.file_tag   IS 'Many-to-many: files <-> tags';
 COMMENT ON TABLE  data.pools      IS 'Ordered collections of files';
 COMMENT ON TABLE  data.file_pool  IS 'Many-to-many: files <-> pools, with ordering';
+COMMENT ON TABLE  data.duplicate_pairs       IS 'Precomputed near-duplicate candidate pairs (perceptual-hash distance)';
+COMMENT ON TABLE  data.duplicate_dismissals  IS 'Pairs marked "not a duplicate"; hidden from the duplicates view';
 
 COMMENT ON COLUMN data.files.original_name    IS 'Original filename at upload time';
 COMMENT ON COLUMN data.files.content_datetime IS 'Content datetime (e.g. when photo was taken); falls back to EXIF DateTimeOriginal';
@@ -110,6 +137,8 @@ COMMENT ON COLUMN data.file_pool.position     IS 'Manual ordering within pool; u
 
 -- +goose Down
 
+DROP TABLE IF EXISTS data.duplicate_dismissals;
+DROP TABLE IF EXISTS data.duplicate_pairs;
 DROP TABLE IF EXISTS data.file_pool;
 DROP TABLE IF EXISTS data.pools;
 DROP TABLE IF EXISTS data.file_tag;

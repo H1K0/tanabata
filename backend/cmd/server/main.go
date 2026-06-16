@@ -70,6 +70,8 @@ func main() {
 	tagRuleRepo := postgres.NewTagRuleRepo(pool)
 	categoryRepo := postgres.NewCategoryRepo(pool)
 	poolRepo := postgres.NewPoolRepo(pool)
+	duplicatePairRepo := postgres.NewDuplicatePairRepo(pool)
+	dismissalRepo := postgres.NewDismissalRepo(pool)
 	transactor := postgres.NewTransactor(pool)
 
 	// Services
@@ -86,6 +88,9 @@ func main() {
 	tagSvc := service.NewTagService(tagRepo, tagRuleRepo, aclSvc, auditSvc, transactor)
 	categorySvc := service.NewCategoryService(categoryRepo, tagRepo, aclSvc, auditSvc)
 	poolSvc := service.NewPoolService(poolRepo, aclSvc, auditSvc)
+	duplicateSvc := service.NewDuplicateService(
+		fileRepo, duplicatePairRepo, dismissalRepo, aclSvc, auditSvc, transactor, cfg.DuplicateHashThreshold,
+	)
 	fileSvc := service.NewFileService(
 		fileRepo,
 		mimeRepo,
@@ -108,6 +113,7 @@ func main() {
 	authMiddleware := handler.NewAuthMiddleware(authSvc)
 	authHandler := handler.NewAuthHandler(authSvc)
 	fileHandler := handler.NewFileHandler(fileSvc, tagSvc, authSvc, cfg.MaxUploadBytes)
+	duplicateHandler := handler.NewDuplicateHandler(duplicateSvc)
 	tagHandler := handler.NewTagHandler(tagSvc, fileSvc)
 	categoryHandler := handler.NewCategoryHandler(categorySvc)
 	poolHandler := handler.NewPoolHandler(poolSvc)
@@ -117,7 +123,7 @@ func main() {
 
 	r, err := handler.NewRouter(
 		authMiddleware, authHandler,
-		fileHandler, tagHandler, categoryHandler, poolHandler,
+		fileHandler, duplicateHandler, tagHandler, categoryHandler, poolHandler,
 		userHandler, aclHandler, auditHandler,
 		cfg.StaticDir,
 		cfg.TrustedProxies,

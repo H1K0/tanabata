@@ -447,6 +447,89 @@ func (r *FileRepo) SetPHash(ctx context.Context, id uuid.UUID, phash *int64) err
 }
 
 // ---------------------------------------------------------------------------
+// Perceptual-hash / duplicate support
+// ---------------------------------------------------------------------------
+
+// ListMissingPHash returns live image/video files that have no perceptual hash
+// yet — the work list for the dedup backfill. Tags are not loaded (the backfill
+// only needs the id and MIME type to choose image vs video hashing).
+func (r *FileRepo) ListMissingPHash(ctx context.Context) ([]domain.File, error) {
+	const sqlStr = `
+        SELECT f.id, f.original_name,
+               mt.name AS mime_type, mt.extension AS mime_extension,
+               f.content_datetime, f.notes, f.metadata, f.exif, f.phash,
+               f.creator_id, u.name AS creator_name,
+               f.is_public, f.is_deleted, f.needs_review
+        FROM data.files f
+        JOIN core.mime_types mt ON mt.id = f.mime_id
+        JOIN core.users u       ON u.id  = f.creator_id
+        WHERE f.phash IS NULL AND f.is_deleted = false
+          AND (mt.name LIKE 'image/%' OR mt.name LIKE 'video/%')
+        ORDER BY f.id`
+
+	q := connOrTx(ctx, r.pool)
+	rows, err := q.Query(ctx, sqlStr)
+	if err != nil {
+		return nil, fmt.Errorf("FileRepo.ListMissingPHash: %w", err)
+	}
+	collected, err := pgx.CollectRows(rows, pgx.RowToStructByName[fileRow])
+	if err != nil {
+		return nil, fmt.Errorf("FileRepo.ListMissingPHash scan: %w", err)
+	}
+	files := make([]domain.File, len(collected))
+	for i, row := range collected {
+		files[i] = toFile(row)
+	}
+	return files, nil
+}
+
+// phashRow is the minimal projection used to build duplicate clusters.
+type phashRow struct {
+	ID    uuid.UUID `db:"id"`
+	PHash int64     `db:"phash"`
+}
+
+// ListAllPHashes returns the id and perceptual hash of every live, hashed file.
+// It is the global input to the dedup rescan, so it deliberately ignores ACL —
+// the rescan builds the shared pairs table; visibility is enforced on read.
+func (r *FileRepo) ListAllPHashes(ctx context.Context) ([]domain.PHashEntry, error) {
+	const sqlStr = `SELECT id, phash FROM data.files WHERE is_deleted = false AND phash IS NOT NULL`
+	q := connOrTx(ctx, r.pool)
+	rows, err := q.Query(ctx, sqlStr)
+	if err != nil {
+		return nil, fmt.Errorf("FileRepo.ListAllPHashes: %w", err)
+	}
+	collected, err := pgx.CollectRows(rows, pgx.RowToStructByName[phashRow])
+	if err != nil {
+		return nil, fmt.Errorf("FileRepo.ListAllPHashes scan: %w", err)
+	}
+	out := make([]domain.PHashEntry, len(collected))
+	for i, row := range collected {
+		out[i] = domain.PHashEntry{ID: row.ID, PHash: row.PHash}
+	}
+	return out, nil
+}
+
+// CopyPoolMemberships adds targetID to every pool sourceID belongs to (copying
+// the source's position), skipping pools the target is already in. Used by the
+// duplicate merge to preserve the discarded file's pool memberships on the
+// survivor. The merge is authorised at the file level, so pool ACL is not
+// re-checked here.
+func (r *FileRepo) CopyPoolMemberships(ctx context.Context, targetID, sourceID uuid.UUID) error {
+	const sqlStr = `
+        INSERT INTO data.file_pool (file_id, pool_id, position)
+        SELECT $1, fp.pool_id, fp.position
+        FROM data.file_pool fp
+        WHERE fp.file_id = $2
+        ON CONFLICT (file_id, pool_id) DO NOTHING`
+	q := connOrTx(ctx, r.pool)
+	if _, err := q.Exec(ctx, sqlStr, targetID, sourceID); err != nil {
+		return fmt.Errorf("FileRepo.CopyPoolMemberships: %w", err)
+	}
+	return nil
+}
+
+// ---------------------------------------------------------------------------
 // SoftDelete / Restore / DeletePermanent
 // ---------------------------------------------------------------------------
 

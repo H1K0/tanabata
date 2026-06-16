@@ -52,6 +52,15 @@ type FileRepo interface {
 	SetNeedsReview(ctx context.Context, ids []uuid.UUID, value bool) error
 	// SetPHash sets (or clears, when nil) the perceptual hash of a file.
 	SetPHash(ctx context.Context, id uuid.UUID, phash *int64) error
+	// ListMissingPHash returns live image/video files that have no perceptual
+	// hash yet (the dedup backfill work list).
+	ListMissingPHash(ctx context.Context) ([]domain.File, error)
+	// ListAllPHashes returns the id and perceptual hash of every live, hashed
+	// file (the global input to the dedup rescan; not ACL-filtered).
+	ListAllPHashes(ctx context.Context) ([]domain.PHashEntry, error)
+	// CopyPoolMemberships adds targetID to every pool sourceID belongs to,
+	// skipping pools target is already in (used by the duplicate merge).
+	CopyPoolMemberships(ctx context.Context, targetID, sourceID uuid.UUID) error
 	// SoftDelete moves a file to trash (sets is_deleted = true).
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 	// Restore moves a file out of trash (sets is_deleted = false).
@@ -70,6 +79,21 @@ type FileRepo interface {
 	// activity.tag_uses, flagging each included or excluded. Best-effort
 	// analytics — callers may ignore the error.
 	RecordTagUses(ctx context.Context, userID int16, filterDSL string) error
+}
+
+// DuplicatePairRepo persists the precomputed near-duplicate candidate pairs.
+type DuplicatePairRepo interface {
+	// ReplaceAll atomically replaces the whole pairs table (used by the rescan).
+	ReplaceAll(ctx context.Context, pairs []domain.DuplicatePair) error
+	// ListVisible returns pairs whose both files are live, not dismissed, and
+	// (for non-admins) visible to the viewer.
+	ListVisible(ctx context.Context, viewerID int16, isAdmin bool) ([]domain.DuplicatePair, error)
+}
+
+// DismissalRepo persists "not a duplicate" decisions.
+type DismissalRepo interface {
+	// Add records a pair as dismissed (canonical order, idempotent).
+	Add(ctx context.Context, a, b uuid.UUID, userID int16) error
 }
 
 // TagRepo is the persistence interface for tags.
