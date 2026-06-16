@@ -247,5 +247,10 @@ func (s *PoolService) Reorder(ctx context.Context, poolID uuid.UUID, fileIDs []u
 	if err := s.authorizeEdit(ctx, poolID); err != nil {
 		return err
 	}
-	return s.pools.Reorder(ctx, poolID, fileIDs)
+	if err := s.pools.Reorder(ctx, poolID, fileIDs); err != nil {
+		return err
+	}
+	objType := poolObjectType
+	_ = s.audit.Log(ctx, "file_pool_reorder", &objType, &poolID, map[string]any{"count": len(fileIDs)})
+	return nil
 }

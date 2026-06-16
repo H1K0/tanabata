@@ -30,7 +30,7 @@ INSERT INTO activity.action_types (name) VALUES
     ('pool_create'), ('pool_edit'), ('pool_delete'),
     -- Relations
     ('file_tag_add'), ('file_tag_remove'),
-    ('file_pool_add'), ('file_pool_remove'),
+    ('file_pool_add'), ('file_pool_remove'), ('file_pool_reorder'),
     -- ACL
     ('acl_change'),
     -- Admin
