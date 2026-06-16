@@ -11,12 +11,30 @@ import (
 	"tanabata/backend/internal/db"
 )
 
+// appName tags every connection as application_name, so the backend's sessions
+// are identifiable in pg_stat_activity and server logs (and distinguishable from
+// e.g. goose migrations or a psql shell).
+const appName = "tanabata-backend"
+
 // NewPool creates and validates a *pgxpool.Pool from the given connection URL.
 // The pool is ready to use; the caller is responsible for closing it.
 func NewPool(ctx context.Context, url string) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(ctx, url)
+	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil {
-		return nil, fmt.Errorf("pgxpool.New: %w", err)
+		return nil, fmt.Errorf("pgxpool.ParseConfig: %w", err)
+	}
+	// Set application_name unless the operator already specified one in the DSN
+	// (or via PGAPPNAME), so an explicit override still wins.
+	if cfg.ConnConfig.RuntimeParams == nil {
+		cfg.ConnConfig.RuntimeParams = map[string]string{}
+	}
+	if cfg.ConnConfig.RuntimeParams["application_name"] == "" {
+		cfg.ConnConfig.RuntimeParams["application_name"] = appName
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("pgxpool.NewWithConfig: %w", err)
 	}
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
