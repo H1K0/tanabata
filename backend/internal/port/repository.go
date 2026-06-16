@@ -50,6 +50,8 @@ type FileRepo interface {
 	Update(ctx context.Context, id uuid.UUID, f *domain.File) (*domain.File, error)
 	// SetNeedsReview sets the review status on the given (non-trashed) files.
 	SetNeedsReview(ctx context.Context, ids []uuid.UUID, value bool) error
+	// SetPHash sets (or clears, when nil) the perceptual hash of a file.
+	SetPHash(ctx context.Context, id uuid.UUID, phash *int64) error
 	// SoftDelete moves a file to trash (sets is_deleted = true).
 	SoftDelete(ctx context.Context, id uuid.UUID) error
 	// Restore moves a file out of trash (sets is_deleted = false).

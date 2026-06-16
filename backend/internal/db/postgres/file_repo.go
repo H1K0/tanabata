@@ -434,6 +434,18 @@ func (r *FileRepo) SetNeedsReview(ctx context.Context, ids []uuid.UUID, value bo
 	return nil
 }
 
+// SetPHash sets (or clears, when phash is nil) the perceptual hash of a file.
+// Used by the dedup backfill and on content replacement; phash is non-critical,
+// recomputable metadata, so callers may treat failures as best-effort.
+func (r *FileRepo) SetPHash(ctx context.Context, id uuid.UUID, phash *int64) error {
+	const sqlStr = `UPDATE data.files SET phash = $2 WHERE id = $1`
+	q := connOrTx(ctx, r.pool)
+	if _, err := q.Exec(ctx, sqlStr, id, phash); err != nil {
+		return fmt.Errorf("FileRepo.SetPHash: %w", err)
+	}
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // SoftDelete / Restore / DeletePermanent
 // ---------------------------------------------------------------------------

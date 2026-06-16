@@ -16,6 +16,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/disintegration/imaging"
@@ -153,6 +155,30 @@ func (s *DiskStorage) Thumbnail(ctx context.Context, id uuid.UUID) (io.ReadClose
 // are thumbnailed via ffmpeg; other non-image files get a placeholder.
 func (s *DiskStorage) Preview(ctx context.Context, id uuid.UUID) (io.ReadCloser, error) {
 	return s.serveGenerated(ctx, id, s.previewCachePath(id), s.previewWidth, s.previewHeight)
+}
+
+// VideoFrameMiddle decodes a representative frame from the middle of a video
+// (duration/2). The midpoint avoids the shared intros, title cards and black
+// lead-in frames that make a fixed early offset collide across unrelated clips,
+// so it is the right source for the video's perceptual (duplicate-detection)
+// hash. The file must already exist in storage; ffmpeg/ffprobe must be installed.
+// This is not part of port.FileStorage — only the dedup CLI needs it, with a
+// concrete *DiskStorage — so the interface stays lean and ffmpeg stays out of the
+// upload path.
+func (s *DiskStorage) VideoFrameMiddle(ctx context.Context, id uuid.UUID) (image.Image, error) {
+	srcPath := s.originalPath(id)
+	if _, err := os.Stat(srcPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, fmt.Errorf("storage: stat %q: %w", srcPath, err)
+	}
+	// Fall back to a 1s offset if duration can't be probed — better a frame than none.
+	at := 1.0
+	if d, err := videoDurationSeconds(ctx, srcPath); err == nil && d > 0 {
+		at = d / 2
+	}
+	return extractVideoFrameAt(ctx, srcPath, at)
 }
 
 // ---------------------------------------------------------------------------
@@ -342,19 +368,25 @@ func (s *DiskStorage) vipsThumbnail(ctx context.Context, srcPath, cachePath stri
 	return f, nil
 }
 
-// extractVideoFrame uses ffmpeg to extract a single frame from a video file.
-// It seeks 1 second in (keyframe-accurate fast seek) and pipes the frame out
-// as PNG. If the video is shorter than 1 s the seek is silently ignored by
-// ffmpeg and the first available frame is returned instead.
-// Returns an error if ffmpeg is not installed or produces no output. The run is
-// bounded by a timeout so a malformed file cannot hang the request indefinitely.
+// extractVideoFrame extracts a single frame ~1 second into the video — a safe
+// default for thumbnails. See extractVideoFrameAt for the mechanics.
 func extractVideoFrame(ctx context.Context, srcPath string) (image.Image, error) {
+	return extractVideoFrameAt(ctx, srcPath, 1)
+}
+
+// extractVideoFrameAt uses ffmpeg to extract a single frame at atSec seconds into
+// the video, piped out as PNG. The fast input seek (-ss before -i) is keyframe-
+// accurate and cheap; if atSec is past the end the seek is silently ignored and
+// the first available frame is returned instead. Returns an error if ffmpeg is
+// not installed or produces no output. The run is bounded by a timeout so a
+// malformed file cannot hang the caller indefinitely.
+func extractVideoFrameAt(ctx context.Context, srcPath string, atSec float64) (image.Image, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	var out bytes.Buffer
 	cmd := exec.CommandContext(ctx, "ffmpeg",
-		"-ss", "1", // fast input seek; ignored gracefully on short files
+		"-ss", strconv.FormatFloat(atSec, 'f', 3, 64), // fast input seek; ignored gracefully past end
 		"-i", srcPath,
 		"-vframes", "1",
 		"-f", "image2",
@@ -368,6 +400,29 @@ func extractVideoFrame(ctx context.Context, srcPath string) (image.Image, error)
 		return nil, fmt.Errorf("ffmpeg frame extract: %w", err)
 	}
 	return imaging.Decode(&out)
+}
+
+// videoDurationSeconds returns the container duration in seconds via ffprobe.
+// Used to seek to the middle of a clip for perceptual hashing.
+func videoDurationSeconds(ctx context.Context, srcPath string) (float64, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "ffprobe",
+		"-v", "error",
+		"-show_entries", "format=duration",
+		"-of", "default=noprint_wrappers=1:nokey=1",
+		srcPath,
+	)
+	out, err := cmd.Output()
+	if err != nil {
+		return 0, fmt.Errorf("ffprobe duration: %w", err)
+	}
+	d, err := strconv.ParseFloat(strings.TrimSpace(string(out)), 64)
+	if err != nil {
+		return 0, fmt.Errorf("ffprobe duration parse %q: %w", out, err)
+	}
+	return d, nil
 }
 
 // ---------------------------------------------------------------------------

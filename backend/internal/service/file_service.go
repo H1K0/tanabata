@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 
 	"tanabata/backend/internal/domain"
+	"tanabata/backend/internal/imagehash"
 	"tanabata/backend/internal/port"
 )
 
@@ -154,6 +155,17 @@ func (s *FileService) Upload(ctx context.Context, p UploadParams) (*domain.File,
 	}
 	exifData, exifDatetime := extractMetadata(data, origName, p.ContentDatetimeFallback)
 
+	// Compute a perceptual hash for images so duplicate detection can later match
+	// near-identical files. Best-effort: a decode failure just leaves phash unset
+	// (the dedup CLI backfills it). Video is hashed by that CLI, not inline, to keep
+	// ffmpeg off the upload path.
+	var phash *int64
+	if strings.HasPrefix(mime.Name, "image/") {
+		if h, ok := imagehash.FromBytes(data); ok {
+			phash = &h
+		}
+	}
+
 	// Resolve content datetime: explicit > metadata date > fallback (e.g. import mtime) > zero.
 	var contentDatetime time.Time
 	if p.ContentDatetime != nil {
@@ -187,6 +199,7 @@ func (s *FileService) Upload(ctx context.Context, p UploadParams) (*domain.File,
 			Notes:           p.Notes,
 			Metadata:        p.Metadata,
 			EXIF:            exifData,
+			PHash:           phash,
 			CreatorID:       userID,
 			IsPublic:        p.IsPublic,
 		}
@@ -452,6 +465,18 @@ func (s *FileService) Replace(ctx context.Context, id uuid.UUID, p UploadParams)
 	if err != nil {
 		return nil, err
 	}
+
+	// Recompute the perceptual hash from the new content: images inline, anything
+	// else cleared to NULL so the old content's hash never lingers (the dedup CLI
+	// recomputes video). Best-effort, like on upload — phash is recomputable.
+	var phash *int64
+	if strings.HasPrefix(mime.Name, "image/") {
+		if h, ok := imagehash.FromBytes(data); ok {
+			phash = &h
+		}
+	}
+	_ = s.files.SetPHash(ctx, id, phash)
+	updated.PHash = phash
 
 	objType := fileObjectType
 	_ = s.audit.Log(ctx, "file_replace", &objType, &id, nil)

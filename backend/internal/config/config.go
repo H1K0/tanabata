@@ -63,6 +63,12 @@ type Config struct {
 	// Import
 	ImportPath string
 
+	// DuplicateHashThreshold is the maximum Hamming distance (out of 64) between
+	// two perceptual hashes for the files to be treated as duplicate candidates.
+	// Lower = stricter (fewer, more confident matches); higher = looser. Used only
+	// by the dedup rescan that (re)builds data.duplicate_pairs.
+	DuplicateHashThreshold int
+
 	// Static SPA. When set, the server serves the built frontend (and falls
 	// back to index.html for client routes) on the same port as the API. Empty
 	// in local development, where the Vite dev server serves the UI separately.
@@ -175,6 +181,8 @@ func Load() (*Config, error) {
 		ThumbConcurrency: parseInt("THUMB_CONCURRENCY", 0),          // 0 = auto
 
 		ImportPath: requireStr("IMPORT_PATH"),
+
+		DuplicateHashThreshold: parseInt("DUPLICATE_HASH_THRESHOLD", 10),
 
 		StaticDir: defaultStr("STATIC_DIR", ""),
 	}
