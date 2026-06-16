@@ -114,6 +114,40 @@ services:
       timeout: 5s
       retries: 10
 
+  # One-shot maintenance task for duplicate detection: computes missing
+  # perceptual hashes (images + video) and rebuilds the duplicate-pairs table.
+  # It is NOT a daemon — the "tools" profile keeps it out of `docker compose up`;
+  # run it on demand, and it exits when done:
+  #
+  #   docker compose run --rm dedup            # hashes, then rebuild pairs
+  #   docker compose run --rm dedup -pairs     # only rebuild pairs (after uploads)
+  #   docker compose run --rm dedup -hashes    # only backfill hashes
+  #
+  # Reuses the app image, .env, volumes and networks; only the entrypoint differs
+  # (/app/dedup instead of the server). Connects to the same DB the app uses, so
+  # the app's DB (bundled or host) must be reachable when it runs.
+  dedup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["tools"]
+    env_file: .env
+    networks:
+      - web
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    user: "${PUID:-42776}:${PGID:-42776}"
+    volumes:
+      - "${FILES_DIR:-app_files}:/data/files"
+      - "${THUMBS_DIR:-app_thumbs}:/data/thumbs"
+    entrypoint: ["/app/dedup"]
+    restart: "no"
+
 networks:
   # Public-facing bridge for this app. The explicit bridge name (instead of
   # Docker's random br-<hash>) makes it identifiable on the host for tcpdump and
