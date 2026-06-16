@@ -173,12 +173,7 @@ func (s *DiskStorage) VideoFrameMiddle(ctx context.Context, id uuid.UUID) (image
 		}
 		return nil, fmt.Errorf("storage: stat %q: %w", srcPath, err)
 	}
-	// Fall back to a 1s offset if duration can't be probed — better a frame than none.
-	at := 1.0
-	if d, err := videoDurationSeconds(ctx, srcPath); err == nil && d > 0 {
-		at = d / 2
-	}
-	return extractVideoFrameAt(ctx, srcPath, at)
+	return extractVideoFrameMiddle(ctx, srcPath)
 }
 
 // ---------------------------------------------------------------------------
@@ -242,7 +237,7 @@ func (s *DiskStorage) serveGenerated(ctx context.Context, id uuid.UUID, cachePat
 	var img image.Image
 	if decoded, err := decodeImageLimited(srcPath, s.maxPixels); err == nil {
 		img = imaging.Fit(decoded, maxW, maxH, imaging.Lanczos)
-	} else if frame, err := extractVideoFrame(ctx, srcPath); err == nil {
+	} else if frame, err := extractVideoFrameMiddle(ctx, srcPath); err == nil {
 		img = imaging.Fit(frame, maxW, maxH, imaging.Lanczos)
 	} else {
 		img = placeholder(maxW, maxH)
@@ -368,10 +363,18 @@ func (s *DiskStorage) vipsThumbnail(ctx context.Context, srcPath, cachePath stri
 	return f, nil
 }
 
-// extractVideoFrame extracts a single frame ~1 second into the video — a safe
-// default for thumbnails. See extractVideoFrameAt for the mechanics.
-func extractVideoFrame(ctx context.Context, srcPath string) (image.Image, error) {
-	return extractVideoFrameAt(ctx, srcPath, 1)
+// extractVideoFrameMiddle extracts a single frame from the middle of the video
+// (duration/2), falling back to a 1s offset when the duration can't be probed.
+// The midpoint dodges shared intros, title cards and black lead-in frames, and
+// matches the frame used for the perceptual hash so a video's thumbnail/preview
+// shows the same representative frame dedup compared. See extractVideoFrameAt for
+// the mechanics.
+func extractVideoFrameMiddle(ctx context.Context, srcPath string) (image.Image, error) {
+	at := 1.0
+	if d, err := videoDurationSeconds(ctx, srcPath); err == nil && d > 0 {
+		at = d / 2
+	}
+	return extractVideoFrameAt(ctx, srcPath, at)
 }
 
 // extractVideoFrameAt uses ffmpeg to extract a single frame at atSec seconds into
@@ -403,7 +406,7 @@ func extractVideoFrameAt(ctx context.Context, srcPath string, atSec float64) (im
 }
 
 // videoDurationSeconds returns the container duration in seconds via ffprobe.
-// Used to seek to the middle of a clip for perceptual hashing.
+// Used to seek to the middle of a clip for perceptual hashing and thumbnails.
 func videoDurationSeconds(ctx context.Context, srcPath string) (float64, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
