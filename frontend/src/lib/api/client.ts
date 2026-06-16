@@ -128,8 +128,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 	invalidateSectionCache(path, (init?.method ?? 'GET').toUpperCase());
 
+	// A success doesn't guarantee a JSON body: 204 never has one, and some 200/201
+	// responses (e.g. POST /pools/:id/files) complete with an empty body. Parsing
+	// those as JSON throws, so read the text first and only parse when present —
+	// otherwise an empty 201 would surface as a spurious "failed" error.
 	if (res.status === 204) return undefined as T;
-	return res.json();
+	const text = await res.text();
+	return (text ? JSON.parse(text) : undefined) as T;
 }
 
 /** Upload with XHR so we can track progress via onProgress(0–100). */
