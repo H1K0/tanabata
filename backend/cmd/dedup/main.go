@@ -85,12 +85,21 @@ func main() {
 	}
 	if doPairs {
 		fmt.Printf("rebuilding duplicate pairs (threshold %d)...\n", cfg.DuplicateHashThreshold)
+		// total is only known once Rescan has loaded the hashes, so create the bar
+		// lazily on the first progress callback.
+		var prog *progress
 		if err := dupSvc.Rescan(ctx, func(done, total int) {
-			fmt.Printf("\r  hashed %d/%d", done, total)
+			if prog == nil {
+				prog = newProgress("matching", total)
+			}
+			prog.set(done)
 		}); err != nil {
 			fatal("rescan pairs", err)
 		}
-		fmt.Println("\n  done")
+		if prog != nil {
+			prog.finish()
+		}
+		fmt.Println("  done")
 	}
 }
 
@@ -106,6 +115,7 @@ func backfillHashes(ctx context.Context, files *postgres.FileRepo, store *storag
 	fmt.Printf("hashing %d files without a perceptual hash...\n", total)
 
 	var hashed, skipped, failed int
+	prog := newProgress("hashing", total)
 	for i, f := range pending {
 		ph, err := hashOne(ctx, store, f.ID, f.MIMEType)
 		switch {
@@ -120,11 +130,10 @@ func backfillHashes(ctx context.Context, files *postgres.FileRepo, store *storag
 			}
 			hashed++
 		}
-		if (i+1)%200 == 0 || i+1 == total {
-			fmt.Printf("\r  processed %d/%d", i+1, total)
-		}
+		prog.set(i + 1)
 	}
-	fmt.Printf("\n  hashed %d, skipped %d, failed %d\n", hashed, skipped, failed)
+	prog.finish()
+	fmt.Printf("  hashed %d, skipped %d, failed %d\n", hashed, skipped, failed)
 	return nil
 }
 
@@ -156,6 +165,49 @@ func hashOne(ctx context.Context, store *storage.DiskStorage, id uuid.UUID, mime
 		return &h, nil
 	default:
 		return nil, nil
+	}
+}
+
+// progress renders a dependency-free progress indicator. On a TTY it draws an
+// in-place bar; otherwise (pipe, cron, CI) it prints a line every 10% so logs
+// stay readable instead of filling with carriage returns.
+type progress struct {
+	label   string
+	tty     bool
+	total   int
+	lastDec int // last 10%-decile printed in non-TTY mode
+}
+
+func newProgress(label string, total int) *progress {
+	fi, _ := os.Stdout.Stat()
+	tty := fi != nil && fi.Mode()&os.ModeCharDevice != 0
+	return &progress{label: label, tty: tty, total: total, lastDec: -1}
+}
+
+func (p *progress) set(done int) {
+	if p.total <= 0 {
+		return
+	}
+	pct := done * 100 / p.total
+	if p.tty {
+		const w = 30
+		filled := done * w / p.total
+		fmt.Printf("\r  %s [%s%s] %3d%% (%d/%d)",
+			p.label,
+			strings.Repeat("#", filled), strings.Repeat("-", w-filled),
+			pct, done, p.total)
+		return
+	}
+	if dec := pct / 10; dec != p.lastDec {
+		p.lastDec = dec
+		fmt.Printf("  %s %d%% (%d/%d)\n", p.label, pct, done, p.total)
+	}
+}
+
+// finish ends the in-place bar with a newline (TTY only).
+func (p *progress) finish() {
+	if p.tty && p.total > 0 {
+		fmt.Println()
 	}
 }
 
