@@ -94,15 +94,22 @@
 	// Select via the keyboard: a plain press toggles the focused card and drops the
 	// range anchor there; a Shift press selects everything from the anchor to the
 	// focused card — the same model as Shift+click on the grid.
+	// Select an inclusive index range in gesture direction (anchor → target) so the
+	// selection's insertion order follows how the user swept, not grid order. The
+	// Set preserves insertion order, so this is what later carries through to e.g.
+	// the order files land in a pool.
+	function selectRange(anchorIdx: number, targetIdx: number) {
+		const step = targetIdx >= anchorIdx ? 1 : -1;
+		for (let i = anchorIdx; i !== targetIdx + step; i += step) {
+			if (files[i]?.id) selectionStore.select(files[i].id!);
+		}
+	}
+
 	function selectFocused(range: boolean) {
 		const idx = focusedId ? files.findIndex((f) => f.id === focusedId) : -1;
 		if (idx < 0) return;
 		if (range && lastSelectedIdx !== null) {
-			const from = Math.min(lastSelectedIdx, idx);
-			const to = Math.max(lastSelectedIdx, idx);
-			for (let i = from; i <= to; i++) {
-				if (files[i]?.id) selectionStore.select(files[i].id!);
-			}
+			selectRange(lastSelectedIdx, idx);
 		} else if (files[idx]?.id) {
 			selectionStore.toggle(files[idx].id!);
 		}
@@ -634,12 +641,8 @@
 			return;
 		}
 		if (e.shiftKey && lastSelectedIdx !== null) {
-			// Range-select between lastSelectedIdx and idx (desktop)
-			const from = Math.min(lastSelectedIdx, idx);
-			const to = Math.max(lastSelectedIdx, idx);
-			for (let i = from; i <= to; i++) {
-				if (files[i]?.id) selectionStore.select(files[i].id!);
-			}
+			// Range-select from the anchor toward idx (desktop), in gesture order.
+			selectRange(lastSelectedIdx, idx);
 			lastSelectedIdx = idx;
 		} else {
 			if (file.id) selectionStore.toggle(file.id);
