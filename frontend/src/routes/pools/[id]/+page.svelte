@@ -6,6 +6,7 @@
 	import FileCard from '$lib/components/file/FileCard.svelte';
 	import FileViewer from '$lib/components/file/FileViewer.svelte';
 	import FilterBar from '$lib/components/file/FilterBar.svelte';
+	import PoolPicker from '$lib/components/file/PoolPicker.svelte';
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { parseDslFilter } from '$lib/utils/dsl';
@@ -48,6 +49,7 @@
 	let selectionMode = $derived(selectedIds.size > 0);
 	let lastSelectedIdx = $state<number | null>(null);
 	let confirmRemove = $state(false);
+	let poolPickerOpen = $state(false);
 
 	// ---- Add files mode ----
 	let addMode = $state(false);
@@ -705,10 +707,26 @@
 			</svg>
 		</button>
 		<div class="sel-spacer"></div>
+		<button class="sel-action add-action" onclick={() => (poolPickerOpen = true)}>
+			Add to pool
+		</button>
 		<button class="sel-action remove-action" onclick={() => (confirmRemove = true)}>
 			Remove from pool
 		</button>
 	</div>
+{/if}
+
+<!-- Add the selected files to another pool (reuses the file picker; the order
+     follows the selection's insertion order). -->
+{#if poolPickerOpen}
+	<PoolPicker
+		fileIds={[...selectedIds]}
+		onAdded={() => {
+			selectedIds = new Set();
+			lastSelectedIdx = null;
+		}}
+		onClose={() => (poolPickerOpen = false)}
+	/>
 {/if}
 
 {#if confirmDelete}
@@ -1167,6 +1185,13 @@
 		font-size: 0.85rem;
 		font-family: inherit;
 		font-weight: 600;
+	}
+
+	.add-action {
+		color: var(--color-accent);
+	}
+	.add-action:hover {
+		background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
 	}
 
 	.remove-action {
