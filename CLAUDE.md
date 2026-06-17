@@ -21,8 +21,8 @@ Monorepo: `backend/` (Go) + `frontend/` (SvelteKit).
 
 ## Design reference
 
-The `docs/reference/` directory contains the previous Python/Flask version.
-Use its visual design as the basis for the new frontend:
+Visual design tokens for the frontend (carried over from the previous
+Python/Flask version):
 - Color palette: #312F45 (bg), #9592B5 (accent), #444455 (tag default), #111118 (elevated)
 - Font: Epilogue (variable weight)
 - Dark theme is primary
@@ -55,4 +55,4 @@ npm run generate:types       # regenerate API types from openapi.yaml
 - Git: conventional commits with scope — `type(scope): message`
   - `(backend)` for Go backend code
   - `(frontend)` for SvelteKit/TypeScript code
-  - `(project)` for root-level files (.gitignore, docs/reference, structure)
+  - `(project)` for root-level files (.gitignore, docs, structure)
