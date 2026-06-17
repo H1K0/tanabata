@@ -246,5 +246,7 @@ export const api = {
 		request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
 	delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 	upload: <T>(path: string, formData: FormData) =>
-		request<T>(path, { method: 'POST', body: formData })
+		request<T>(path, { method: 'POST', body: formData }),
+	uploadPut: <T>(path: string, formData: FormData) =>
+		request<T>(path, { method: 'PUT', body: formData })
 };

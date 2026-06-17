@@ -5,6 +5,7 @@
 	import { authStore } from '$lib/stores/auth';
 	import TagPicker from '$lib/components/file/TagPicker.svelte';
 	import PoolPicker from '$lib/components/file/PoolPicker.svelte';
+	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import type { File, Tag } from '$lib/api/types';
 
 	interface Props {
@@ -35,6 +36,12 @@
 	let saving = $state(false);
 	let error = $state('');
 	let poolPickerOpen = $state(false);
+
+	// ---- Replace content (PUT /files/:id/content) ----
+	let fileInput = $state<HTMLInputElement | null>(null);
+	// The picked replacement awaiting confirmation (browser File, not our API type).
+	let pendingReplacement = $state<globalThis.File | null>(null);
+	let replacing = $state(false);
 
 	// Tags are loaded lazily — the Tags section sits below a full-viewport
 	// preview, so fetching them on open just hammers the DB for data the user
@@ -99,13 +106,20 @@
 		}
 	}
 
-	async function fetchPreview(id: string) {
+	// `bust` bypasses the browser HTTP cache — needed after a content replace,
+	// where the preview URL is unchanged but the bytes behind it are not (the
+	// server-side cache was already invalidated by the replace).
+	async function fetchPreview(id: string, bust = false) {
 		const token = get(authStore).accessToken;
 		try {
 			const res = await fetch(`/api/v1/files/${id}/preview`, {
-				headers: token ? { Authorization: `Bearer ${token}` } : {}
+				headers: token ? { Authorization: `Bearer ${token}` } : {},
+				cache: bust ? 'reload' : 'default'
 			});
 			if (res.ok && fileId === id) {
+				// Free the previous blob before swapping in the new one (the load
+				// effect nulls it on paging, but a same-file refresh would leak it).
+				if (previewSrc) URL.revokeObjectURL(previewSrc);
 				previewSrc = URL.createObjectURL(await res.blob());
 			}
 		} catch {
@@ -224,6 +238,44 @@
 		}
 	}
 
+	// ---- Replace content ----
+	function pickReplacement() {
+		fileInput?.click();
+	}
+
+	function onReplacePicked(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const picked = input.files?.[0] ?? null;
+		input.value = ''; // let the same file be picked again later
+		if (picked) pendingReplacement = picked; // confirm before overwriting
+	}
+
+	async function doReplace() {
+		const picked = pendingReplacement;
+		const id = file?.id;
+		pendingReplacement = null;
+		if (!picked || !id || replacing) return;
+		replacing = true;
+		error = '';
+		try {
+			const fd = new FormData();
+			fd.append('file', picked);
+			const updated = await api.uploadPut<File>(`/files/${id}/content`, fd);
+			if (fileId !== id) return; // paged away mid-upload
+			file = updated;
+			// Same id, new bytes: refresh the preview past the browser cache and
+			// re-mint the content token so "open original" serves the new content.
+			void fetchPreview(id, true);
+			void fetchContentToken(id);
+		} catch (e) {
+			// The backend sends a clear message for 415 ("unsupported MIME type")
+			// and size limits, so surface it directly.
+			error = e instanceof ApiError ? e.message : 'Failed to replace file';
+		} finally {
+			replacing = false;
+		}
+	}
+
 	// ---- Keyboard ----
 	let viewerPage = $state<HTMLElement>();
 	let tagsSection = $state<HTMLElement>();
@@ -242,6 +294,8 @@
 		// Escape to clear-then-close). Yield so the viewer's shortcuts don't fire
 		// behind the modal and don't race the picker for Escape.
 		if (poolPickerOpen) return;
+		// The replace confirm dialog owns Escape; an in-flight replace blocks paging.
+		if (pendingReplacement || replacing) return;
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 		if (e.ctrlKey || e.metaKey || e.altKey) return;
 		// Letter keys are matched by physical position (e.code) so j/k/e work on any
@@ -359,6 +413,37 @@
 					/>
 				</svg>
 			</button>
+			<button
+				class="pool-btn"
+				onclick={pickReplacement}
+				disabled={replacing}
+				aria-label="Replace file content"
+				title="Replace file content"
+			>
+				<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+					<path
+						d="M5 8a5 5 0 0 1 8.5-2.5L15 7M15 12a5 5 0 0 1-8.5 2.5L5 13"
+						stroke="currentColor"
+						stroke-width="1.6"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+					<path
+						d="M15 4v3h-3M5 16v-3h3"
+						stroke="currentColor"
+						stroke-width="1.6"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+				</svg>
+			</button>
+			<input
+				class="replace-input"
+				type="file"
+				accept="image/*,video/*"
+				bind:this={fileInput}
+				onchange={onReplacePicked}
+			/>
 		{/if}
 	</div>
 
@@ -378,6 +463,13 @@
 			<div class="preview-placeholder shimmer"></div>
 		{:else}
 			<div class="preview-placeholder failed"></div>
+		{/if}
+
+		{#if replacing}
+			<div class="preview-busy" role="status" aria-label="Replacing file">
+				<span class="spinner"></span>
+				<span>Replacing…</span>
+			</div>
 		{/if}
 
 		<!-- Prev / Next -->
@@ -508,6 +600,16 @@
 	<PoolPicker fileIds={[file.id!]} onClose={() => (poolPickerOpen = false)} />
 {/if}
 
+{#if pendingReplacement}
+	<ConfirmDialog
+		message={`Replace this file's content with "${pendingReplacement.name}"? The original is overwritten and cannot be recovered; tags, pools and other metadata are kept.`}
+		confirmLabel="Replace"
+		danger
+		onConfirm={doReplace}
+		onCancel={() => (pendingReplacement = null)}
+	/>
+{/if}
+
 <style>
 	.viewer-page {
 		display: flex;
@@ -599,6 +701,15 @@
 		background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
 	}
 
+	.pool-btn:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+
+	.replace-input {
+		display: none;
+	}
+
 	/* ---- Preview ---- */
 	.preview-wrap {
 		position: relative;
@@ -628,6 +739,35 @@
 		max-height: 100%;
 		object-fit: contain;
 		display: block;
+	}
+
+	.preview-busy {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		background-color: rgba(0, 0, 0, 0.6);
+		color: var(--color-text-primary);
+		font-size: 0.9rem;
+	}
+
+	.spinner {
+		width: 28px;
+		height: 28px;
+		border: 3px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+		border-top-color: var(--color-accent);
+		border-radius: 50%;
+		animation: spin 0.7s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
 	}
 
 	.preview-placeholder {
