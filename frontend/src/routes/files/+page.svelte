@@ -148,7 +148,7 @@
 	function handleKey(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
 			if (tagEditorOpen) tagEditorOpen = false;
-			else if (poolPickerOpen) poolPickerOpen = false;
+			else if (poolPickerOpen) return; // PoolPicker owns Escape (clear search, then close)
 			else if (confirmDeleteFiles) confirmDeleteFiles = false;
 			else if (activeFileId) return;
 			else if ($selectionActive) selectionStore.exit();

@@ -237,17 +237,11 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		// While the pool picker is open it owns the keyboard: Escape closes it
-		// (even from its search field), and every other key is swallowed so the
-		// viewer's shortcuts don't fire behind the modal. Typing still works —
-		// non-Escape keys aren't prevented, only ignored here.
-		if (poolPickerOpen) {
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				poolPickerOpen = false;
-			}
-			return;
-		}
+		// While the pool picker is open it owns the keyboard entirely (its own
+		// window handler drives search focus, arrow navigation, Enter to add, and
+		// Escape to clear-then-close). Yield so the viewer's shortcuts don't fire
+		// behind the modal and don't race the picker for Escape.
+		if (poolPickerOpen) return;
 		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 		if (e.ctrlKey || e.metaKey || e.altKey) return;
 		// Letter keys are matched by physical position (e.code) so j/k/e work on any
@@ -259,6 +253,11 @@
 		} else if (e.code === 'KeyE') {
 			e.preventDefault();
 			jumpToTags();
+		} else if (e.code === 'KeyP') {
+			if (file) {
+				e.preventDefault();
+				poolPickerOpen = true;
+			}
 		} else if (e.key === 'Escape') {
 			onClose();
 		}

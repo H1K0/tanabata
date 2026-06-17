@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api } from '$lib/api/client';
+	import { tick } from 'svelte';
 	import type { Pool, PoolOffsetPage } from '$lib/api/types';
 
 	interface Props {
@@ -19,6 +20,10 @@
 	let addError = $state('');
 	let search = $state('');
 	let busy = $state(false);
+	// Index of the keyboard-highlighted pool within `filtered`.
+	let highlight = $state(0);
+	let searchEl = $state<HTMLInputElement | null>(null);
+	let listEl = $state<HTMLUListElement | null>(null);
 
 	$effect(() => {
 		void load();
@@ -43,6 +48,58 @@
 			: pools
 	);
 
+	// Snap the highlight back to the top whenever the result set changes.
+	$effect(() => {
+		filtered;
+		highlight = 0;
+	});
+
+	function moveHighlight(delta: number) {
+		const n = filtered.length;
+		if (n === 0) return;
+		highlight = Math.min(n - 1, Math.max(0, highlight + delta));
+		void tick().then(() =>
+			listEl?.querySelector('.picker-item.highlighted')?.scrollIntoView({ block: 'nearest' })
+		);
+	}
+
+	// Keyboard control for the open picker: arrows move the highlight, Enter adds
+	// to the highlighted pool, "/" jumps to the search box, and Escape clears the
+	// search first, then closes.
+	function onKeydown(e: KeyboardEvent) {
+		switch (e.key) {
+			case 'Escape':
+				e.preventDefault();
+				if (search) search = '';
+				else onClose();
+				return;
+			case '/':
+				// Don't steal "/" while typing in the box — let it filter literally.
+				if (document.activeElement !== searchEl) {
+					e.preventDefault();
+					searchEl?.focus();
+					searchEl?.select();
+				}
+				return;
+			case 'ArrowDown':
+				e.preventDefault();
+				moveHighlight(1);
+				return;
+			case 'ArrowUp':
+				e.preventDefault();
+				moveHighlight(-1);
+				return;
+			case 'Enter': {
+				const pool = filtered[highlight];
+				if (pool?.id) {
+					e.preventDefault();
+					void add(pool.id);
+				}
+				return;
+			}
+		}
+	}
+
 	async function add(poolId: string) {
 		if (busy) return;
 		busy = true;
@@ -59,6 +116,8 @@
 
 	let count = $derived(fileIds.length);
 </script>
+
+<svelte:window onkeydown={onKeydown} />
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div class="picker-backdrop" role="presentation" onclick={onClose}></div>
@@ -83,6 +142,7 @@
 			type="search"
 			placeholder="Search pools…"
 			bind:value={search}
+			bind:this={searchEl}
 			autocomplete="off"
 		/>
 	</div>
@@ -98,10 +158,15 @@
 		{#if filtered.length === 0}
 			<p class="picker-empty">No pools found.</p>
 		{:else}
-			<ul class="picker-list">
-				{#each filtered as pool (pool.id)}
+			<ul class="picker-list" bind:this={listEl}>
+				{#each filtered as pool, i (pool.id)}
 					<li>
-						<button class="picker-item" onclick={() => pool.id && add(pool.id)}>
+						<button
+							class="picker-item"
+							class:highlighted={i === highlight}
+							onmouseenter={() => (highlight = i)}
+							onclick={() => pool.id && add(pool.id)}
+						>
 							<span class="picker-item-name">{pool.name}</span>
 							<span class="picker-item-count">{pool.file_count ?? 0} files</span>
 						</button>
@@ -224,6 +289,10 @@
 
 	.picker-item:hover {
 		background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+	}
+
+	.picker-item.highlighted {
+		background-color: color-mix(in srgb, var(--color-accent) 22%, transparent);
 	}
 
 	.picker-item-name {
