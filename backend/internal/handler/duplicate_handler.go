@@ -47,12 +47,16 @@ func (h *DuplicateHandler) List(c *gin.Context) {
 	}
 
 	items := make([]gin.H, len(clusters))
-	for i, files := range clusters {
-		fs := make([]fileJSON, len(files))
-		for j, f := range files {
+	for i, cl := range clusters {
+		fs := make([]fileJSON, len(cl.Files))
+		for j, f := range cl.Files {
 			fs[j] = toFileJSON(f)
 		}
-		items[i] = gin.H{"files": fs}
+		dists := make([]gin.H, len(cl.Distances))
+		for j, d := range cl.Distances {
+			dists[j] = gin.H{"a": d.A, "b": d.B, "distance": d.Distance}
+		}
+		items[i] = gin.H{"files": fs, "distances": dists}
 	}
 	respondJSON(c, http.StatusOK, gin.H{
 		"items":  items,

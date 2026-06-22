@@ -1661,6 +1661,11 @@ type dupListResponse struct {
 				ID string `json:"id"`
 			} `json:"tags"`
 		} `json:"files"`
+		Distances []struct {
+			A        string `json:"a"`
+			B        string `json:"b"`
+			Distance int    `json:"distance"`
+		} `json:"distances"`
 	} `json:"items"`
 	Total int `json:"total"`
 }
@@ -1703,6 +1708,9 @@ func TestDuplicateDetection(t *testing.T) {
 	require.Equal(t, 1, list.Total, "expected one duplicate cluster: %s", resp)
 	require.Len(t, list.Items, 1)
 	require.Len(t, list.Items[0].Files, 2)
+	// The pair's stored distance rides along; identical 1×1 uploads are distance 0.
+	require.Len(t, list.Items[0].Distances, 1, "the pair's distance should be reported")
+	assert.Equal(t, 0, list.Items[0].Distances[0].Distance)
 
 	// --- resolve: keep f1, union tags from f2, trash f2 ----------------------
 	resp = h.doJSON("POST", "/files/duplicates/resolve", map[string]any{

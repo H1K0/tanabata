@@ -103,6 +103,31 @@ func buildPairs(entries []domain.PHashEntry, threshold int, onProgress func(done
 	return pairs
 }
 
+// orderedPair returns the two ids in canonical (a < b by UUID byte order) order,
+// matching how the pairs table keys a distance so a lookup hits regardless of the
+// argument order.
+func orderedPair(a, b uuid.UUID) [2]uuid.UUID {
+	if bytes.Compare(a[:], b[:]) > 0 {
+		return [2]uuid.UUID{b, a}
+	}
+	return [2]uuid.UUID{a, b}
+}
+
+// clusterDistances returns the stored Hamming distance for every pair of files in
+// the cluster that has one. Pairs present only transitively have no stored
+// distance and are left out.
+func clusterDistances(files []domain.File, distByPair map[[2]uuid.UUID]int) []PairDistance {
+	var out []PairDistance
+	for i := 0; i < len(files); i++ {
+		for j := i + 1; j < len(files); j++ {
+			if d, ok := distByPair[orderedPair(files[i].ID, files[j].ID)]; ok {
+				out = append(out, PairDistance{A: files[i].ID, B: files[j].ID, Distance: d})
+			}
+		}
+	}
+	return out
+}
+
 // clusterPairs groups pairs into connected components (transitive closure) via
 // union-find. Every returned cluster has at least two files; clusters and the ids
 // within them are sorted by UUID for stable pagination.

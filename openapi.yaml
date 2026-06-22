@@ -1956,6 +1956,28 @@ components:
           description: Two or more mutually similar files
           items:
             $ref: '#/components/schemas/File'
+        distances:
+          type: array
+          description: >-
+            Stored perceptual-hash (Hamming) distances between pairs of files in
+            the cluster. A pair linked only transitively (through an intermediate
+            file) has no stored distance and is omitted.
+          items:
+            $ref: '#/components/schemas/DuplicatePairDistance'
+
+    DuplicatePairDistance:
+      type: object
+      required: [a, b, distance]
+      properties:
+        a:
+          type: string
+          format: uuid
+        b:
+          type: string
+          format: uuid
+        distance:
+          type: integer
+          description: Hamming distance (0–64) between the two files' perceptual hashes
 
     DuplicateClusterPage:
       type: object

@@ -125,10 +125,27 @@ func NewDuplicateService(
 	}
 }
 
+// Cluster is a group of near-duplicate files together with the pairwise Hamming
+// distances known between them. Distances are read from the stored pairs, so two
+// files linked into the cluster only transitively (through an intermediate) may
+// have no direct distance — that pair is simply omitted.
+type Cluster struct {
+	Files     []domain.File
+	Distances []PairDistance
+}
+
+// PairDistance is the stored Hamming distance between two files of a cluster.
+type PairDistance struct {
+	A        uuid.UUID
+	B        uuid.UUID
+	Distance int
+}
+
 // Clusters returns a page of duplicate clusters visible to the caller. Pairs are
 // read from the precomputed table (no all-pairs scan here) and grouped into
-// connected components; pagination is over whole clusters.
-func (s *DuplicateService) Clusters(ctx context.Context, limit, offset int) (clusters [][]domain.File, total int, err error) {
+// connected components; pagination is over whole clusters. Each cluster carries
+// the stored pairwise distances so callers can show how close the files are.
+func (s *DuplicateService) Clusters(ctx context.Context, limit, offset int) (clusters []Cluster, total int, err error) {
 	userID, isAdmin, _ := domain.UserFromContext(ctx)
 
 	pairs, err := s.pairs.ListVisible(ctx, userID, isAdmin)
@@ -142,14 +159,20 @@ func (s *DuplicateService) Clusters(ctx context.Context, limit, offset int) (clu
 		offset = 0
 	}
 	if offset >= len(groups) {
-		return [][]domain.File{}, total, nil
+		return []Cluster{}, total, nil
 	}
 	end := offset + limit
 	if end > len(groups) || limit <= 0 {
 		end = len(groups)
 	}
 
-	out := make([][]domain.File, 0, end-offset)
+	// Index the stored distances once; each page cluster looks up its own pairs.
+	distByPair := make(map[[2]uuid.UUID]int, len(pairs))
+	for _, p := range pairs {
+		distByPair[orderedPair(p.FileA, p.FileB)] = p.Distance
+	}
+
+	out := make([]Cluster, 0, end-offset)
 	for _, ids := range groups[offset:end] {
 		files := make([]domain.File, 0, len(ids))
 		for _, id := range ids {
@@ -164,7 +187,7 @@ func (s *DuplicateService) Clusters(ctx context.Context, limit, offset int) (clu
 			files = append(files, *f)
 		}
 		if len(files) >= 2 {
-			out = append(out, files)
+			out = append(out, Cluster{Files: files, Distances: clusterDistances(files, distByPair)})
 		}
 	}
 	return out, total, nil
