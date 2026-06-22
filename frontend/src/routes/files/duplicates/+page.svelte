@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api/client';
-	import { getDuplicates, dismissDuplicate } from '$lib/api/duplicates';
+	import {
+		getDuplicates,
+		dismissDuplicate,
+		type DuplicatePairDistance
+	} from '$lib/api/duplicates';
 	import Thumb from '$lib/components/file/Thumb.svelte';
 	import DuplicateMergeDialog from '$lib/components/file/DuplicateMergeDialog.svelte';
 	import FileViewer from '$lib/components/file/FileViewer.svelte';
@@ -14,6 +18,7 @@
 	interface Cluster {
 		key: number;
 		files: File[];
+		distances: DuplicatePairDistance[];
 	}
 	let nextKey = 0;
 
@@ -48,13 +53,26 @@
 		return keepers[c.key] ?? c.files[0]?.id ?? '';
 	}
 
+	// Stored perceptual distance between the kept file and another, or null when
+	// the two are linked only transitively (no direct stored pair).
+	function distanceFromKeep(c: Cluster, keep: string, other: string): number | null {
+		for (const d of c.distances) {
+			if ((d.a === keep && d.b === other) || (d.a === other && d.b === keep)) return d.distance;
+		}
+		return null;
+	}
+
 	async function load() {
 		if (loading) return;
 		loading = true;
 		error = '';
 		try {
 			const res = await getDuplicates(LIMIT, offset);
-			const incoming = (res.items ?? []).map((c) => ({ key: nextKey++, files: c.files }));
+			const incoming = (res.items ?? []).map((c) => ({
+				key: nextKey++,
+				files: c.files,
+				distances: c.distances ?? []
+			}));
 			total = res.total ?? total;
 			// The server paginates by group index and may drop groups that fell below
 			// two live files, so advance by the page size (clamped), not items returned.
@@ -276,8 +294,18 @@
 
 				<div class="actions">
 					{#each c.files.filter((f) => f.id !== keep) as other (other.id)}
+						{@const dist = distanceFromKeep(c, keep, other.id)}
 						<div class="actrow">
 							<span class="aname" title={other.original_name ?? ''}>{other.original_name ?? '—'}</span>
+							<span
+								class="dist"
+								class:unknown={dist === null}
+								title={dist === null
+									? 'No direct match — linked through another file'
+									: 'Perceptual distance from the kept file (lower = more similar)'}
+							>
+								Δ{dist ?? '—'}
+							</span>
 							<button class="abtn" onclick={() => openMerge(c, other)}>Merge</button>
 							<button class="abtn" onclick={() => deleteFile(c, other.id)}>Delete</button>
 							<button class="abtn ghost" onclick={() => notDuplicate(c, other)}>Not a dup</button>
@@ -492,6 +520,20 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+	.dist {
+		flex-shrink: 0;
+		font-size: 0.72rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--color-accent);
+		background-color: color-mix(in srgb, var(--color-accent) 14%, transparent);
+		border-radius: 5px;
+		padding: 1px 6px;
+		cursor: help;
+	}
+	.dist.unknown {
+		color: var(--color-text-muted);
+		background-color: var(--color-bg-elevated);
 	}
 	.abtn {
 		padding: 5px 10px;

@@ -1,9 +1,19 @@
 import { api } from '$lib/api/client';
 import type { File } from '$lib/api/types';
 
-/** A group of mutually similar files. */
+/** A stored perceptual-hash (Hamming) distance between two files of a cluster. */
+export interface DuplicatePairDistance {
+	a: string;
+	b: string;
+	distance: number;
+}
+
+/** A group of mutually similar files, with the pairwise distances known between
+ *  them. A file linked into the cluster only transitively may lack a direct
+ *  distance to some others, so that pair is absent. */
 export interface DuplicateCluster {
 	files: File[];
+	distances?: DuplicatePairDistance[];
 }
 
 export interface DuplicateClusterPage {
