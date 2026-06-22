@@ -51,6 +51,14 @@
 	function metaCount(m: unknown): number {
 		return m && typeof m === 'object' ? Object.keys(m as object).length : 0;
 	}
+	function metaEntries(m: unknown): [string, unknown][] {
+		return m && typeof m === 'object' ? Object.entries(m as Record<string, unknown>) : [];
+	}
+	function fmtMeta(v: unknown): string {
+		if (v === null || v === undefined) return '—';
+		if (typeof v === 'object') return JSON.stringify(v);
+		return String(v);
+	}
 
 	async function submit() {
 		if (busy) return;
@@ -88,7 +96,12 @@
 		<span class="title">Merge duplicates</span>
 		<button class="x" onclick={onClose} aria-label="Close">
 			<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+				<path
+					d="M3 3l10 10M13 3L3 13"
+					stroke="currentColor"
+					stroke-width="1.8"
+					stroke-linecap="round"
+				/>
 			</svg>
 		</button>
 	</div>
@@ -120,7 +133,13 @@
 		</div>
 
 		<!-- Scalar fields: keep vs discard -->
-		{#snippet scalarRow(label: string, value: ScalarChoice, set: (v: ScalarChoice) => void, keepVal: string, otherVal: string)}
+		{#snippet scalarRow(
+			label: string,
+			value: ScalarChoice,
+			set: (v: ScalarChoice) => void,
+			keepVal: string,
+			otherVal: string
+		)}
 			<div class="row">
 				<span class="label">{label}</span>
 				<div class="seg">
@@ -170,6 +189,27 @@
 				<button class:on={metadata === 'merge'} onclick={() => (metadata = 'merge')}>Merge</button>
 			</div>
 		</div>
+
+		<!-- Compact side-by-side view of each side's metadata -->
+		{#if metaCount(a.metadata) > 0 || metaCount(b.metadata) > 0}
+			<div class="meta-preview">
+				{#each [{ side: 'Keep', m: a.metadata }, { side: 'Other', m: b.metadata }] as col (col.side)}
+					<div class="meta-col">
+						<div class="meta-col-head">{col.side}</div>
+						{#if metaEntries(col.m).length > 0}
+							<dl class="meta-list">
+								{#each metaEntries(col.m) as [k, v]}
+									<dt title={k}>{k}</dt>
+									<dd title={fmtMeta(v)}>{fmtMeta(v)}</dd>
+								{/each}
+							</dl>
+						{:else}
+							<span class="meta-none">—</span>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{/if}
 
 		<!-- Relations: keep vs union both -->
 		<div class="row">
@@ -356,6 +396,51 @@
 		background-color: color-mix(in srgb, var(--color-accent) 22%, var(--color-bg-elevated));
 		color: var(--color-accent);
 		border-color: var(--color-accent);
+	}
+	.meta-preview {
+		display: flex;
+		gap: 8px;
+		padding: 2px 0 4px;
+	}
+	.meta-col {
+		flex: 1;
+		min-width: 0;
+		background-color: var(--color-bg-elevated);
+		border-radius: 7px;
+		padding: 6px 8px;
+	}
+	.meta-col-head {
+		font-size: 0.66rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--color-text-muted);
+		margin-bottom: 4px;
+	}
+	.meta-list {
+		display: grid;
+		grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+		gap: 2px 8px;
+		margin: 0;
+		font-size: 0.72rem;
+	}
+	.meta-list dt {
+		color: var(--color-text-muted);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.meta-list dd {
+		margin: 0;
+		color: var(--color-text-primary);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.meta-none {
+		font-size: 0.72rem;
+		color: var(--color-text-muted);
+		opacity: 0.6;
 	}
 	.del {
 		display: flex;

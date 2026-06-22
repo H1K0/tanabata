@@ -22,8 +22,21 @@
 		onReviewChange?: (id: string, needsReview: boolean) => void;
 	}
 
-	let { fileId, prevId = null, nextId = null, onNavigate, onClose, onReviewChange }: Props =
-		$props();
+	let {
+		fileId,
+		prevId = null,
+		nextId = null,
+		onNavigate,
+		onClose,
+		onReviewChange
+	}: Props = $props();
+
+	/** One editable metadata entry. `id` is local-only, for keyed list rendering. */
+	interface MetaRow {
+		id: number;
+		key: string;
+		value: string;
+	}
 
 	let file = $state<File | null>(null);
 	let fileTags = $state<Tag[]>([]);
@@ -55,6 +68,11 @@
 	let notes = $state('');
 	let contentDatetime = $state('');
 	let isPublic = $state(false);
+	// User-editable metadata, held as ordered key/value rows (the API field is a
+	// free-form JSON object). Stable ids key the {#each} so removing a middle row
+	// keeps the bound inputs aligned with their data.
+	let metadataRows = $state<MetaRow[]>([]);
+	let metaRowId = 0;
 	let dirty = $state(false);
 
 	let exifEntries = $derived(
@@ -93,6 +111,7 @@
 				? fileData.content_datetime.slice(0, 16) // YYYY-MM-DDTHH:mm
 				: '';
 			isPublic = fileData.is_public ?? false;
+			metadataRows = metadataToRows(fileData.metadata);
 			dirty = false;
 			void fetchPreview(id);
 			void fetchContentToken(id);
@@ -227,9 +246,11 @@
 			const updated = await api.patch<File>(`/files/${file.id}`, {
 				notes: notes.trim() || null,
 				content_datetime: contentDatetime ? new Date(contentDatetime).toISOString() : undefined,
-				is_public: isPublic
+				is_public: isPublic,
+				metadata: rowsToMetadata(metadataRows)
 			});
 			file = updated;
+			metadataRows = metadataToRows(updated.metadata);
 			dirty = false;
 		} catch (e) {
 			error = e instanceof ApiError ? e.message : 'Failed to save';
@@ -351,6 +372,59 @@
 		if (typeof val === 'object') return JSON.stringify(val);
 		return String(val);
 	}
+
+	// ---- Metadata (free-form key/value object) ----
+	// Expand the stored object into editable rows. Non-string values (numbers,
+	// booleans, nested objects) are shown as their JSON text so they survive a
+	// round-trip even when the user never touches them.
+	function metadataToRows(m: unknown): MetaRow[] {
+		if (!m || typeof m !== 'object') return [];
+		return Object.entries(m as Record<string, unknown>).map(([key, val]) => ({
+			id: metaRowId++,
+			key,
+			value: metaValueToString(val)
+		}));
+	}
+
+	function metaValueToString(val: unknown): string {
+		if (val === null || val === undefined) return '';
+		if (typeof val === 'string') return val;
+		return JSON.stringify(val);
+	}
+
+	// Rebuild the object for the PATCH body. Blank keys are dropped. A value that
+	// parses as JSON (number, boolean, object, array) is stored as that type;
+	// everything else is kept as a plain string.
+	function rowsToMetadata(rows: MetaRow[]): Record<string, unknown> {
+		const out: Record<string, unknown> = {};
+		for (const { key, value } of rows) {
+			const k = key.trim();
+			if (k) out[k] = parseMetaValue(value);
+		}
+		return out;
+	}
+
+	function parseMetaValue(value: string): unknown {
+		const v = value.trim();
+		if (v === '') return '';
+		try {
+			const parsed: unknown = JSON.parse(v);
+			if (parsed !== null && typeof parsed !== 'string') return parsed;
+		} catch {
+			// not JSON — keep the raw string
+		}
+		return value;
+	}
+
+	function addMetaRow() {
+		metadataRows = [...metadataRows, { id: metaRowId++, key: '', value: '' }];
+		dirty = true;
+	}
+
+	function removeMetaRow(id: number) {
+		metadataRows = metadataRows.filter((r) => r.id !== id);
+		dirty = true;
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -376,7 +450,9 @@
 				class:needs={file.needs_review}
 				onclick={toggleReview}
 				aria-label={file.needs_review ? 'Mark as reviewed' : 'Mark as needs review'}
-				title={file.needs_review ? 'Tagging not done — mark reviewed' : 'Reviewed — mark as needs review'}
+				title={file.needs_review
+					? 'Tagging not done — mark reviewed'
+					: 'Reviewed — mark as needs review'}
 			>
 				<svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
 					<circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.6" />
@@ -562,6 +638,49 @@
 				>
 					<span class="thumb"></span>
 				</button>
+			</section>
+
+			<!-- Metadata (free-form key/value pairs) -->
+			<section class="section">
+				<div class="field-label">Metadata</div>
+				{#if metadataRows.length > 0}
+					<div class="kv-list">
+						{#each metadataRows as row (row.id)}
+							<div class="kv-row">
+								<input
+									class="kv-input kv-key"
+									placeholder="key"
+									bind:value={row.key}
+									oninput={() => (dirty = true)}
+								/>
+								<input
+									class="kv-input kv-val"
+									placeholder="value"
+									bind:value={row.value}
+									oninput={() => (dirty = true)}
+								/>
+								<button
+									class="kv-del"
+									onclick={() => removeMetaRow(row.id)}
+									aria-label="Remove field"
+									title="Remove field"
+								>
+									<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+										<path
+											d="M3 3l8 8M11 3l-8 8"
+											stroke="currentColor"
+											stroke-width="1.6"
+											stroke-linecap="round"
+										/>
+									</svg>
+								</button>
+							</div>
+						{/each}
+					</div>
+				{:else}
+					<p class="kv-empty">No metadata.</p>
+				{/if}
+				<button class="kv-add" onclick={addMetaRow}>+ Add field</button>
 			</section>
 
 			<button class="save-btn" onclick={save} disabled={!dirty || saving}>
@@ -965,6 +1084,87 @@
 		font-size: 0.8rem;
 		color: var(--color-text-muted);
 		opacity: 0.7;
+	}
+
+	/* ---- Metadata editor ---- */
+	.kv-list {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-bottom: 8px;
+	}
+
+	.kv-row {
+		display: flex;
+		gap: 6px;
+		align-items: center;
+	}
+
+	.kv-input {
+		box-sizing: border-box;
+		height: 34px;
+		padding: 0 9px;
+		border-radius: 6px;
+		border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+		background-color: var(--color-bg-elevated);
+		color: var(--color-text-primary);
+		font-size: 0.85rem;
+		font-family: inherit;
+		outline: none;
+		min-width: 0;
+	}
+
+	.kv-input:focus {
+		border-color: var(--color-accent);
+	}
+
+	.kv-key {
+		flex: 0 0 38%;
+	}
+
+	.kv-val {
+		flex: 1 1 auto;
+	}
+
+	.kv-del {
+		flex-shrink: 0;
+		width: 30px;
+		height: 30px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px;
+		border: none;
+		background: none;
+		color: var(--color-text-muted);
+		cursor: pointer;
+	}
+
+	.kv-del:hover {
+		color: var(--color-danger);
+		background-color: color-mix(in srgb, var(--color-danger) 12%, transparent);
+	}
+
+	.kv-empty {
+		margin: 0 0 8px;
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
+		opacity: 0.7;
+	}
+
+	.kv-add {
+		padding: 6px 12px;
+		border-radius: 6px;
+		border: 1px dashed color-mix(in srgb, var(--color-accent) 40%, transparent);
+		background: none;
+		color: var(--color-accent);
+		font-size: 0.8rem;
+		font-family: inherit;
+		cursor: pointer;
+	}
+
+	.kv-add:hover {
+		background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
 	}
 
 	/* ---- EXIF ---- */
