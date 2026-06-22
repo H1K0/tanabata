@@ -4,6 +4,7 @@
 	import { getDuplicates, dismissDuplicate, type DuplicateCluster } from '$lib/api/duplicates';
 	import Thumb from '$lib/components/file/Thumb.svelte';
 	import DuplicateMergeDialog from '$lib/components/file/DuplicateMergeDialog.svelte';
+	import PreviewLightbox from '$lib/components/file/PreviewLightbox.svelte';
 	import type { File } from '$lib/api/types';
 
 	const LIMIT = 20;
@@ -21,6 +22,10 @@
 	// Merge dialog state.
 	let mergeKeep = $state<File | null>(null);
 	let mergeDiscard = $state<File | null>(null);
+
+	// Enlarged-preview lightbox: thumbnails are too small to tell near-duplicates
+	// apart, so a zoom opens the full preview and pages across the cluster.
+	let lightbox = $state<{ files: File[]; startId: string } | null>(null);
 
 	$effect(() => {
 		if (!initialLoaded && !loading) void load();
@@ -59,6 +64,10 @@
 
 	function setKeeper(c: DuplicateCluster, id: string) {
 		keepers = { ...keepers, [clusterKey(c)]: id };
+	}
+
+	function openLightbox(c: DuplicateCluster, startId: string) {
+		lightbox = { files: c.files, startId };
 	}
 
 	function openMerge(c: DuplicateCluster, other: File) {
@@ -160,7 +169,34 @@
 							onclick={() => setKeeper(c, f.id)}
 							title="Click to keep this one"
 						>
-							<Thumb id={f.id} size={96} alt={f.original_name ?? ''} />
+							<div class="thumbwrap">
+								<Thumb id={f.id} size={96} alt={f.original_name ?? ''} />
+								<button
+									class="zoom"
+									onclick={(e) => {
+										e.stopPropagation();
+										openLightbox(c, f.id);
+									}}
+									aria-label="Enlarge preview"
+									title="Enlarge preview"
+								>
+									<svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+										<circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5" />
+										<path
+											d="M10 10l3.5 3.5"
+											stroke="currentColor"
+											stroke-width="1.5"
+											stroke-linecap="round"
+										/>
+										<path
+											d="M6.5 4.5v4M4.5 6.5h4"
+											stroke="currentColor"
+											stroke-width="1.3"
+											stroke-linecap="round"
+										/>
+									</svg>
+								</button>
+							</div>
 							{#if f.id === keep}<span class="kbadge">Keep</span>{/if}
 							<span class="fname" title={f.original_name ?? ''}>{f.original_name ?? '—'}</span>
 							<span class="fmeta">{f.mime_type} · {f.tags?.length ?? 0} tags</span>
@@ -190,6 +226,14 @@
 		{/if}
 	</main>
 </div>
+
+{#if lightbox}
+	<PreviewLightbox
+		files={lightbox.files}
+		startId={lightbox.startId}
+		onClose={() => (lightbox = null)}
+	/>
+{/if}
 
 {#if mergeKeep && mergeDiscard}
 	<DuplicateMergeDialog
@@ -299,6 +343,40 @@
 	.file.keep {
 		border-color: var(--color-accent);
 		background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+	}
+	.thumbwrap {
+		position: relative;
+		line-height: 0;
+	}
+	.zoom {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px;
+		border: none;
+		background-color: rgba(0, 0, 0, 0.55);
+		color: #fff;
+		cursor: pointer;
+		opacity: 0;
+		transition: opacity 0.12s;
+	}
+	/* Always show the zoom on touch (no hover); reveal on hover for pointers. */
+	.thumbwrap:hover .zoom,
+	.zoom:focus-visible {
+		opacity: 1;
+	}
+	@media (hover: none) {
+		.zoom {
+			opacity: 1;
+		}
+	}
+	.zoom:hover {
+		background-color: rgba(0, 0, 0, 0.85);
 	}
 	.kbadge {
 		font-size: 0.68rem;
