@@ -286,7 +286,17 @@ func (s *FileService) Update(ctx context.Context, id uuid.UUID, p UpdateParams) 
 		return nil, domain.ErrForbidden
 	}
 
-	patch := &domain.File{}
+	// The repo rewrites every editable column, so the patch must carry the final
+	// value for each. Seed the fields that have no always-present input in the
+	// editor (original_name, metadata) with their current values so a partial
+	// update that omits them leaves them untouched instead of clearing them. The
+	// remaining scalars are always supplied by the editor (notes uses an explicit
+	// null to clear). The merge path builds its own complete patch and calls the
+	// repo directly, so it is unaffected by this.
+	patch := &domain.File{
+		OriginalName: f.OriginalName,
+		Metadata:     f.Metadata,
+	}
 	if p.OriginalName != nil {
 		patch.OriginalName = p.OriginalName
 	}
