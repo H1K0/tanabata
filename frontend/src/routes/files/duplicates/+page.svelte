@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api/client';
-	import { getDuplicates, dismissDuplicate, type DuplicateCluster } from '$lib/api/duplicates';
+	import { getDuplicates, dismissDuplicate } from '$lib/api/duplicates';
 	import Thumb from '$lib/components/file/Thumb.svelte';
 	import DuplicateMergeDialog from '$lib/components/file/DuplicateMergeDialog.svelte';
 	import PreviewLightbox from '$lib/components/file/PreviewLightbox.svelte';
@@ -9,17 +9,29 @@
 
 	const LIMIT = 20;
 
-	let clusters = $state<DuplicateCluster[]>([]);
+	// A cluster carries a stable local key so resolving one pair (delete / dismiss /
+	// merge) can edit it in place — no full reload, no scroll jump, no lost "keep".
+	interface Cluster {
+		key: number;
+		files: File[];
+	}
+	let nextKey = 0;
+
+	let clusters = $state<Cluster[]>([]);
 	let total = $state(0);
+	// Server group cursor; advances monotonically per page so local removals don't
+	// shift the offset and make "Load more" repeat or skip clusters.
+	let offset = $state(0);
 	let loading = $state(false);
 	let initialLoaded = $state(false);
 	let error = $state('');
-	let busyKey = $state(''); // cluster currently performing an action
+	let busyId = $state<number | null>(null); // cluster currently performing an action
 
-	// Which file is the survivor for a given cluster (keyed by its file-id set).
-	let keepers = $state<Record<string, string>>({});
+	// Which file is the survivor for a given cluster (keyed by its stable key).
+	let keepers = $state<Record<number, string>>({});
 
-	// Merge dialog state.
+	// Merge dialog state — mergeId pins the cluster so onMerged edits the right one.
+	let mergeId = $state<number | null>(null);
 	let mergeKeep = $state<File | null>(null);
 	let mergeDiscard = $state<File | null>(null);
 
@@ -31,11 +43,8 @@
 		if (!initialLoaded && !loading) void load();
 	});
 
-	function clusterKey(c: DuplicateCluster): string {
-		return c.files.map((f) => f.id).join(',');
-	}
-	function keeperId(c: DuplicateCluster): string {
-		return keepers[clusterKey(c)] ?? c.files[0]?.id ?? '';
+	function keeperId(c: Cluster): string {
+		return keepers[c.key] ?? c.files[0]?.id ?? '';
 	}
 
 	async function load() {
@@ -43,9 +52,13 @@
 		loading = true;
 		error = '';
 		try {
-			const res = await getDuplicates(LIMIT, clusters.length);
-			clusters = [...clusters, ...(res.items ?? [])];
-			total = res.total ?? clusters.length;
+			const res = await getDuplicates(LIMIT, offset);
+			const incoming = (res.items ?? []).map((c) => ({ key: nextKey++, files: c.files }));
+			total = res.total ?? total;
+			// The server paginates by group index and may drop groups that fell below
+			// two live files, so advance by the page size (clamped), not items returned.
+			offset = Math.min(offset + LIMIT, total);
+			clusters = [...clusters, ...incoming];
 		} catch {
 			error = 'Failed to load duplicates';
 		} finally {
@@ -58,58 +71,86 @@
 		clusters = [];
 		keepers = {};
 		total = 0;
+		offset = 0;
 		initialLoaded = false;
 		await load();
 	}
 
-	function setKeeper(c: DuplicateCluster, id: string) {
-		keepers = { ...keepers, [clusterKey(c)]: id };
+	function setKeeper(c: Cluster, id: string) {
+		keepers = { ...keepers, [c.key]: id };
 	}
 
-	function openLightbox(c: DuplicateCluster, startId: string) {
+	// Drop one file from a cluster after it's resolved, in place. With fewer than
+	// two files there's nothing left to compare, so the cluster — and its slot in
+	// the total — goes away. The server's view is live, so a later page reconciles.
+	function removeFile(key: number, fileId: string) {
+		const target = clusters.find((c) => c.key === key);
+		if (!target) return;
+		const remaining = target.files.filter((f) => f.id !== fileId);
+		const dropCluster = remaining.length < 2;
+
+		if (dropCluster) {
+			clusters = clusters.filter((c) => c.key !== key);
+			total = Math.max(0, total - 1);
+		} else {
+			clusters = clusters.map((c) => (c.key === key ? { ...c, files: remaining } : c));
+		}
+		// Forget a stale survivor pick when its cluster is gone or the pick was removed.
+		if (dropCluster || keepers[key] === fileId) {
+			const next = { ...keepers };
+			delete next[key];
+			keepers = next;
+		}
+	}
+
+	function openLightbox(c: Cluster, startId: string) {
 		lightbox = { files: c.files, startId };
 	}
 
-	function openMerge(c: DuplicateCluster, other: File) {
+	function openMerge(c: Cluster, other: File) {
 		const keep = c.files.find((f) => f.id === keeperId(c));
 		if (!keep) return;
+		mergeId = c.key;
 		mergeKeep = keep;
 		mergeDiscard = other;
 	}
 
-	async function deleteFile(c: DuplicateCluster, id: string) {
-		if (busyKey) return;
-		busyKey = clusterKey(c);
+	async function deleteFile(c: Cluster, id: string) {
+		if (busyId !== null) return;
+		busyId = c.key;
 		try {
 			await api.post('/files/bulk/delete', { file_ids: [id] });
-			await reload();
+			removeFile(c.key, id);
 		} catch {
 			error = 'Failed to delete file';
 		} finally {
-			busyKey = '';
+			busyId = null;
 		}
 	}
 
-	async function notDuplicate(c: DuplicateCluster, other: File) {
-		if (busyKey) return;
-		busyKey = clusterKey(c);
+	async function notDuplicate(c: Cluster, other: File) {
+		if (busyId !== null) return;
+		busyId = c.key;
 		try {
 			await dismissDuplicate(keeperId(c), other.id);
-			await reload();
+			removeFile(c.key, other.id);
 		} catch {
 			error = 'Failed to dismiss pair';
 		} finally {
-			busyKey = '';
+			busyId = null;
 		}
 	}
 
 	function onMerged() {
+		const key = mergeId;
+		const discardId = mergeDiscard?.id;
+		mergeId = null;
 		mergeKeep = null;
 		mergeDiscard = null;
-		void reload();
+		if (key !== null && discardId) removeFile(key, discardId);
 	}
 
-	let hasMore = $derived(clusters.length < total);
+	let hasMore = $derived(offset < total);
 </script>
 
 <svelte:head>
@@ -155,9 +196,9 @@
 			</div>
 		{/if}
 
-		{#each clusters as c (clusterKey(c))}
+		{#each clusters as c (c.key)}
 			{@const keep = keeperId(c)}
-			<section class="cluster" class:busy={busyKey === clusterKey(c)}>
+			<section class="cluster" class:busy={busyId === c.key}>
 				<div class="files">
 					{#each c.files as f (f.id)}
 						<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
