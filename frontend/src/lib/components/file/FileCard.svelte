@@ -30,8 +30,32 @@
 
 	let imgSrc = $state<string | null>(null);
 	let failed = $state(false);
+	// Gate the fetch on visibility so a long grid doesn't fire every thumbnail
+	// request on mount; the tile loads once it scrolls near the viewport.
+	let visible = $state(false);
+
+	// Svelte action: flips `visible` true the first time the card nears the
+	// viewport, then stops observing — the blob is kept once loaded.
+	function lazyload(node: HTMLElement) {
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting) {
+					visible = true;
+					observer.disconnect();
+				}
+			},
+			{ rootMargin: '200px' }
+		);
+		observer.observe(node);
+		return {
+			destroy() {
+				observer.disconnect();
+			}
+		};
+	}
 
 	$effect(() => {
+		if (!visible) return;
 		const token = get(authStore).accessToken;
 		let objectUrl: string | null = null;
 		let cancelled = false;
@@ -112,6 +136,7 @@
 	class:loaded={!!imgSrc}
 	class:selected
 	class:focused
+	use:lazyload
 	data-file-index={index}
 	onpointerdown={onPointerDown}
 	onpointermove={onPointerMoveInternal}

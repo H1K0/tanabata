@@ -14,17 +14,43 @@
 
 	let imgSrc = $state<string | null>(null);
 	let failed = $state(false);
+	// Gate the fetch on visibility. A duplicate cluster can hold hundreds of files,
+	// and firing every thumbnail request on mount buries the server in a request
+	// storm (10k+ in-flight is easy). We only load once the tile nears the viewport.
+	let visible = $state(false);
+
+	// Svelte action: flips `visible` true the first time the tile nears the
+	// viewport, then stops observing — the blob is kept once loaded.
+	function lazyload(node: HTMLElement) {
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting) {
+					visible = true;
+					observer.disconnect();
+				}
+			},
+			{ rootMargin: '200px' }
+		);
+		observer.observe(node);
+		return {
+			destroy() {
+				observer.disconnect();
+			}
+		};
+	}
 
 	// Thumbnails are auth-gated, so fetch with the bearer token and render the blob
-	// (mirrors FileCard's loader). Re-runs whenever the id changes.
+	// (mirrors FileCard's loader). Runs once visible; re-runs whenever the id changes.
 	$effect(() => {
+		if (!visible) return;
 		const token = get(authStore).accessToken;
+		const currentId = id; // track id so a reused node refetches on change
 		let objectUrl: string | null = null;
 		let cancelled = false;
 		imgSrc = null;
 		failed = false;
 
-		fetch(`/api/v1/files/${id}/thumbnail`, {
+		fetch(`/api/v1/files/${currentId}/thumbnail`, {
 			headers: token ? { Authorization: `Bearer ${token}` } : {}
 		})
 			.then((res) => (res.ok ? res.blob() : null))
@@ -47,7 +73,7 @@
 	});
 </script>
 
-<div class="thumb" style="width:{size}px;height:{size}px">
+<div class="thumb" use:lazyload style="width:{size}px;height:{size}px">
 	{#if imgSrc}
 		<img src={imgSrc} {alt} draggable="false" />
 	{:else if failed}
