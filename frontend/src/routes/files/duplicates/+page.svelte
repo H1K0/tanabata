@@ -4,7 +4,7 @@
 	import { getDuplicates, dismissDuplicate } from '$lib/api/duplicates';
 	import Thumb from '$lib/components/file/Thumb.svelte';
 	import DuplicateMergeDialog from '$lib/components/file/DuplicateMergeDialog.svelte';
-	import PreviewLightbox from '$lib/components/file/PreviewLightbox.svelte';
+	import FileViewer from '$lib/components/file/FileViewer.svelte';
 	import type { File } from '$lib/api/types';
 
 	const LIMIT = 20;
@@ -35,9 +35,10 @@
 	let mergeKeep = $state<File | null>(null);
 	let mergeDiscard = $state<File | null>(null);
 
-	// Enlarged-preview lightbox: thumbnails are too small to tell near-duplicates
-	// apart, so a zoom opens the full preview and pages across the cluster.
-	let lightbox = $state<{ files: File[]; startId: string } | null>(null);
+	// Full viewer (same as the files page): thumbnails are too small to compare,
+	// and dedup decisions need date / tags / EXIF, so the zoom opens the real
+	// viewer and pages across the cluster's files.
+	let viewer = $state<{ key: number; files: File[]; id: string } | null>(null);
 
 	$effect(() => {
 		if (!initialLoaded && !loading) void load();
@@ -103,8 +104,36 @@
 		}
 	}
 
-	function openLightbox(c: Cluster, startId: string) {
-		lightbox = { files: c.files, startId };
+	function openViewer(c: Cluster, id: string) {
+		viewer = { key: c.key, files: c.files, id };
+	}
+
+	// Prev/next within the cluster currently open in the viewer.
+	let viewerPrevId = $derived.by(() => {
+		const v = viewer;
+		if (!v) return null;
+		const i = v.files.findIndex((f) => f.id === v.id);
+		return i > 0 ? (v.files[i - 1]?.id ?? null) : null;
+	});
+	let viewerNextId = $derived.by(() => {
+		const v = viewer;
+		if (!v) return null;
+		const i = v.files.findIndex((f) => f.id === v.id);
+		return i >= 0 && i < v.files.length - 1 ? (v.files[i + 1]?.id ?? null) : null;
+	});
+
+	function viewerNavigate(id: string) {
+		if (viewer) viewer = { ...viewer, id };
+	}
+
+	// Mirror a review toggle made inside the viewer back into the cluster list and
+	// the viewer's own navigation snapshot so both stay consistent.
+	function onViewerReviewChange(id: string, needsReview: boolean) {
+		const apply = (f: File) => (f.id === id ? { ...f, needs_review: needsReview } : f);
+		clusters = clusters.map((c) =>
+			c.key === viewer?.key ? { ...c, files: c.files.map(apply) } : c
+		);
+		if (viewer) viewer = { ...viewer, files: viewer.files.map(apply) };
 	}
 
 	function openMerge(c: Cluster, other: File) {
@@ -216,10 +245,10 @@
 									class="zoom"
 									onclick={(e) => {
 										e.stopPropagation();
-										openLightbox(c, f.id);
+										openViewer(c, f.id);
 									}}
-									aria-label="Enlarge preview"
-									title="Enlarge preview"
+									aria-label="Open in viewer"
+									title="Open in viewer"
 								>
 									<svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
 										<circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.5" />
@@ -268,12 +297,17 @@
 	</main>
 </div>
 
-{#if lightbox}
-	<PreviewLightbox
-		files={lightbox.files}
-		startId={lightbox.startId}
-		onClose={() => (lightbox = null)}
-	/>
+{#if viewer}
+	<div class="viewer-overlay">
+		<FileViewer
+			fileId={viewer.id}
+			prevId={viewerPrevId}
+			nextId={viewerNextId}
+			onNavigate={viewerNavigate}
+			onClose={() => (viewer = null)}
+			onReviewChange={onViewerReviewChange}
+		/>
+	</div>
 {/if}
 
 {#if mergeKeep && mergeDiscard}
@@ -492,5 +526,15 @@
 		text-align: center;
 		color: var(--color-text-muted);
 		font-size: 0.9rem;
+	}
+
+	/* Full-screen overlay for the file viewer, mirroring the files page. */
+	.viewer-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 200;
+		background-color: var(--color-bg-primary);
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
 </style>
