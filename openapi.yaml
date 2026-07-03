@@ -4,6 +4,11 @@ info:
   description: |
     REST API for Tanabata File Manager — a multi-user, tag-based web file manager.
 
+    ## Versioning
+    The `version` field above is the product release (tracks the app's 3.0.0).
+    The URL path version (`/api/v1`) is the API compatibility version and changes
+    only on a breaking contract change — the two are intentionally independent.
+
     ## Authentication
     All endpoints require a Bearer JWT token in the `Authorization` header,
     except `POST /auth/login`, `POST /auth/refresh` (which carry their own
