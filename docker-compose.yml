@@ -26,6 +26,12 @@ services:
     container_name: tfm
     restart: unless-stopped
 
+    # Give the app time to drain in-flight requests on stop before SIGKILL. Reads
+    # the same SHUTDOWN_TIMEOUT the app uses for its graceful-shutdown deadline
+    # (via env_file below), so the two never drift. Interpolated from .env at
+    # `docker compose` time; defaults to 15s if unset.
+    stop_grace_period: ${SHUTDOWN_TIMEOUT:-15s}
+
     # All application config (secrets, DATABASE_URL, tunables) comes from .env.
     env_file: .env
 

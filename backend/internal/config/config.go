@@ -25,6 +25,12 @@ type Config struct {
 	// expiry and refresh rotation. Keep it only as long as a viewing session
 	// plausibly lasts — it is a bearer credential for that one file until expiry.
 	ContentTokenTTL time.Duration
+	// ShutdownTimeout bounds how long a graceful shutdown waits for in-flight
+	// requests to finish after a SIGINT/SIGTERM before the process exits. Keep it
+	// in step with the container's stop grace period — docker-compose.yml reads
+	// the same SHUTDOWN_TIMEOUT for `stop_grace_period`, so Docker doesn't SIGKILL
+	// mid-drain. A long upload/stream can still be cut if it outlasts this window.
+	ShutdownTimeout time.Duration
 	// TrustedProxies lists the reverse-proxy hops (CIDRs or IPs) whose
 	// X-Forwarded-For header is trusted. The auth rate limiter keys on the
 	// client IP, so this must match the proxy in front of the app — otherwise
@@ -161,6 +167,8 @@ func Load() (*Config, error) {
 		JWTRefreshTTL: parseDuration("JWT_REFRESH_TTL", "720h"),
 
 		ContentTokenTTL: parseDuration("CONTENT_TOKEN_TTL", "6h"),
+
+		ShutdownTimeout: parseDuration("SHUTDOWN_TIMEOUT", "15s"),
 
 		TrustedProxies: parseCSV("TRUSTED_PROXIES", "127.0.0.1/32,::1/128,172.16.0.0/12"),
 

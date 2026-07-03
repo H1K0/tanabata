@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/stdlib"
@@ -142,9 +145,35 @@ func main() {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	slog.Info("starting server", "addr", cfg.ListenAddr)
-	if err := srv.ListenAndServe(); err != nil {
-		slog.Error("server error", "err", err)
+	// Trigger a graceful shutdown on SIGINT/SIGTERM (the latter is what Docker
+	// sends when the container is stopped or recreated on deploy).
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		slog.Info("starting server", "addr", cfg.ListenAddr)
+		// ListenAndServe returns ErrServerClosed after a graceful Shutdown; that
+		// is the expected exit, not a failure.
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("server error", "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-ctx.Done()
+	// Restore default signal handling so a second Ctrl+C / SIGTERM force-quits
+	// instead of waiting on the drain.
+	stop()
+	slog.Info("shutting down", "timeout", cfg.ShutdownTimeout)
+
+	// Stop accepting new connections and let in-flight requests finish, up to the
+	// timeout. Docker's stop grace period reads the same SHUTDOWN_TIMEOUT, so it
+	// won't SIGKILL before this returns.
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("graceful shutdown failed", "err", err)
 		os.Exit(1)
 	}
+	slog.Info("shutdown complete")
 }
