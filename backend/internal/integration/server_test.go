@@ -1614,7 +1614,13 @@ func replaceDSNDatabase(dsn, newDB string) string {
 		}
 		return dsn + " dbname=" + newDB
 	}
-	// URL style: not used in our defaults, but handled for completeness.
+	// URL style (e.g. postgres://user:pass@host:port/dbname?opts): the database
+	// is the URL path. CI passes this form via TANABATA_TEST_ADMIN_DSN, so it
+	// must swap the path to point the suite at its per-run database.
+	if u, err := url.Parse(dsn); err == nil {
+		u.Path = "/" + newDB
+		return u.String()
+	}
 	return dsn
 }
 
