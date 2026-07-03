@@ -45,10 +45,10 @@ type Pool struct {
 	// SortKey / SortOrder control how the pool's files are ordered. When SortKey
 	// is PoolSortManual, files follow the manual position order and can be
 	// reordered; otherwise they are sorted automatically and reordering is a no-op.
-	SortKey     string
-	SortOrder   string
-	FileCount   int
-	CreatedAt   time.Time // extracted from UUID v7 via UUIDCreatedAt
+	SortKey   string
+	SortOrder string
+	FileCount int
+	CreatedAt time.Time // extracted from UUID v7 via UUIDCreatedAt
 }
 
 // PoolFile is a File with its ordering position within a pool.

@@ -1,11 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api/client';
-	import {
-		getDuplicates,
-		dismissDuplicate,
-		type DuplicatePairDistance
-	} from '$lib/api/duplicates';
+	import { getDuplicates, dismissDuplicate, type DuplicatePairDistance } from '$lib/api/duplicates';
 	import Thumb from '$lib/components/file/Thumb.svelte';
 	import DuplicateMergeDialog from '$lib/components/file/DuplicateMergeDialog.svelte';
 	import FileViewer from '$lib/components/file/FileViewer.svelte';
@@ -296,7 +292,9 @@
 					{#each c.files.filter((f) => f.id !== keep) as other (other.id)}
 						{@const dist = distanceFromKeep(c, keep, other.id)}
 						<div class="actrow">
-							<span class="aname" title={other.original_name ?? ''}>{other.original_name ?? '—'}</span>
+							<span class="aname" title={other.original_name ?? ''}
+								>{other.original_name ?? '—'}</span
+							>
 							<span
 								class="dist"
 								class:unknown={dist === null}

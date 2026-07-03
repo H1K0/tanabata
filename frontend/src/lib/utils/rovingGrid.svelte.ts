@@ -42,8 +42,7 @@ export function createRovingGrid<T extends Item>(opts: RovingGridOptions<T>) {
 	function isFormTarget(t: EventTarget | null): boolean {
 		return (
 			t instanceof HTMLElement &&
-			(t.isContentEditable ||
-				['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'].includes(t.tagName))
+			(t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'].includes(t.tagName))
 		);
 	}
 

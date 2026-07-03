@@ -129,9 +129,7 @@
 		selectionStore.exit();
 		try {
 			await api.post('/files/bulk/review', { file_ids: ids, needs_review: false });
-			files = files.map((f) =>
-				ids.includes(f.id ?? '') ? { ...f, needs_review: false } : f
-			);
+			files = files.map((f) => (ids.includes(f.id ?? '') ? { ...f, needs_review: false } : f));
 		} catch {
 			// ignore — list already reflects the intended state optimistically
 		}
@@ -148,7 +146,8 @@
 	function handleKey(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
 			if (tagEditorOpen) tagEditorOpen = false;
-			else if (poolPickerOpen) return; // PoolPicker owns Escape (clear search, then close)
+			else if (poolPickerOpen)
+				return; // PoolPicker owns Escape (clear search, then close)
 			else if (confirmDeleteFiles) confirmDeleteFiles = false;
 			else if (activeFileId) return;
 			else if ($selectionActive) selectionStore.exit();
