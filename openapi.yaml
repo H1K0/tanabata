@@ -35,7 +35,8 @@ info:
     Example: `{r=1,&,m~image%}` → needs review AND is an image.
   version: 3.0.0
   license:
-    name: Proprietary
+    name: AGPL-3.0-or-later
+    url: https://www.gnu.org/licenses/agpl-3.0.html
 
 servers:
   - url: /api/v1

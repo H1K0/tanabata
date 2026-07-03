@@ -98,3 +98,8 @@ npm run dev                  # Vite dev server
 npm run build                # production build
 npm run generate:types       # regenerate API types from openapi.yaml
 ```
+
+## License
+
+Licensed under the GNU Affero General Public License v3.0 or later
+(AGPL-3.0-or-later). See [`LICENSE`](LICENSE) for the full text.
