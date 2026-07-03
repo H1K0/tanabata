@@ -13,8 +13,8 @@
 
 	let { tag, onclick, size = 'md', focused = false, index }: Props = $props();
 
-	const color = tag.color ?? tag.category_color;
-	const style = color ? `background-color: #${color}` : '';
+	let color = $derived(tag.color ?? tag.category_color);
+	let style = $derived(color ? `background-color: #${color}` : '');
 </script>
 
 {#if onclick}

@@ -138,6 +138,8 @@
 	class:focused
 	use:lazyload
 	data-file-index={index}
+	role="button"
+	tabindex="-1"
 	onpointerdown={onPointerDown}
 	onpointermove={onPointerMoveInternal}
 	onpointerup={() => {

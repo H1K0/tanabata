@@ -107,6 +107,7 @@
 						class:on={isAdmin}
 						role="switch"
 						aria-checked={isAdmin}
+						aria-label="Admin"
 						onclick={() => (isAdmin = !isAdmin)}><span class="thumb"></span></button
 					>
 				</div>
@@ -121,6 +122,7 @@
 						class:on={canCreate}
 						role="switch"
 						aria-checked={canCreate}
+						aria-label="Can create"
 						onclick={() => (canCreate = !canCreate)}><span class="thumb"></span></button
 					>
 				</div>
@@ -140,6 +142,7 @@
 						class:danger={isBlocked}
 						role="switch"
 						aria-checked={isBlocked}
+						aria-label="Blocked"
 						onclick={() => (isBlocked = !isBlocked)}><span class="thumb"></span></button
 					>
 				</div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { Tag } from '$lib/api/types';
 	import { fetchAllTags } from '$lib/api/tags';
 	import { buildDslFilter, parseDslFilter, tokenLabel } from '$lib/utils/dsl';
@@ -16,7 +17,9 @@
 
 	let tags = $state<Tag[]>([]);
 	let search = $state('');
-	let tokens = $state<string[]>(parseDslFilter(value));
+	// Seed from the prop once; the $effect below keeps it in sync afterwards, so
+	// read it untracked to avoid the state-referenced-locally warning.
+	let tokens = $state<string[]>(untrack(() => parseDslFilter(value)));
 	let tagNames = $derived(
 		new Map(tags.filter((t) => t.id && t.name).map((t) => [t.id as string, t.name as string]))
 	);
