@@ -8,6 +8,8 @@ built SPA on one port.
 ## Documentation
 
 - [`openapi.yaml`](openapi.yaml) — full REST API specification
+- [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — product requirements
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system architecture overview
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — production deploy (Gitea Actions → host)
 - [`docs/GO_PROJECT_STRUCTURE.md`](docs/GO_PROJECT_STRUCTURE.md) — backend architecture
 - [`docs/FRONTEND_STRUCTURE.md`](docs/FRONTEND_STRUCTURE.md) — frontend architecture

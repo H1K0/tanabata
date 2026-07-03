@@ -1,13 +1,21 @@
 # Tanabata File Manager — Frontend Structure
 
+> Frontend counterpart of [ARCHITECTURE.md](ARCHITECTURE.md). This document
+> details the SvelteKit layout, the CSS approach, and the API client.
+
 ## Stack
 
-- **Framework**: SvelteKit (SPA mode, `ssr: false`)
-- **Language**: TypeScript
-- **CSS**: Tailwind CSS + CSS custom properties (hybrid)
-- **API types**: Auto-generated via openapi-typescript
-- **PWA**: Service worker + web manifest
+- **Framework**: SvelteKit in **SPA mode** (`adapter-static`, `ssr = false`),
+  Svelte 5 (runes)
+- **Language**: TypeScript (strict)
+- **Build**: Vite 7
+- **CSS**: Tailwind CSS **v4** via `@tailwindcss/vite` + CSS custom properties
+  (`@theme` in `app.css`) — no `tailwind.config.*` / `postcss.config.*` file
+- **API types**: auto-generated via `openapi-typescript` (`src/lib/api/schema.ts`)
+- **PWA**: service worker + web manifest
 - **Font**: Epilogue (variable weight)
+- **Dev**: `vite-mock-plugin.ts` serves a mock API so the UI can run without the
+  Go backend
 - **Package manager**: npm
 
 ## SPA mode — why SvelteKit without the server
@@ -19,7 +27,7 @@ static assets, and the only backend is the Go API. SvelteKit is used here
 purely as an SPA framework: file-based routing, the client router, and build
 tooling.
 
-**SvelteKit features we *do* use:**
+**SvelteKit features we _do_ use:**
 
 - File-based routing with nested layouts (`admin/` has its own guard) and
   dynamic segments (`[id]`).
@@ -30,11 +38,11 @@ tooling.
   over the still-mounted list via shallow routing, so the browser back button
   dismisses it without reloading the grid. This is the single biggest reason we
   stay on SvelteKit rather than a plain router.
-- `load` functions, used *only* as client-side route guards (auth redirect,
+- `load` functions, used _only_ as client-side route guards (auth redirect,
   admin redirect, `/` → `/files`).
 - `$lib` alias, generated `./$types`, Vite/HMR integration.
 
-**SvelteKit features we deliberately do *not* use** (the "server half"):
+**SvelteKit features we deliberately do _not_ use** (the "server half"):
 
 - SSR / hydration.
 - `+page.server.ts`, `+server.ts` endpoints, form actions — all data goes
@@ -43,7 +51,7 @@ tooling.
   `hooks.client.ts` files exist.
 
 **Decision: stay on SvelteKit, do not migrate to a bare Svelte + router SPA.**
-The project already *is* an SPA, so there is no runtime gain from switching
+The project already _is_ an SPA, so there is no runtime gain from switching
 (adapter-static tree-shakes the unused server bits; the client-runtime size
 difference is negligible). A migration would mean re-implementing nested
 layouts, guards, dynamic params, and — most painfully — shallow routing /
@@ -55,15 +63,7 @@ expect SSR, endpoints, or hooks to do anything here; that is intentional.
 ```
 tanabata/
 ├── backend/                    ← Go project (go.mod in here)
-│   ├── cmd/
-│   ├── internal/
-│   ├── migrations/
-│   ├── go.mod
-│   └── go.sum
-│
 ├── frontend/                   ← SvelteKit project (package.json in here)
-│   └── (see below)
-│
 ├── openapi.yaml                ← Shared API contract (root level)
 ├── docker-compose.yml
 ├── Dockerfile
@@ -71,352 +71,206 @@ tanabata/
 └── README.md
 ```
 
-`openapi.yaml` lives at repository root — both backend and frontend
-reference it. The frontend generates types from it; the backend
-validates its handlers against it.
+`openapi.yaml` lives at repository root — both backend and frontend reference
+it. The frontend generates types from it; the backend implements it.
 
 ## Frontend Directory Layout
 
 ```
 frontend/
 ├── package.json
-├── svelte.config.js
-├── vite.config.ts
+├── svelte.config.js                # adapter-static, fallback: index.html
+├── vite.config.ts                  # plugins: tailwindcss(), sveltekit(), mockApiPlugin()
+├── vite-mock-plugin.ts             # dev-only mock API (run the UI without the Go backend)
 ├── tsconfig.json
-├── tailwind.config.ts
-├── postcss.config.js
 │
-├── src/
-│   ├── app.html                    # Shell HTML (PWA meta, font preload)
-│   ├── app.css                     # Tailwind directives + CSS custom properties
-│   │                               # (no hooks.* — see "SPA mode" above)
-│   │
-│   ├── lib/                        # Shared code ($lib/ alias)
-│   │   │
-│   │   ├── api/                    # API client layer
-│   │   │   ├── client.ts           # Base fetch wrapper: auth headers, token refresh,
-│   │   │   │                       # error parsing, base URL
-│   │   │   ├── files.ts            # listFiles, getFile, uploadFile, deleteFile, etc.
-│   │   │   ├── tags.ts             # listTags, createTag, getTag, updateTag, etc.
-│   │   │   ├── categories.ts       # Category API functions
-│   │   │   ├── pools.ts            # Pool API functions
-│   │   │   ├── auth.ts             # login, logout, refresh, listSessions
-│   │   │   ├── acl.ts              # getPermissions, setPermissions
-│   │   │   ├── users.ts            # getMe, updateMe, admin user CRUD
-│   │   │   ├── audit.ts            # queryAuditLog
-│   │   │   ├── schema.ts           # AUTO-GENERATED from openapi.yaml (do not edit)
-│   │   │   └── types.ts            # Friendly type aliases:
-│   │   │                           #   export type File = components["schemas"]["File"]
-│   │   │                           #   export type Tag = components["schemas"]["Tag"]
-│   │   │
-│   │   ├── components/             # Reusable UI components
-│   │   │   │
-│   │   │   ├── layout/             # App shell
-│   │   │   │   ├── Navbar.svelte       # Bottom navigation bar (mobile-first)
-│   │   │   │   ├── Header.svelte       # Section header with sorting controls
-│   │   │   │   ├── SelectionBar.svelte # Floating bar for multi-select actions
-│   │   │   │   └── Loader.svelte       # Full-screen loading overlay
-│   │   │   │
-│   │   │   ├── file/               # File-related components
-│   │   │   │   ├── FileGrid.svelte     # Thumbnail grid with infinite scroll
-│   │   │   │   ├── FileCard.svelte     # Single thumbnail (160×160, selectable)
-│   │   │   │   ├── FileViewer.svelte   # Full-screen preview with prev/next navigation
-│   │   │   │   ├── FileUpload.svelte   # Upload form + drag-and-drop zone
-│   │   │   │   ├── FileDetail.svelte   # Metadata editor (notes, datetime, tags)
-│   │   │   │   └── FilterBar.svelte    # DSL filter builder UI
-│   │   │   │
-│   │   │   ├── tag/                # Tag-related components
-│   │   │   │   ├── TagBadge.svelte     # Colored pill with tag name
-│   │   │   │   ├── TagPicker.svelte    # Searchable tag selector (add/remove)
-│   │   │   │   ├── TagList.svelte      # Tag grid for section view
-│   │   │   │   └── TagRuleEditor.svelte # Auto-tag rule management
-│   │   │   │
-│   │   │   ├── pool/               # Pool-related components
-│   │   │   │   ├── PoolCard.svelte     # Pool preview card
-│   │   │   │   ├── PoolFileList.svelte # Ordered file list with drag reorder
-│   │   │   │   └── PoolDetail.svelte   # Pool metadata editor
-│   │   │   │
-│   │   │   ├── acl/                # Access control components
-│   │   │   │   └── PermissionEditor.svelte  # User permission grid
-│   │   │   │
-│   │   │   └── common/             # Shared primitives
-│   │   │       ├── Button.svelte
-│   │   │       ├── Modal.svelte
-│   │   │       ├── ConfirmDialog.svelte
-│   │   │       ├── Toast.svelte
-│   │   │       ├── InfiniteScroll.svelte
-│   │   │       ├── Pagination.svelte
-│   │   │       ├── SortDropdown.svelte
-│   │   │       ├── SearchInput.svelte
-│   │   │       ├── ColorPicker.svelte
-│   │   │       ├── Checkbox.svelte     # Three-state: checked, unchecked, partial
-│   │   │       └── EmptyState.svelte
-│   │   │
-│   │   ├── stores/                 # Svelte stores (global state)
-│   │   │   ├── auth.ts             # Current user, JWT tokens, isAuthenticated
-│   │   │   ├── selection.ts        # Selected item IDs, selection mode toggle
-│   │   │   ├── sorting.ts          # Per-section sort key + order (persisted to localStorage)
-│   │   │   ├── theme.ts            # Dark/light mode (persisted, respects prefers-color-scheme)
-│   │   │   └── toast.ts            # Notification queue (success, error, info)
-│   │   │
-│   │   └── utils/                  # Pure helper functions
-│   │       ├── format.ts           # formatDate, formatFileSize, formatDuration
-│   │       ├── dsl.ts              # Filter DSL builder: UI state → query string
-│   │       ├── pwa.ts              # PWA reset, cache clear, update prompt
-│   │       └── keyboard.ts         # Keyboard shortcut helpers (Ctrl+A, Escape, etc.)
-│   │
-│   ├── routes/                     # SvelteKit file-based routing
-│   │   │
-│   │   ├── +layout.svelte          # Root layout: Navbar, theme wrapper, toast container
-│   │   ├── +layout.ts              # Root load: auth guard → redirect to /login if no token
-│   │   │
-│   │   ├── +page.svelte            # / → redirect to /files
-│   │   │
-│   │   ├── login/
-│   │   │   └── +page.svelte        # Login form (decorative Tanabata images)
-│   │   │
-│   │   ├── files/
-│   │   │   ├── +page.svelte        # File grid: filter bar, sort, multi-select, upload
-│   │   │   ├── +page.ts            # Load: initial file list (cursor page)
-│   │   │   ├── [id]/
-│   │   │   │   ├── +page.svelte    # File view: preview, metadata, tags, ACL
-│   │   │   │   └── +page.ts        # Load: file detail + tags
-│   │   │   └── trash/
-│   │   │       ├── +page.svelte    # Trash: restore / permanent delete
-│   │   │       └── +page.ts
-│   │   │
-│   │   ├── tags/
-│   │   │   ├── +page.svelte        # Tag list: search, sort, multi-select
-│   │   │   ├── +page.ts
-│   │   │   ├── new/
-│   │   │   │   └── +page.svelte    # Create tag form
-│   │   │   └── [id]/
-│   │   │       ├── +page.svelte    # Tag detail: edit, category, rules, parent tags
-│   │   │       └── +page.ts
-│   │   │
-│   │   ├── categories/
-│   │   │   ├── +page.svelte        # Category list
-│   │   │   ├── +page.ts
-│   │   │   ├── new/
-│   │   │   │   └── +page.svelte
-│   │   │   └── [id]/
-│   │   │       ├── +page.svelte    # Category detail: edit, view tags
-│   │   │       └── +page.ts
-│   │   │
-│   │   ├── pools/
-│   │   │   ├── +page.svelte        # Pool list
-│   │   │   ├── +page.ts
-│   │   │   ├── new/
-│   │   │   │   └── +page.svelte
-│   │   │   └── [id]/
-│   │   │       ├── +page.svelte    # Pool detail: files (reorderable), filter, edit
-│   │   │       └── +page.ts
-│   │   │
-│   │   ├── settings/
-│   │   │   ├── +page.svelte        # Profile: name, password, active sessions
-│   │   │   └── +page.ts
-│   │   │
-│   │   └── admin/
-│   │       ├── +layout.svelte      # Admin layout: restrict to is_admin
-│   │       ├── users/
-│   │       │   ├── +page.svelte    # User management list
-│   │       │   ├── +page.ts
-│   │       │   └── [id]/
-│   │       │       ├── +page.svelte # User detail: role, block/unblock
-│   │       │       └── +page.ts
-│   │       └── audit/
-│   │           ├── +page.svelte    # Audit log with filters
-│   │           └── +page.ts
-│   │
-│   └── service-worker.ts          # PWA: offline cache for pinned files, app shell caching
+├── static/                         # Copied verbatim into the build
+│   ├── manifest.webmanifest        # PWA manifest
+│   ├── browserconfig.xml
+│   ├── robots.txt
+│   ├── favicon.ico
+│   ├── fonts/
+│   │   └── Epilogue-VariableFont_wght.ttf
+│   └── images/                     # PWA icons, section icons (svg), login decorations
 │
-└── static/
-    ├── favicon.png
-    ├── favicon.ico
-    ├── manifest.webmanifest        # PWA manifest (name, icons, theme_color)
-    ├── images/
-    │   ├── tanabata-left.png       # Login page decorations (from current design)
-    │   ├── tanabata-right.png
-    │   └── icons/                  # PWA icons (192×192, 512×512, etc.)
-    └── fonts/
-        └── Epilogue-VariableFont_wght.ttf
+└── src/
+    ├── app.html                    # Shell HTML (PWA meta, font preload)
+    ├── app.css                     # `@import 'tailwindcss'` + `@theme` custom properties
+    ├── app.d.ts                    # Ambient types
+    ├── service-worker.ts           # PWA: app-shell + pinned-file offline cache
+    │
+    ├── lib/                        # Shared code ($lib alias)
+    │   ├── index.ts
+    │   │
+    │   ├── api/                    # API client layer
+    │   │   ├── client.ts           # fetch wrapper: bearer auth, 401 refresh+retry, error parsing,
+    │   │   │                       # upload-with-progress (XHR), NDJSON streaming; exports `api`
+    │   │   ├── auth.ts             # login, refresh, logout, sessions
+    │   │   ├── tags.ts             # tag + tag-rule calls
+    │   │   ├── categories.ts       # category calls
+    │   │   ├── duplicates.ts       # duplicate list / dismiss / resolve
+    │   │   ├── schema.ts           # AUTO-GENERATED from openapi.yaml (gitignored; do not edit)
+    │   │   └── types.ts            # Friendly aliases: components['schemas'][...]
+    │   │
+    │   ├── components/
+    │   │   ├── layout/
+    │   │   │   ├── Header.svelte        # Section header with sorting controls
+    │   │   │   ├── SelectionBar.svelte  # Floating bar for multi-select actions
+    │   │   │   └── KeyboardHelp.svelte  # Keyboard-shortcut overlay
+    │   │   │
+    │   │   ├── file/
+    │   │   │   ├── FileCard.svelte       # Single thumbnail (160×160, selectable)
+    │   │   │   ├── Thumb.svelte          # Lazy-loaded thumbnail (IntersectionObserver)
+    │   │   │   ├── FileViewer.svelte     # Full-screen viewer with prev/next
+    │   │   │   ├── FileUpload.svelte     # Upload form + drag-and-drop
+    │   │   │   ├── FilterBar.svelte      # DSL filter builder UI
+    │   │   │   ├── MetadataEditor.svelte # Notes / datetime / metadata (nested) editor
+    │   │   │   ├── TagPicker.svelte      # Searchable tag selector (add/remove)
+    │   │   │   ├── PoolPicker.svelte     # Add-to-pool dialog
+    │   │   │   ├── BulkTagEditor.svelte  # Multi-select tag add/remove
+    │   │   │   └── DuplicateMergeDialog.svelte # Field-by-field duplicate resolution
+    │   │   │
+    │   │   ├── tag/
+    │   │   │   ├── TagBadge.svelte       # Colored pill
+    │   │   │   └── TagRuleEditor.svelte  # Auto-tag rule management
+    │   │   │
+    │   │   └── common/
+    │   │       ├── ConfirmDialog.svelte
+    │   │       └── InfiniteScroll.svelte # Below-the-fold lazy loading on scroll
+    │   │
+    │   ├── stores/                  # Svelte stores (global state)
+    │   │   ├── auth.ts              # Current user + JWT tokens (persisted, cross-tab sync)
+    │   │   ├── selection.ts         # Selected item IDs, selection mode
+    │   │   ├── sorting.ts           # Per-section sort key + order (persisted)
+    │   │   ├── theme.ts             # Dark/light theme (persisted)
+    │   │   ├── appSettings.ts       # Misc client-side settings
+    │   │   ├── listScroll.ts        # Restore list scroll position after overlay/back
+    │   │   └── sectionCache.ts      # Cached list snapshots, invalidated on mutation
+    │   │
+    │   └── utils/                   # Pure helpers
+    │       ├── dsl.ts               # Filter DSL builder: UI state → query string
+    │       ├── metadata.ts          # Nested metadata <-> editor rows
+    │       ├── pwa.ts               # PWA reset / update prompt
+    │       └── rovingGrid.svelte.ts # Roving-tabindex keyboard grid navigation
+    │
+    └── routes/                     # SvelteKit file-based routing (guards only in load)
+        ├── +layout.svelte          # Root layout: nav, theme
+        ├── +layout.ts              # ssr=false; root auth guard
+        ├── +page.svelte / +page.ts # / → redirect to /files
+        ├── login/+page.svelte
+        ├── files/
+        │   ├── +page.svelte / +page.ts   # Grid: filter, sort, multi-select, upload
+        │   ├── [id]/+page.svelte          # File view (also opened as shallow-routing overlay)
+        │   ├── duplicates/+page.svelte    # Duplicate clusters
+        │   └── trash/+page.svelte         # Trash: restore / permanent delete
+        ├── tags/        { +page.svelte, new/, [id]/ }
+        ├── categories/  { +page.svelte, new/, [id]/ }
+        ├── pools/       { +page.svelte, new/, [id]/ }
+        ├── settings/+page.svelte          # Profile: name, password, sessions, import path
+        └── admin/
+            ├── +layout.svelte / +layout.ts  # Restrict to admins
+            ├── users/{ +page.svelte, [id]/ }
+            └── audit/+page.svelte
 ```
 
 ## Key Architecture Decisions
 
-### CSS Hybrid: Tailwind + Custom Properties
+### CSS: Tailwind v4 + Custom Properties
 
-Theme colors defined as CSS custom properties in `app.css`:
+Tailwind v4 is configured **in CSS**, not in a JS config file. `app.css` imports
+Tailwind and declares the theme tokens as CSS custom properties inside `@theme`;
+Tailwind then generates utilities (`bg-bg-primary`, `text-text-primary`,
+`font-sans`, …) from those tokens automatically.
 
 ```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* src/app.css */
+@import "tailwindcss";
 
-:root {
-  --color-bg-primary: #312F45;
-  --color-bg-secondary: #181721;
-  --color-bg-elevated: #111118;
-  --color-accent: #9592B5;
-  --color-accent-hover: #7D7AA4;
-  --color-text-primary: #f0f0f0;
-  --color-text-muted: #9999AD;
-  --color-danger: #DB6060;
-  --color-info: #4DC7ED;
-  --color-warning: #F5E872;
-  --color-tag-default: #444455;
-}
+@theme {
+	--color-bg-primary: #312f45;
+	--color-bg-secondary: #181721;
+	--color-bg-elevated: #111118;
+	--color-accent: #9592b5;
+	--color-accent-hover: #7d7aa4;
+	--color-text-primary: #f0f0f0;
+	--color-tag-default: #444455;
+	/* … info / danger / warning / success / nav tokens … */
 
-:root[data-theme="light"] {
-  --color-bg-primary: #f5f5f5;
-  --color-bg-secondary: #ffffff;
-  /* ... */
+	--font-sans: "Epilogue", sans-serif;
 }
 ```
 
-Tailwind references them in `tailwind.config.ts`:
-
-```ts
-export default {
-  theme: {
-    extend: {
-      colors: {
-        bg: {
-          primary: 'var(--color-bg-primary)',
-          secondary: 'var(--color-bg-secondary)',
-          elevated: 'var(--color-bg-elevated)',
-        },
-        accent: {
-          DEFAULT: 'var(--color-accent)',
-          hover: 'var(--color-accent-hover)',
-        },
-        // ...
-      },
-      fontFamily: {
-        sans: ['Epilogue', 'sans-serif'],
-      },
-    },
-  },
-  darkMode: 'class', // controlled via data-theme attribute
-};
-```
-
+Dark theme is primary; the light theme overrides the same custom properties.
 Usage in components: `<div class="bg-bg-primary text-text-primary rounded-xl p-4">`.
 Complex cases use scoped `<style>` inside `.svelte` files.
 
 ### API Client Pattern
 
-`client.ts` — thin wrapper around fetch:
+`src/lib/api/client.ts` is a thin fetch wrapper exporting a generic `api`
+object. It attaches the bearer token, transparently handles a single `401`
+refresh-and-retry (deduplicating concurrent refreshes and syncing rotated
+tokens across tabs), parses `{ code, message, details }` errors into `ApiError`,
+and invalidates cached list snapshots on mutation. It also provides
+`uploadWithProgress` (XHR, for upload progress) and `postStream` (NDJSON, for
+the live import progress).
 
 ```ts
-// $lib/api/client.ts
-import { authStore } from '$lib/stores/auth';
-
-const BASE = '/api/v1';
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = get(authStore).accessToken;
-  const res = await fetch(BASE + path, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...init?.headers,
-    },
-  });
-  if (res.status === 401) {
-    // attempt refresh, retry once
-  }
-  if (!res.ok) {
-    const err = await res.json();
-    throw new ApiError(res.status, err.code, err.message, err.details);
-  }
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
-
+// $lib/api/client.ts (shape)
 export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  patch: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  put: <T>(path: string, body?: unknown) =>
-    request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
-  upload: <T>(path: string, formData: FormData) =>
-    request<T>(path, { method: 'POST', body: formData, headers: {} }),
+	get: <T>(path) => request<T>(path),
+	post: <T>(path, body?) =>
+		request<T>(path, { method: "POST", body: JSON.stringify(body) }),
+	patch: <T>(path, body?) =>
+		request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
+	put: <T>(path, body?) =>
+		request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
+	delete: <T>(path) => request<T>(path, { method: "DELETE" }),
+	upload: <T>(path, fd) => request<T>(path, { method: "POST", body: fd }),
 };
 ```
 
-Domain-specific modules use it:
-
-```ts
-// $lib/api/files.ts
-import { api } from './client';
-import type { File, FileCursorPage } from './types';
-
-export function listFiles(params: Record<string, string>) {
-  const qs = new URLSearchParams(params).toString();
-  return api.get<FileCursorPage>(`/files?${qs}`);
-}
-
-export function uploadFile(formData: FormData) {
-  return api.upload<File>('/files', formData);
-}
-```
+Resource modules (`auth.ts`, `tags.ts`, `categories.ts`, `duplicates.ts`) wrap
+`api` with typed helpers. Endpoints without a dedicated module (files, pools,
+users, acl, audit) are called through `api.*` directly from their route
+components.
 
 ### Type Generation
 
-Script in `package.json`:
-
 ```json
+// package.json
 {
-  "scripts": {
-    "generate:types": "openapi-typescript ../openapi.yaml -o src/lib/api/schema.ts",
-    "dev": "npm run generate:types && vite dev",
-    "build": "npm run generate:types && vite build"
-  }
+	"scripts": {
+		"generate:types": "openapi-typescript ../openapi.yaml -o src/lib/api/schema.ts",
+		"dev": "npm run generate:types && vite dev",
+		"build": "npm run generate:types && vite build"
+	}
 }
 ```
 
-Friendly aliases in `types.ts`:
+`schema.ts` is generated (and gitignored) — never edit it by hand. `types.ts`
+re-exports friendly aliases:
 
 ```ts
-import type { components } from './schema';
-
-export type File = components['schemas']['File'];
-export type Tag = components['schemas']['Tag'];
-export type Category = components['schemas']['Category'];
-export type Pool = components['schemas']['Pool'];
-export type FileCursorPage = components['schemas']['FileCursorPage'];
-export type TagOffsetPage = components['schemas']['TagOffsetPage'];
-export type Error = components['schemas']['Error'];
-// ...
+import type { components } from "./schema";
+export type File = components["schemas"]["File"];
+export type Tag = components["schemas"]["Tag"];
+// …
 ```
 
-### SPA Mode
-
-`svelte.config.js`:
+### SPA Mode (build)
 
 ```js
-import adapter from '@sveltejs/adapter-static';
-
-export default {
-  kit: {
-    adapter: adapter({ fallback: 'index.html' }),
-    // SPA: all routes handled client-side
-  },
-};
+// svelte.config.js
+import adapter from "@sveltejs/adapter-static";
+export default { kit: { adapter: adapter({ fallback: "index.html" }) } };
 ```
 
-The Go backend serves `index.html` for all non-API routes (SPA fallback).
-In development, Vite dev server proxies `/api` to the Go backend.
+The Go backend serves `index.html` for all non-API routes (SPA fallback, see
+`handler/static.go`). In development the Vite dev server serves the UI and the
+mock plugin (or a proxied Go backend) answers `/api`.
 
 ### PWA
 
-`service-worker.ts` handles:
-- App shell caching (HTML, CSS, JS, fonts)
-- User-pinned file caching (explicit, via UI button)
-- Cache versioning and cleanup on update
-- Reset function (clear all caches except pinned files)
+`service-worker.ts` handles app-shell caching (HTML/CSS/JS/fonts) and optional
+user-pinned file caching for offline viewing; `utils/pwa.ts` exposes the reset /
+update flow (clear caches and reload from the server, keeping pinned files).

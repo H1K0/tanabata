@@ -5,8 +5,9 @@ info:
     REST API for Tanabata File Manager — a multi-user, tag-based web file manager.
 
     ## Authentication
-    All endpoints except `POST /auth/login` require a Bearer JWT token
-    in the `Authorization` header.
+    All endpoints require a Bearer JWT token in the `Authorization` header,
+    except `POST /auth/login`, `POST /auth/refresh` (which carry their own
+    credentials) and `GET /health`.
 
     ## Pagination
     - **Files**: cursor-based (`cursor` parameter, returned in `next_cursor`).
@@ -32,7 +33,7 @@ info:
 
     Example: `{t=uuid1,&,!,t=uuid2}` → has tag1 AND NOT tag2.
     Example: `{r=1,&,m~image%}` → needs review AND is an image.
-  version: 1.0.0
+  version: 3.0.0
   license:
     name: Proprietary
 
@@ -59,11 +60,41 @@ tags:
     description: User management (admin)
   - name: Audit
     description: Audit log (admin)
+  - name: System
+    description: Service health and liveness
 
 # ===========================================================================
 # Paths
 # ===========================================================================
 paths:
+
+  # -------------------------------------------------------------------------
+  # System
+  # -------------------------------------------------------------------------
+  /health:
+    # Served at the server root, outside the /api/v1 prefix — override the
+    # global server so the documented path is /health, not /api/v1/health.
+    servers:
+      - url: /
+    get:
+      tags: [System]
+      summary: Health check
+      description: |
+        Liveness probe. Requires no authentication and is used by the container
+        HEALTHCHECK. Always returns 200 while the process is serving.
+      security: []
+      responses:
+        '200':
+          description: Service is healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
 
   # -------------------------------------------------------------------------
   # Auth

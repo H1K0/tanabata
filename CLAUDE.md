@@ -13,16 +13,18 @@ Monorepo: `backend/` (Go) + `frontend/` (SvelteKit).
 
 ## Key documents (read before coding)
 
-- `openapi.yaml` — full REST API specification (36 paths, 58 operations)
+- `openapi.yaml` — full REST API specification (44 paths, 67 operations)
+- `docs/REQUIREMENTS.md` — product requirements (functional + non-functional)
+- `docs/ARCHITECTURE.md` — system architecture overview (layers, data flow, decisions)
 - `docs/GO_PROJECT_STRUCTURE.md` — backend architecture, layer rules, DI pattern
 - `docs/FRONTEND_STRUCTURE.md` — frontend architecture, CSS approach, API client
-- `docs/Описание.md` — product requirements in Russian
-- `backend/migrations/001_init.sql` — database schema (4 schemas, 16 tables)
+- `backend/migrations/` — database schema as goose migrations (4 schemas, 19 tables)
 
 ## Design reference
 
 Visual design tokens for the frontend (carried over from the previous
 Python/Flask version):
+
 - Color palette: #312F45 (bg), #9592B5 (accent), #444455 (tag default), #111118 (elevated)
 - Font: Epilogue (variable weight)
 - Dark theme is primary
@@ -32,6 +34,7 @@ Python/Flask version):
 - Floating selection bar for multi-select
 
 ## Backend commands
+
 ```bash
 cd backend
 go run ./cmd/server          # run dev server
@@ -39,6 +42,7 @@ go test ./...                # run all tests
 ```
 
 ## Frontend commands
+
 ```bash
 cd frontend
 npm run dev                  # vite dev server
