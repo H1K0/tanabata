@@ -12,7 +12,7 @@
 	import SelectionBar from '$lib/components/layout/SelectionBar.svelte';
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
 	import { fileSorting, type FileSortField } from '$lib/stores/sorting';
-	import { selectionStore, selectionActive } from '$lib/stores/selection';
+	import { selectionStore, selectionActive, selectionCount } from '$lib/stores/selection';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import BulkTagEditor from '$lib/components/file/BulkTagEditor.svelte';
 	import PoolPicker from '$lib/components/file/PoolPicker.svelte';
@@ -784,6 +784,8 @@
 
 {#if $selectionActive}
 	<SelectionBar
+		count={$selectionCount}
+		onClear={() => selectionStore.exit()}
 		onEditTags={openTagEditor}
 		onAddToPool={openPoolPicker}
 		onMarkReviewed={markSelectionReviewed}

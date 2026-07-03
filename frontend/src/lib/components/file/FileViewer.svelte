@@ -554,7 +554,7 @@
 			</section>
 
 			<section class="section">
-				<label class="field-label" for="datetime">Date taken</label>
+				<label class="field-label" for="datetime">Content date</label>
 				<input
 					id="datetime"
 					type="datetime-local"

@@ -1,21 +1,32 @@
 <script lang="ts">
-	import { selectionStore, selectionCount } from '$lib/stores/selection';
-
 	interface Props {
+		count: number;
+		onClear: () => void;
 		onEditTags: () => void;
 		onAddToPool: () => void;
 		onMarkReviewed: () => void;
 		onDelete: () => void;
+		// Optional: only shown in a pool context (removes the files from that pool
+		// without deleting them). Omitted on the global files list.
+		onRemoveFromPool?: () => void;
 	}
 
-	let { onEditTags, onAddToPool, onMarkReviewed, onDelete }: Props = $props();
+	let {
+		count,
+		onClear,
+		onEditTags,
+		onAddToPool,
+		onMarkReviewed,
+		onDelete,
+		onRemoveFromPool
+	}: Props = $props();
 </script>
 
 <div class="bar" role="toolbar" aria-label="Selection actions">
 	<div class="row">
 		<!-- Count / deselect all -->
-		<button class="count" onclick={() => selectionStore.exit()} title="Clear selection">
-			<span class="num">{$selectionCount}</span>
+		<button class="count" onclick={onClear} title="Clear selection">
+			<span class="num">{count}</span>
 			<span class="label">selected</span>
 			<svg
 				class="close-icon"
@@ -39,6 +50,9 @@
 		<button class="action edit-tags" onclick={onEditTags}>Edit tags</button>
 		<button class="action add-pool" onclick={onAddToPool}>Add to pool</button>
 		<button class="action mark-reviewed" onclick={onMarkReviewed}>Mark reviewed</button>
+		{#if onRemoveFromPool}
+			<button class="action remove-pool" onclick={onRemoveFromPool}>Remove from pool</button>
+		{/if}
 		<button class="action delete" onclick={onDelete}>Delete</button>
 	</div>
 </div>
@@ -72,6 +86,7 @@
 	.row {
 		display: flex;
 		align-items: center;
+		flex-wrap: wrap;
 		gap: 4px;
 	}
 
@@ -124,6 +139,7 @@
 		font-size: 0.85rem;
 		font-family: inherit;
 		font-weight: 600;
+		white-space: nowrap;
 	}
 
 	.edit-tags {
@@ -148,6 +164,15 @@
 
 	.mark-reviewed:hover {
 		background-color: color-mix(in srgb, var(--color-success) 15%, transparent);
+	}
+
+	.remove-pool {
+		color: var(--color-text-muted);
+	}
+
+	.remove-pool:hover {
+		background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
+		color: var(--color-text-primary);
 	}
 
 	.delete {

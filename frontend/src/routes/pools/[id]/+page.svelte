@@ -7,6 +7,8 @@
 	import FileViewer from '$lib/components/file/FileViewer.svelte';
 	import FilterBar from '$lib/components/file/FilterBar.svelte';
 	import PoolPicker from '$lib/components/file/PoolPicker.svelte';
+	import BulkTagEditor from '$lib/components/file/BulkTagEditor.svelte';
+	import SelectionBar from '$lib/components/layout/SelectionBar.svelte';
 	import InfiniteScroll from '$lib/components/common/InfiniteScroll.svelte';
 	import ConfirmDialog from '$lib/components/common/ConfirmDialog.svelte';
 	import { parseDslFilter } from '$lib/utils/dsl';
@@ -44,11 +46,13 @@
 	let filterOpen = $state(false);
 	let activeTokens = $derived(parseDslFilter(filterParam));
 
-	// ---- Selection (for removal) ----
+	// ---- Selection + bulk actions (mirrors the files page) ----
 	let selectedIds = $state(new Set<string>());
 	let selectionMode = $derived(selectedIds.size > 0);
 	let lastSelectedIdx = $state<number | null>(null);
 	let confirmRemove = $state(false);
+	let confirmDeleteFiles = $state(false);
+	let tagEditorOpen = $state(false);
 	let poolPickerOpen = $state(false);
 
 	// ---- Add files mode ----
@@ -238,16 +242,54 @@
 		lastSelectedIdx = idx;
 	}
 
+	function clearSelection() {
+		selectedIds = new Set();
+		lastSelectedIdx = null;
+	}
+
+	function openTagEditor() {
+		tagEditorOpen = true;
+		void tick().then(() => document.querySelector<HTMLInputElement>('.tag-sheet input')?.focus());
+	}
+
 	async function removeSelected() {
 		confirmRemove = false;
 		const ids = [...selectedIds];
-		selectedIds = new Set();
+		clearSelection();
 		try {
 			await api.post(`/pools/${poolId}/files/remove`, { file_ids: ids });
 			files = files.filter((f) => !ids.includes(f.id ?? ''));
 			if (pool) pool = { ...pool, file_count: Math.max(0, (pool.file_count ?? 0) - ids.length) };
 		} catch {
 			// silently ignore
+		}
+	}
+
+	// Mark the selection as review-done; optimistically clear the local badges.
+	async function markSelectionReviewed() {
+		const ids = [...selectedIds];
+		if (ids.length === 0) return;
+		clearSelection();
+		try {
+			await api.post('/files/bulk/review', { file_ids: ids, needs_review: false });
+			files = files.map((f) => (ids.includes(f.id ?? '') ? { ...f, needs_review: false } : f));
+		} catch {
+			// ignore — the list already reflects the intended state
+		}
+	}
+
+	// Move the selection to trash. Trashed files drop out of the pool view (which
+	// only lists live files); pool membership is kept, so file_count is left to
+	// the server's truth on the next load rather than adjusted optimistically.
+	async function deleteSelected() {
+		confirmDeleteFiles = false;
+		const ids = [...selectedIds];
+		clearSelection();
+		try {
+			await api.post('/files/bulk/delete', { file_ids: ids });
+			files = files.filter((f) => !ids.includes(f.id ?? ''));
+		} catch {
+			// silently ignore — list already updated optimistically
 		}
 	}
 
@@ -629,8 +671,8 @@
 							aria-label="Sort files"
 						>
 							<option value="manual">Manual order</option>
-							<option value="content_datetime">Date</option>
-							<option value="created">Date added</option>
+							<option value="content_datetime">Content date</option>
+							<option value="created">Created</option>
 							<option value="original_name">Name</option>
 						</select>
 						{#if sortKey !== 'manual'}
@@ -739,35 +781,53 @@
 	</div>
 {/if}
 
-<!-- Selection bar (remove mode) -->
+<!-- Selection actions — same set as the files page, plus Remove from pool. -->
 {#if selectionMode && !addMode}
-	<div class="selection-bar" role="toolbar">
-		<button
-			class="sel-cancel"
-			onclick={() => {
-				selectedIds = new Set();
-				lastSelectedIdx = null;
-			}}
-		>
-			<span class="sel-num">{selectedIds.size}</span>
-			<span class="sel-label">selected</span>
-			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-				<path
-					d="M2 2l10 10M12 2L2 12"
-					stroke="currentColor"
-					stroke-width="1.8"
-					stroke-linecap="round"
-				/>
-			</svg>
-		</button>
-		<div class="sel-spacer"></div>
-		<button class="sel-action add-action" onclick={() => (poolPickerOpen = true)}>
-			Add to pool
-		</button>
-		<button class="sel-action remove-action" onclick={() => (confirmRemove = true)}>
-			Remove from pool
-		</button>
+	<SelectionBar
+		count={selectedIds.size}
+		onClear={clearSelection}
+		onEditTags={openTagEditor}
+		onAddToPool={() => (poolPickerOpen = true)}
+		onMarkReviewed={markSelectionReviewed}
+		onRemoveFromPool={() => (confirmRemove = true)}
+		onDelete={() => (confirmDeleteFiles = true)}
+	/>
+{/if}
+
+<!-- Bulk tag editor sheet -->
+{#if tagEditorOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div class="picker-backdrop" role="presentation" onclick={() => (tagEditorOpen = false)}></div>
+	<div class="picker-sheet tag-sheet" role="dialog" aria-label="Edit tags">
+		<div class="picker-header">
+			<span class="picker-title"
+				>Edit tags — {selectedIds.size} file{selectedIds.size !== 1 ? 's' : ''}</span
+			>
+			<button class="picker-close" onclick={() => (tagEditorOpen = false)} aria-label="Close">
+				<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+					<path
+						d="M3 3l10 10M13 3L3 13"
+						stroke="currentColor"
+						stroke-width="1.8"
+						stroke-linecap="round"
+					/>
+				</svg>
+			</button>
+		</div>
+		<div class="tag-sheet-body">
+			<BulkTagEditor fileIds={[...selectedIds]} onDone={() => (tagEditorOpen = false)} />
+		</div>
 	</div>
+{/if}
+
+{#if confirmDeleteFiles}
+	<ConfirmDialog
+		message={`Move ${selectedIds.size} file${selectedIds.size !== 1 ? 's' : ''} to trash?`}
+		confirmLabel="Move to trash"
+		danger
+		onConfirm={deleteSelected}
+		onCancel={() => (confirmDeleteFiles = false)}
+	/>
 {/if}
 
 <!-- Add the selected files to another pool (reuses the file picker; the order
@@ -775,10 +835,7 @@
 {#if poolPickerOpen}
 	<PoolPicker
 		fileIds={[...selectedIds]}
-		onAdded={() => {
-			selectedIds = new Set();
-			lastSelectedIdx = null;
-		}}
+		onAdded={clearSelection}
 		onClose={() => (poolPickerOpen = false)}
 	/>
 {/if}
@@ -1222,21 +1279,64 @@
 		font-size: 0.9rem;
 	}
 
-	/* ---- Selection bar ---- */
-	.selection-bar {
+	/* ---- Bulk tag editor sheet (shared shell with the files page) ---- */
+	.picker-backdrop {
 		position: fixed;
-		left: 10px;
-		right: 10px;
-		bottom: 65px;
+		inset: 0;
+		z-index: 110;
+		background: rgba(0, 0, 0, 0.5);
+	}
+
+	.picker-sheet {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 111;
 		background-color: var(--color-bg-secondary);
-		border-radius: 10px;
-		box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
-		padding: 10px 14px;
-		z-index: 100;
+		border-radius: 14px 14px 0 0;
+		padding-bottom: env(safe-area-inset-bottom, 0px);
+		max-height: 70dvh;
+		display: flex;
+		flex-direction: column;
+		animation: slide-up 0.18s ease-out;
+	}
+
+	.tag-sheet {
+		max-height: 80dvh;
+	}
+
+	.picker-header {
 		display: flex;
 		align-items: center;
-		gap: 4px;
-		animation: slide-up 0.18s ease-out;
+		padding: 14px 16px 10px;
+		gap: 8px;
+	}
+
+	.picker-title {
+		flex: 1;
+		font-size: 0.95rem;
+		font-weight: 600;
+	}
+
+	.picker-close {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: var(--color-text-muted);
+		padding: 4px;
+		display: flex;
+		align-items: center;
+	}
+
+	.picker-close:hover {
+		color: var(--color-text-primary);
+	}
+
+	.tag-sheet-body {
+		padding: 0 14px 16px;
+		overflow-y: auto;
+		flex: 1;
 	}
 
 	@keyframes slide-up {
@@ -1248,62 +1348,6 @@
 			transform: translateY(0);
 			opacity: 1;
 		}
-	}
-
-	.sel-cancel {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 4px 6px;
-		border-radius: 6px;
-		color: var(--color-text-muted);
-		font-family: inherit;
-	}
-	.sel-cancel:hover {
-		background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
-		color: var(--color-text-primary);
-	}
-
-	.sel-num {
-		font-size: 1.1rem;
-		font-weight: 700;
-		color: var(--color-text-primary);
-	}
-
-	.sel-label {
-		font-size: 0.85rem;
-	}
-
-	.sel-spacer {
-		flex: 1;
-	}
-
-	.sel-action {
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 6px 10px;
-		border-radius: 6px;
-		font-size: 0.85rem;
-		font-family: inherit;
-		font-weight: 600;
-	}
-
-	.add-action {
-		color: var(--color-accent);
-	}
-	.add-action:hover {
-		background-color: color-mix(in srgb, var(--color-accent) 15%, transparent);
-	}
-
-	.remove-action {
-		color: var(--color-danger);
-	}
-	.remove-action:hover {
-		background-color: color-mix(in srgb, var(--color-danger) 15%, transparent);
 	}
 
 	/* ---- Add files overlay ---- */
