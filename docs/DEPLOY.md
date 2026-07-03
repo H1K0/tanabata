@@ -3,13 +3,16 @@
 Tanabata is deployed by a [Gitea Actions](https://docs.gitea.com/usage/actions/overview)
 workflow ([`.gitea/workflows/deploy.yml`](../.gitea/workflows/deploy.yml)) that
 runs on the **production host itself**. On every push to `master` it updates the
-git clone in `/opt/tanabata` and runs `docker compose up -d --build` there, so the
-image is built from the freshly-pushed code and the stack is restarted.
+git clone in `/opt/tanabata`, runs the test suite (backend + frontend, in
+throwaway toolchain containers), and — only if it passes — runs
+`docker compose up -d --build` there, so the image is built from the
+freshly-pushed code and the stack is restarted.
 
 ```
 push master ──> Gitea (container) ──> act_runner (host, "host" label)
                                           │ git fetch + reset --hard   (in /opt/tanabata)
-                                          └ docker compose up -d --build
+                                          │ run tests (go + node in containers; ephemeral Postgres)
+                                          └ docker compose up -d --build   (only if tests pass)
 ```
 
 The Gitea server runs in a container, but the **runner runs directly on the host**

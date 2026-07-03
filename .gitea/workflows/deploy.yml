@@ -19,7 +19,9 @@ jobs:
     # existing clone in /opt/tanabata. See docs/DEPLOY.md for runner setup.
     #
     # Only shell steps here (no `uses:` actions), so the host needs git + docker
-    # and nothing else — no node, no rsync.
+    # and nothing else — no node, no go, no rsync. The test step below runs the
+    # Go and Node toolchains inside throwaway containers, so nothing has to be
+    # installed on the host.
     runs-on: host
 
     env:
@@ -34,6 +36,47 @@ jobs:
           cd "$DEPLOY_DIR"
           git fetch --prune origin
           git reset --hard origin/master
+
+      - name: Run tests
+        working-directory: /opt/tanabata
+        # Everything runs INSIDE throwaway toolchain containers — the host only
+        # needs docker (which it already uses for `docker compose`). Nothing (Go,
+        # Node, Postgres, vips/ffmpeg/exiftool) has to be installed on the host.
+        # The orchestration below uses only bash builtins + docker. A failure here
+        # fails the job, so a red build never reaches production. Module/npm caches
+        # persist in named volumes for speed.
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker rm -f tfm-ci-db >/dev/null 2>&1 || true
+          docker network rm tfm-ci-net >/dev/null 2>&1 || true
+          docker network create tfm-ci-net >/dev/null
+          trap 'docker rm -f tfm-ci-db >/dev/null 2>&1 || true; docker network rm tfm-ci-net >/dev/null 2>&1 || true' EXIT
+
+          docker run -d --name tfm-ci-db --network tfm-ci-net \
+            -e POSTGRES_PASSWORD=postgres postgres:14-alpine >/dev/null
+          # Wait for Postgres, using pg_isready inside the DB container (no host tools).
+          for ((i = 0; i < 30; i++)); do
+            docker exec tfm-ci-db pg_isready -U postgres >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+          # Backend: full suite, including the integration tests, against the
+          # ephemeral Postgres. -buildvcs=false since the .git dir isn't mounted.
+          docker run --rm --network tfm-ci-net \
+            -v /opt/tanabata/backend:/src -w /src \
+            -v tfm-ci-gomod:/go/pkg/mod -v tfm-ci-gocache:/root/.cache/go-build \
+            -e CGO_ENABLED=0 \
+            -e TANABATA_TEST_ADMIN_DSN="postgres://postgres:postgres@tfm-ci-db:5432/postgres?sslmode=disable" \
+            golang:1.26-alpine go test -buildvcs=false -count=1 ./...
+
+          # Frontend: type-check + production build (also validates openapi via
+          # the generate:types prestep).
+          docker run --rm \
+            -v /opt/tanabata:/repo -w /repo/frontend \
+            -v tfm-ci-npm:/root/.npm \
+            node:22-alpine sh -c "npm ci && npm run check && npm run build"
 
       - name: Build image and start the stack
         working-directory: /opt/tanabata
