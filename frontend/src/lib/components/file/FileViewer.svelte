@@ -89,6 +89,18 @@
 		if (previewSrc) URL.revokeObjectURL(previewSrc);
 	});
 
+	// content_datetime is stored/returned as a UTC ISO instant, but
+	// <input type="datetime-local"> works in local wall-clock time with no zone.
+	// Shift by the local offset so the field shows local time; the save path
+	// (new Date(value).toISOString()) parses it back as local and re-encodes UTC.
+	function isoToLocalInput(iso?: string | null): string {
+		if (!iso) return '';
+		const d = new Date(iso);
+		if (Number.isNaN(d.getTime())) return '';
+		const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+		return local.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm (local)
+	}
+
 	async function loadFile(id: string) {
 		loading = true;
 		error = '';
@@ -101,9 +113,7 @@
 			if (fileId !== id) return; // paged on; ignore
 			file = fileData;
 			notes = fileData.notes ?? '';
-			contentDatetime = fileData.content_datetime
-				? fileData.content_datetime.slice(0, 16) // YYYY-MM-DDTHH:mm
-				: '';
+			contentDatetime = isoToLocalInput(fileData.content_datetime);
 			isPublic = fileData.is_public ?? false;
 			metadataNodes = objectToNodes(fileData.metadata);
 			dirty = false;
