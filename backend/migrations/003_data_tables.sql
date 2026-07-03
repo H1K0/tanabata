@@ -76,8 +76,17 @@ CREATE TABLE data.pools (
     creator_id smallint     NOT NULL REFERENCES core.users(id)
                             ON UPDATE CASCADE ON DELETE RESTRICT,
     is_public  boolean      NOT NULL DEFAULT false,
+    -- File ordering within the pool. 'manual' keeps the user-defined order in
+    -- data.file_pool.position (drag-to-reorder); any other key sorts the pool's
+    -- files automatically by that file field, in which case reordering is disabled.
+    sort_key   varchar(32)  NOT NULL DEFAULT 'manual',
+    sort_order varchar(4)   NOT NULL DEFAULT 'asc',
 
-    CONSTRAINT uni__pools__name UNIQUE (name)
+    CONSTRAINT uni__pools__name UNIQUE (name),
+    CONSTRAINT chk__pools__sort_key
+        CHECK (sort_key IN ('manual', 'content_datetime', 'created', 'original_name')),
+    CONSTRAINT chk__pools__sort_order
+        CHECK (sort_order IN ('asc', 'desc'))
 );
 
 -- `position` uses integer with gaps (e.g. 1000, 2000, 3000) to allow

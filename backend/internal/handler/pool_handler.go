@@ -34,6 +34,8 @@ type poolJSON struct {
 	CreatorID   int16   `json:"creator_id"`
 	CreatorName string  `json:"creator_name"`
 	IsPublic    bool    `json:"is_public"`
+	SortKey     string  `json:"sort_key"`
+	SortOrder   string  `json:"sort_order"`
 	FileCount   int     `json:"file_count"`
 	CreatedAt   string  `json:"created_at"`
 }
@@ -51,6 +53,8 @@ func toPoolJSON(p domain.Pool) poolJSON {
 		CreatorID:   p.CreatorID,
 		CreatorName: p.CreatorName,
 		IsPublic:    p.IsPublic,
+		SortKey:     p.SortKey,
+		SortOrder:   p.SortOrder,
 		FileCount:   p.FileCount,
 		CreatedAt:   p.CreatedAt.UTC().Format(time.RFC3339),
 	}
@@ -212,6 +216,16 @@ func (h *PoolHandler) Update(c *gin.Context) {
 	if v, ok := raw["is_public"]; ok {
 		if b, ok := v.(bool); ok {
 			params.IsPublic = &b
+		}
+	}
+	if v, ok := raw["sort_key"]; ok {
+		if s, ok := v.(string); ok {
+			params.SortKey = &s
+		}
+	}
+	if v, ok := raw["sort_order"]; ok {
+		if s, ok := v.(string); ok {
+			params.SortOrder = &s
 		}
 	}
 

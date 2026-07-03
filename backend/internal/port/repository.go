@@ -36,6 +36,10 @@ type PoolFileListParams struct {
 	Cursor string
 	Limit  int
 	Filter string // filter DSL expression
+	// SortKey / SortOrder come from the pool itself (not the request) and select
+	// how files are ordered: manual position order or an automatic file-field sort.
+	SortKey   string
+	SortOrder string
 }
 
 // FileRepo is the persistence interface for file records.

@@ -26,6 +26,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -1744,4 +1745,116 @@ func TestDuplicateDetection(t *testing.T) {
 	resp = h.doJSON("GET", "/files/duplicates", nil, admin)
 	resp.decode(t, &list)
 	assert.Equal(t, 0, list.Total, "dismissal must survive a rescan")
+}
+
+// TestPoolAutomaticSort exercises per-pool file ordering: the default manual
+// order, switching to automatic sorts (by name and by creation), that an
+// auto-sorted pool rejects manual reordering, and that keyset paging honours the
+// active sort.
+func TestPoolAutomaticSort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	h := setupSuite(t)
+	admin := h.login("admin", "admin")
+
+	// Upload three files with distinct names in a non-alphabetical order.
+	idB := h.uploadJPEG(admin, "b.jpg")["id"].(string)
+	idA := h.uploadJPEG(admin, "a.jpg")["id"].(string)
+	idC := h.uploadJPEG(admin, "c.jpg")["id"].(string)
+
+	// "created" order is UUID (byte) order — lexicographic on the canonical string.
+	createdAsc := []string{idA, idB, idC}
+	sort.Strings(createdAsc)
+	createdDesc := []string{createdAsc[2], createdAsc[1], createdAsc[0]}
+
+	// New pool defaults to manual ordering.
+	resp := h.doJSON("POST", "/pools", map[string]any{"name": "sortpool"}, admin)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+	var pool map[string]any
+	resp.decode(t, &pool)
+	poolID := pool["id"].(string)
+	require.Equal(t, "manual", pool["sort_key"])
+
+	// Add in upload order (b, a, c) → that becomes the manual position order.
+	resp = h.doJSON("POST", "/pools/"+poolID+"/files",
+		map[string]any{"file_ids": []string{idB, idA, idC}}, admin)
+	require.Equal(t, http.StatusCreated, resp.StatusCode, resp.String())
+
+	listIDs := func() []string {
+		resp := h.doJSON("GET", "/pools/"+poolID+"/files", nil, admin)
+		require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+		var page struct {
+			Items []struct {
+				ID string `json:"id"`
+			} `json:"items"`
+		}
+		resp.decode(t, &page)
+		ids := make([]string, len(page.Items))
+		for i, it := range page.Items {
+			ids[i] = it.ID
+		}
+		return ids
+	}
+
+	setSort := func(key, order string) {
+		body := map[string]any{"sort_key": key}
+		if order != "" {
+			body["sort_order"] = order
+		}
+		resp := h.doJSON("PATCH", "/pools/"+poolID, body, admin)
+		require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+	}
+
+	// Manual = insertion order.
+	require.Equal(t, []string{idB, idA, idC}, listIDs())
+
+	// By name ascending → a, b, c.
+	setSort("original_name", "asc")
+	require.Equal(t, []string{idA, idB, idC}, listIDs())
+
+	// By creation descending → reverse UUID order.
+	setSort("created", "desc")
+	require.Equal(t, createdDesc, listIDs())
+
+	// Reordering an auto-sorted pool is rejected.
+	resp = h.doJSON("PUT", "/pools/"+poolID+"/files/reorder",
+		map[string]any{"file_ids": []string{idC, idB, idA}}, admin)
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode, resp.String())
+
+	// Back to manual → reordering works again and sticks.
+	setSort("manual", "")
+	resp = h.doJSON("PUT", "/pools/"+poolID+"/files/reorder",
+		map[string]any{"file_ids": []string{idC, idB, idA}}, admin)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode, resp.String())
+	require.Equal(t, []string{idC, idB, idA}, listIDs())
+
+	// Keyset paging (limit 1) under an automatic sort returns the full sequence.
+	setSort("original_name", "asc")
+	var paged []string
+	cursor := ""
+	for i := 0; i < 10; i++ {
+		url := "/pools/" + poolID + "/files?limit=1"
+		if cursor != "" {
+			url += "&cursor=" + cursor
+		}
+		resp := h.doJSON("GET", url, nil, admin)
+		require.Equal(t, http.StatusOK, resp.StatusCode, resp.String())
+		var page struct {
+			Items []struct {
+				ID string `json:"id"`
+			} `json:"items"`
+			NextCursor *string `json:"next_cursor"`
+		}
+		resp.decode(t, &page)
+		for _, it := range page.Items {
+			paged = append(paged, it.ID)
+		}
+		if page.NextCursor == nil {
+			break
+		}
+		cursor = *page.NextCursor
+	}
+	require.Equal(t, []string{idA, idB, idC}, paged)
 }

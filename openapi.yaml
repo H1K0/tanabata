@@ -2281,6 +2281,16 @@ components:
           type: string
         is_public:
           type: boolean
+        sort_key:
+          type: string
+          enum: [manual, content_datetime, created, original_name]
+          description: >-
+            How the pool's files are ordered. "manual" keeps the user-defined
+            order (drag-to-reorder); any other key sorts the files automatically
+            by that file field and disables manual reordering.
+        sort_order:
+          type: string
+          enum: [asc, desc]
         file_count:
           type: integer
         created_at:
@@ -2312,6 +2322,12 @@ components:
           type: object
         is_public:
           type: boolean
+        sort_key:
+          type: string
+          enum: [manual, content_datetime, created, original_name]
+        sort_order:
+          type: string
+          enum: [asc, desc]
 
     PoolOffsetPage:
       type: object

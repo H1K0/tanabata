@@ -61,8 +61,15 @@
 	let addSelected = $state(new Set<string>());
 	let addSearchPrev = $state('');
 
-	// ---- Drag-to-reorder (disabled when filter active) ----
-	let canReorder = $derived(!filterParam);
+	// ---- Sorting ----
+	// The pool stores its own file sort. "manual" keeps the drag order; any other
+	// key sorts automatically (server-side) and disables reordering.
+	let sortKey = $derived(pool?.sort_key ?? 'manual');
+	let sortOrder = $derived(pool?.sort_order ?? 'asc');
+	let sortChanging = $state(false);
+
+	// ---- Drag-to-reorder (only in manual order, and not while filtering) ----
+	let canReorder = $derived(!filterParam && sortKey === 'manual');
 	let dragSrcIdx = $state<number | null>(null);
 	let dragOverIdx = $state<number | null>(null);
 	let reorderPending = $state(false);
@@ -128,6 +135,27 @@
 			hasMore = false;
 		} finally {
 			filesLoading = false;
+		}
+	}
+
+	// ---- Change the pool's file sort ----
+	// Persist the new sort on the pool, then reload the files from the top so the
+	// new server-side order takes effect. A no-op if the setting hasn't changed.
+	async function changeSort(key: string, order: string) {
+		if (!pool || sortChanging) return;
+		if (key === sortKey && order === sortOrder) return;
+		sortChanging = true;
+		try {
+			pool = await api.patch<Pool>(`/pools/${poolId}`, { sort_key: key, sort_order: order });
+			files = [];
+			nextCursor = null;
+			hasMore = true;
+			filesError = '';
+			await loadMore();
+		} catch (e) {
+			filesError = e instanceof ApiError ? e.message : 'Failed to change sort';
+		} finally {
+			sortChanging = false;
 		}
 	}
 
@@ -591,6 +619,32 @@
 					{#if pool?.file_count != null}<span class="count">({pool.file_count})</span>{/if}
 				</span>
 				<div class="files-header-actions">
+					<div class="sort-control">
+						<select
+							class="sort-select"
+							value={sortKey}
+							disabled={sortChanging}
+							onchange={(e) => changeSort((e.currentTarget as HTMLSelectElement).value, sortOrder)}
+							title="Sort files"
+							aria-label="Sort files"
+						>
+							<option value="manual">Manual order</option>
+							<option value="content_datetime">Date</option>
+							<option value="created">Date added</option>
+							<option value="original_name">Name</option>
+						</select>
+						{#if sortKey !== 'manual'}
+							<button
+								class="order-btn"
+								disabled={sortChanging}
+								onclick={() => changeSort(sortKey, sortOrder === 'asc' ? 'desc' : 'asc')}
+								title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+								aria-label="Toggle sort direction"
+							>
+								{sortOrder === 'asc' ? '↑' : '↓'}
+							</button>
+						{/if}
+					</div>
 					{#if canReorder && files.length > 1}
 						<span class="reorder-hint" title="Drag thumbnails to reorder">
 							<svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
@@ -1041,6 +1095,57 @@
 	.filter-btn.active {
 		color: var(--color-accent);
 		border-color: var(--color-accent);
+	}
+
+	.sort-control {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.sort-select {
+		height: 26px;
+		padding: 0 6px;
+		border-radius: 5px;
+		border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+		background-color: var(--color-bg-elevated);
+		color: var(--color-text-muted);
+		font-size: 0.78rem;
+		font-family: inherit;
+		cursor: pointer;
+		outline: none;
+	}
+	.sort-select:hover,
+	.sort-select:focus {
+		color: var(--color-text-primary);
+		border-color: var(--color-accent);
+	}
+	.sort-select:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+
+	.order-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		border-radius: 5px;
+		border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+		background: none;
+		color: var(--color-text-muted);
+		font-size: 0.9rem;
+		line-height: 1;
+		cursor: pointer;
+	}
+	.order-btn:hover {
+		color: var(--color-accent);
+		border-color: var(--color-accent);
+	}
+	.order-btn:disabled {
+		opacity: 0.5;
+		cursor: default;
 	}
 
 	/* ---- File grid ---- */

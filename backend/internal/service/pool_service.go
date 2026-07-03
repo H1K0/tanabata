@@ -13,12 +13,15 @@ import (
 const poolObjectType = "pool"
 const poolObjectTypeID int16 = 4 // fourth row in 007_seed_data.sql object_types
 
-// PoolParams holds the fields for creating or patching a pool.
+// PoolParams holds the fields for creating or patching a pool. SortKey and
+// SortOrder are pointers so a patch can leave them unchanged (nil) vs set them.
 type PoolParams struct {
-	Name     string
-	Notes    *string
-	Metadata json.RawMessage
-	IsPublic *bool
+	Name      string
+	Notes     *string
+	Metadata  json.RawMessage
+	IsPublic  *bool
+	SortKey   *string
+	SortOrder *string
 }
 
 // PoolService handles pool CRUD and pool–file management with ACL + audit.
@@ -164,6 +167,18 @@ func (s *PoolService) Update(ctx context.Context, id uuid.UUID, p PoolParams) (*
 	if p.IsPublic != nil {
 		patch.IsPublic = *p.IsPublic
 	}
+	if p.SortKey != nil {
+		if !domain.ValidPoolSortKey(*p.SortKey) {
+			return nil, domain.ErrValidation
+		}
+		patch.SortKey = *p.SortKey
+	}
+	if p.SortOrder != nil {
+		if !domain.ValidSortOrder(*p.SortOrder) {
+			return nil, domain.ErrValidation
+		}
+		patch.SortOrder = *p.SortOrder
+	}
 
 	updated, err := s.pools.Update(ctx, id, &patch)
 	if err != nil {
@@ -205,12 +220,24 @@ func (s *PoolService) Delete(ctx context.Context, id uuid.UUID) error {
 // Pool–file operations
 // ---------------------------------------------------------------------------
 
-// ListFiles returns cursor-paginated files within a pool ordered by position,
-// enforcing view ACL on the pool.
+// ListFiles returns cursor-paginated files within a pool, enforcing view ACL.
+// The ordering is the pool's own stored sort setting (manual position order or
+// an automatic file-field sort), not a request parameter.
 func (s *PoolService) ListFiles(ctx context.Context, poolID uuid.UUID, params port.PoolFileListParams) (*domain.PoolFilePage, error) {
-	if err := s.authorizeView(ctx, poolID); err != nil {
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+	pool, err := s.pools.GetByID(ctx, poolID)
+	if err != nil {
 		return nil, err
 	}
+	ok, err := s.acl.CanView(ctx, userID, isAdmin, pool.CreatorID, pool.IsPublic, poolObjectTypeID, poolID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, domain.ErrForbidden
+	}
+	params.SortKey = pool.SortKey
+	params.SortOrder = pool.SortOrder
 	return s.pools.ListFiles(ctx, poolID, params)
 }
 
@@ -242,10 +269,23 @@ func (s *PoolService) RemoveFiles(ctx context.Context, poolID uuid.UUID, fileIDs
 }
 
 // Reorder sets the ordered sequence of file IDs within a pool, enforcing edit
-// ACL on the pool.
+// ACL on the pool. Manual ordering only applies when the pool's sort key is
+// "manual"; reordering an auto-sorted pool is rejected as a validation error.
 func (s *PoolService) Reorder(ctx context.Context, poolID uuid.UUID, fileIDs []uuid.UUID) error {
-	if err := s.authorizeEdit(ctx, poolID); err != nil {
+	userID, isAdmin, _ := domain.UserFromContext(ctx)
+	pool, err := s.pools.GetByID(ctx, poolID)
+	if err != nil {
 		return err
+	}
+	ok, err := s.acl.CanEdit(ctx, userID, isAdmin, pool.CreatorID, poolObjectTypeID, poolID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return domain.ErrForbidden
+	}
+	if pool.SortKey != domain.PoolSortManual {
+		return domain.ErrValidation
 	}
 	if err := s.pools.Reorder(ctx, poolID, fileIDs); err != nil {
 		return err

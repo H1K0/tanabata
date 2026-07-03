@@ -30,6 +30,8 @@ type poolRow struct {
 	CreatorID   int16     `db:"creator_id"`
 	CreatorName string    `db:"creator_name"`
 	IsPublic    bool      `db:"is_public"`
+	SortKey     string    `db:"sort_key"`
+	SortOrder   string    `db:"sort_order"`
 	FileCount   int       `db:"file_count"`
 }
 
@@ -68,6 +70,8 @@ func toPool(r poolRow) domain.Pool {
 		CreatorID:   r.CreatorID,
 		CreatorName: r.CreatorName,
 		IsPublic:    r.IsPublic,
+		SortKey:     r.SortKey,
+		SortOrder:   r.SortOrder,
 		FileCount:   r.FileCount,
 		CreatedAt:   domain.UUIDCreatedAt(r.ID),
 	}
@@ -103,9 +107,15 @@ func toPoolFile(r poolFileRow) domain.PoolFile {
 // Cursor
 // ---------------------------------------------------------------------------
 
+// poolFileCursor is the keyset paging cursor for pool files. Which fields are
+// populated depends on the pool's sort key: Pos for manual (position), Val for
+// content_datetime (RFC3339Nano) / original_name (the coalesced name); the
+// "created" sort orders by file id alone, so only FileID matters. FileID is
+// always the final tiebreak.
 type poolFileCursor struct {
-	Position int    `json:"p"`
-	FileID   string `json:"id"`
+	Pos    int    `json:"p,omitempty"`
+	Val    string `json:"v,omitempty"`
+	FileID string `json:"id"`
 }
 
 func encodePoolCursor(c poolFileCursor) string {
@@ -135,6 +145,7 @@ const poolCountSubquery = `(SELECT pool_id, COUNT(*) AS cnt FROM data.file_pool 
 const poolSelectFrom = `
 SELECT p.id, p.name, p.notes, p.metadata,
        p.creator_id, u.name AS creator_name, p.is_public,
+       p.sort_key, p.sort_order,
        COALESCE(fc.cnt, 0) AS file_count
 FROM data.pools p
 JOIN core.users u ON u.id = p.creator_id
@@ -145,6 +156,29 @@ func poolSortColumn(s string) string {
 		return "p.name"
 	}
 	return "p.id" // "created"
+}
+
+// poolFileSort maps a pool's stored sort settings to the SQL column expression,
+// the ORDER BY direction, and the keyset comparison operator used for paging.
+// The column is chosen so it is never NULL (original_name is coalesced), which
+// keeps the keyset comparison total.
+func poolFileSort(sortKey, sortOrder string) (col, dir, cmp string) {
+	dir, cmp = "ASC", ">"
+	if strings.EqualFold(sortOrder, domain.SortOrderDesc) {
+		dir, cmp = "DESC", "<"
+	}
+	switch sortKey {
+	case domain.PoolSortContentDatetime:
+		col = "f.content_datetime"
+	case domain.PoolSortOriginalName:
+		col = "COALESCE(f.original_name, '')"
+	case domain.PoolSortCreated:
+		col = "f.id"
+	default: // manual — the user-arranged sequence; direction does not apply
+		col = "fp.position"
+		dir, cmp = "ASC", ">"
+	}
+	return col, dir, cmp
 }
 
 // ---------------------------------------------------------------------------
@@ -207,6 +241,7 @@ func (r *PoolRepo) List(ctx context.Context, params port.OffsetParams) (*domain.
 	query := fmt.Sprintf(`
 SELECT p.id, p.name, p.notes, p.metadata,
        p.creator_id, u.name AS creator_name, p.is_public,
+       p.sort_key, p.sort_order,
        COALESCE(fc.cnt, 0) AS file_count,
        COUNT(*) OVER() AS total
 FROM data.pools p
@@ -289,6 +324,7 @@ WITH ins AS (
 )
 SELECT ins.id, ins.name, ins.notes, ins.metadata,
        ins.creator_id, u.name AS creator_name, ins.is_public,
+       ins.sort_key, ins.sort_order,
        0 AS file_count
 FROM ins
 JOIN core.users u ON u.id = ins.creator_id`
@@ -322,15 +358,18 @@ func (r *PoolRepo) Update(ctx context.Context, id uuid.UUID, p *domain.Pool) (*d
 	const query = `
 WITH upd AS (
     UPDATE data.pools SET
-        name      = $2,
-        notes     = $3,
-        metadata  = COALESCE($4, metadata),
-        is_public = $5
+        name       = $2,
+        notes      = $3,
+        metadata   = COALESCE($4, metadata),
+        is_public  = $5,
+        sort_key   = $6,
+        sort_order = $7
     WHERE id = $1
     RETURNING *
 )
 SELECT upd.id, upd.name, upd.notes, upd.metadata,
        upd.creator_id, u.name AS creator_name, upd.is_public,
+       upd.sort_key, upd.sort_order,
        COALESCE(fc.cnt, 0) AS file_count
 FROM upd
 JOIN core.users u ON u.id = upd.creator_id
@@ -343,7 +382,7 @@ LEFT JOIN (SELECT pool_id, COUNT(*) AS cnt FROM data.file_pool WHERE pool_id = $
 	}
 
 	q := connOrTx(ctx, r.pool)
-	rows, err := q.Query(ctx, query, id, p.Name, p.Notes, meta, p.IsPublic)
+	rows, err := q.Query(ctx, query, id, p.Name, p.Notes, meta, p.IsPublic, p.SortKey, p.SortOrder)
 	if err != nil {
 		return nil, fmt.Errorf("PoolRepo.Update: %w", err)
 	}
@@ -412,8 +451,16 @@ func (r *PoolRepo) ListFiles(ctx context.Context, poolID uuid.UUID, params port.
 		}
 	}
 
-	// Cursor condition.
-	var orderBy string
+	// Resolve the pool's sort setting (defaulting to manual position order) into
+	// the ORDER BY column, direction, and keyset comparison operator.
+	sortKey := params.SortKey
+	if !domain.ValidPoolSortKey(sortKey) {
+		sortKey = domain.PoolSortManual
+	}
+	col, dir, cmp := poolFileSort(sortKey, params.SortOrder)
+
+	// Keyset cursor condition. For "created" the file id is both the sort key and
+	// the tiebreak, so a single comparison suffices; the others compare (col, id).
 	if params.Cursor != "" {
 		cur, err := decodePoolCursor(params.Cursor)
 		if err != nil {
@@ -423,13 +470,36 @@ func (r *PoolRepo) ListFiles(ctx context.Context, poolID uuid.UUID, params port.
 		if err != nil {
 			return nil, domain.ErrValidation
 		}
-		conds = append(conds, fmt.Sprintf(
-			"(fp.position > $%d OR (fp.position = $%d AND fp.file_id > $%d))",
-			n, n, n+1))
-		args = append(args, cur.Position, fileID)
-		n += 2
+		if sortKey == domain.PoolSortCreated {
+			conds = append(conds, fmt.Sprintf("f.id %s $%d", cmp, n))
+			args = append(args, fileID)
+			n++
+		} else {
+			conds = append(conds, fmt.Sprintf(
+				"(%s %s $%d OR (%s = $%d AND f.id %s $%d))", col, cmp, n, col, n, cmp, n+1))
+			switch sortKey {
+			case domain.PoolSortContentDatetime:
+				t, err := time.Parse(time.RFC3339Nano, cur.Val)
+				if err != nil {
+					return nil, domain.ErrValidation
+				}
+				args = append(args, t)
+			case domain.PoolSortOriginalName:
+				args = append(args, cur.Val)
+			default: // manual
+				args = append(args, cur.Pos)
+			}
+			args = append(args, fileID)
+			n += 2
+		}
 	}
-	orderBy = "fp.position ASC, fp.file_id ASC"
+
+	var orderBy string
+	if sortKey == domain.PoolSortCreated {
+		orderBy = fmt.Sprintf("f.id %s", dir)
+	} else {
+		orderBy = fmt.Sprintf("%s %s, f.id %s", col, dir, dir)
+	}
 
 	where := "WHERE " + strings.Join(conds, " AND ")
 	args = append(args, limit+1)
@@ -468,11 +538,21 @@ LIMIT $%d`, fileSelectForPool, where, orderBy, n)
 
 	if hasMore && len(collected) > 0 {
 		last := collected[len(collected)-1]
-		cur := encodePoolCursor(poolFileCursor{
-			Position: last.Position,
-			FileID:   last.ID.String(),
-		})
-		page.NextCursor = &cur
+		cursor := poolFileCursor{FileID: last.ID.String()}
+		switch sortKey {
+		case domain.PoolSortContentDatetime:
+			cursor.Val = last.ContentDatetime.UTC().Format(time.RFC3339Nano)
+		case domain.PoolSortOriginalName:
+			if last.OriginalName != nil {
+				cursor.Val = *last.OriginalName
+			}
+		case domain.PoolSortCreated:
+			// file id alone orders; nothing else to carry
+		default: // manual
+			cursor.Pos = last.Position
+		}
+		enc := encodePoolCursor(cursor)
+		page.NextCursor = &enc
 	}
 
 	// Batch-load tags.
