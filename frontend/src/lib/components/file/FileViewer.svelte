@@ -760,15 +760,17 @@
 		overflow: hidden;
 	}
 
-	/* Whole preview area is a link: click opens the original in a new tab. */
+	/* The link fills the area for centring, but only the image itself is
+	   clickable (pointer-events below) — tapping the black margins does nothing,
+	   so "open original" fires only on the preview. */
 	.preview-link {
 		width: 100%;
 		height: 100%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		cursor: zoom-in;
 		text-decoration: none;
+		pointer-events: none;
 	}
 
 	.preview-img {
@@ -776,6 +778,8 @@
 		max-height: 100%;
 		object-fit: contain;
 		display: block;
+		cursor: zoom-in;
+		pointer-events: auto; /* only the image opens the original */
 	}
 
 	.preview-busy {
