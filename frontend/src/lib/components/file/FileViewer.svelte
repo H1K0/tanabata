@@ -499,39 +499,43 @@
 			</div>
 		{/if}
 
-		<!-- Prev / Next -->
+		<!-- Prev / Next: the whole left/right side of the preview is a tap zone -->
 		{#if prevId}
 			<button
-				class="nav-btn nav-prev"
+				class="nav-zone nav-prev"
 				onclick={() => prevId && onNavigate(prevId)}
 				aria-label="Previous file"
 			>
-				<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-					<path
-						d="M11 3L5 9L11 15"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-				</svg>
+				<span class="nav-chip">
+					<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+						<path
+							d="M11 3L5 9L11 15"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					</svg>
+				</span>
 			</button>
 		{/if}
 		{#if nextId}
 			<button
-				class="nav-btn nav-next"
+				class="nav-zone nav-next"
 				onclick={() => nextId && onNavigate(nextId)}
 				aria-label="Next file"
 			>
-				<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-					<path
-						d="M7 3L13 9L7 15"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-				</svg>
+				<span class="nav-chip">
+					<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+						<path
+							d="M7 3L13 9L7 15"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					</svg>
+				</span>
 			</button>
 		{/if}
 	</div>
@@ -777,7 +781,7 @@
 	.preview-busy {
 		position: absolute;
 		inset: 0;
-		z-index: 2;
+		z-index: 4; /* above the nav zones — an in-flight replace blocks paging */
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -818,33 +822,58 @@
 		background-color: #1a1010;
 	}
 
-	/* ---- Nav buttons ---- */
-	.nav-btn {
+	/* ---- Nav zones ----
+	   Each covers the full-height left/right portion of the preview so paging
+	   only needs a tap on that side, not a precise hit on the arrow. They sit
+	   above the image, so over a full-width image the sides page and the centre
+	   still opens the original. The dark hint gradient shows on hover only, to
+	   keep photos clean on touch where there is no hover. */
+	.nav-zone {
 		position: absolute;
-		top: 50%;
-		transform: translateY(-50%);
-		width: 40px;
-		height: 40px;
-		border-radius: 50%;
+		top: 0;
+		bottom: 0;
+		width: 30%;
+		max-width: 220px;
 		border: none;
-		background-color: rgba(0, 0, 0, 0.55);
-		color: #fff;
+		background: none;
+		padding: 0 12px;
 		display: flex;
 		align-items: center;
-		justify-content: center;
 		cursor: pointer;
-		transition: background-color 0.15s;
-	}
-
-	.nav-btn:hover {
-		background-color: rgba(0, 0, 0, 0.8);
+		z-index: 3;
+		-webkit-tap-highlight-color: transparent;
 	}
 
 	.nav-prev {
-		left: 10px;
+		left: 0;
+		justify-content: flex-start;
 	}
 	.nav-next {
-		right: 10px;
+		right: 0;
+		justify-content: flex-end;
+	}
+
+	.nav-prev:hover {
+		background: linear-gradient(to right, rgba(0, 0, 0, 0.3), transparent);
+	}
+	.nav-next:hover {
+		background: linear-gradient(to left, rgba(0, 0, 0, 0.3), transparent);
+	}
+
+	.nav-chip {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		background-color: rgba(0, 0, 0, 0.55);
+		color: #fff;
+		transition: background-color 0.15s;
+	}
+
+	.nav-zone:hover .nav-chip {
+		background-color: rgba(0, 0, 0, 0.8);
 	}
 
 	/* ---- Metadata panel ---- */
